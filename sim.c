@@ -20,6 +20,7 @@ static int dir_array[NDIRS] = { DIR_LEFT, DIR_RIGHT, DIR_FRONT, DIR_BACK, DIR_BE
 static int dir_x[] = { DIR_LEFT, DIR_RIGHT };
 static int dir_y[] = { DIR_FRONT, DIR_BACK };
 static int dir_z[] = { DIR_BELOW, DIR_ABOVE };
+static int axis_array[] = { AXIS_X, AXIS_Y, AXIS_Z };
 
 static int iround(double x)
 {
@@ -38,6 +39,14 @@ Point get_point(int i, int j, int k)
     return point;
 }
 
+static int point_eq(Point ponint1, Point ponint2)
+{
+    if (ponint1.i == ponint2.i && ponint1.j == ponint2.j && ponint1.k == ponint2.k)
+	return 1;
+    else
+	return 0;
+}
+
 static Point point_add(Point ponint1, Point ponint2)
 {
     return get_point(
@@ -45,6 +54,17 @@ static Point point_add(Point ponint1, Point ponint2)
 	    ponint1.j + ponint2.j,
 	    ponint1.k + ponint2.k
 	    );
+}
+
+static Point *point_new(Point point)
+{
+    Point *self;
+
+    self = EALLOC(Point);
+    self->i = point.i;
+    self->j = point.j;
+    self->k = point.k;
+    return self;
 }
 
 /* Coef */
@@ -65,10 +85,11 @@ static Coef *coef_new(void)
 static Coefs *coefs_new(void)
 {
     Coefs *self;
-    int dir;
+    int idir, dir;
 
     self = EALLOC(Coefs);
-    for (dir = 0; dir < NELEMS(dir_array); ++dir) {
+    for (idir = 0; idir < NELEMS(dir_array); ++idir) {
+	dir = dir_array[idir];
 	self->coef[dir] = coef_new();
     }
     self->coef0 = 0.0;
@@ -143,9 +164,9 @@ static Point *world_each_begin(World *self)
     size = self->ni * self->nj * self->nk;
     point_ary = EALLOCN(Point, size);
     n = 0;
-    for (k = 0; k < self->nk; ++k) {
+    for (i = 0; i < self->ni; ++i) {
 	for (j = 0; j < self->nj; ++j) {
-	    for (i = 0; i < self->ni; ++i) {
+	    for (k = 0; k < self->nk; ++k) {
 		point_ary[n++] = get_point(i, j, k);
 	    }
 	}
@@ -349,6 +370,18 @@ static void aryobj_push(AryObj *self, Obj *obj)
     self->ptr[self->size - 1] = obj;
 }
 
+/* Heatflow */
+
+static Heatflow *heatflow_new(int dir, double value)
+{
+    Heatflow *self;
+
+    self = EALLOC(Heatflow);
+    self->dir = dir;
+    self->value = value;
+    return self;
+}
+
 /* Config */
 
 static Config *config_new(void)
@@ -359,7 +392,7 @@ static Config *config_new(void)
     self = EALLOC(Config);
     self->world = world_new(0.0, 0.0, 0.0,
 	    1.0, 1.0, 1.0,
-	    0.1, 0.1, 0.1);
+	    1.0 / 2, 1.0 / 2, 1.0 / 2);
     self->active_obj_ary = aryobj_new();
     {
 	obj = obj_new(OBJ_BOX, OBJVAL_I);
@@ -369,20 +402,28 @@ static Config *config_new(void)
     }
 
     self->fix_obj_ary = aryobj_new();
+    /*
     {
 	obj = obj_new(OBJ_RECT, OBJVAL_D);
-	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 0.5, 0.5);
+	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
 	obj->uval.d = 0.0;
 	aryobj_push(self->fix_obj_ary, obj);
     }
+    */
     {
 	obj = obj_new(OBJ_RECT, OBJVAL_D);
-	obj->uobj.rect = rect_new(self->world, 1.0, 0.5, 0.5, AXIS_X, 0.5, 0.5);
-	obj->uval.d = 1.0;
+	obj->uobj.rect = rect_new(self->world, 1.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
+	obj->uval.d = 0.0;
 	aryobj_push(self->fix_obj_ary, obj);
     }
 
     self->heatflow_obj_ary = aryobj_new();
+    {
+	obj = obj_new(OBJ_RECT, OBJVAL_H);
+	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
+	obj->uval.h = heatflow_new(DIR_LEFT, 1.0);
+	aryobj_push(self->heatflow_obj_ary, obj);
+    }
 
     self->lambda_obj_ary = aryobj_new();
 
@@ -461,7 +502,90 @@ static void sim_set_region_fix(Sim *self)
 
 static void sim_set_region_heatflow(Sim *self)
 {
-    fprintf(stderr, "XXX sim_set_region_heatflow\n");
+    Point *p;
+    int idir, dir;
+    AryObj *obj_ary;
+    int index;
+    Obj *obj;
+    Array3Di ary;
+    Point point0;
+    int ntotal, n;
+    int iaxis, axis;
+    int d1, d2, dx, dy, dz;
+    Point pp;
+
+    ALLOCATE_3D(self->heatflow_ary, double *, self->ni, self->nj, self->nk);
+    for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
+	self->heatflow_ary[p->i][p->j][p->k] = EALLOCN(double, NELEMS(dir_array));
+	for (idir = 0; idir < NELEMS(dir_array); ++idir) {
+	    dir = dir_array[idir];
+	    self->heatflow_ary[p->i][p->j][p->k][dir] = -1.0;
+	}
+    }
+    ALLOCATE_3D2(self->heatflow_point_ary, Point *, self->ni, self->nj, self->nk, NULL);
+    obj_ary = self->config->heatflow_obj_ary;
+    for (index = 0; index < obj_ary->size; ++index) {
+	obj = obj_ary->ptr[index];
+	ALLOCATE_3D2(ary, int, self->ni, self->nj, self->nk, 0);
+
+	p = obj_each_begin(obj);
+	point0 = *p;
+	self->heatflow_point_ary[p->i][p->j][p->k] = point_new(point0);
+	ary[p->i][p->j][p->k] = 1;
+	for (; p != NULL; p = obj_each(obj)) {
+	    self->heatflow_point_ary[p->i][p->j][p->k] = point_new(point0);
+	    ary[p->i][p->j][p->k] = 1;
+	}
+
+	ntotal = 0;
+	for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
+	    if (!ary[p->i][p->j][p->k])
+		continue;
+	    n = 0;
+	    for (iaxis = 0; iaxis < NELEMS(axis_array); ++iaxis) {
+		axis = axis_array[iaxis];
+		for (d1 = -1; d1 <= 1; d1 += 2) {
+		    for (d2 = -1; d2 <= 1; d2 += 2) {
+			switch (axis) {
+			case AXIS_X:
+			    dx = 0;
+			    dy = d1;
+			    dz = d2;
+			    break;
+			case AXIS_Y:
+			    dx = d2;
+			    dy = 0;
+			    dz = d1;
+			    break;
+			case AXIS_Z:
+			    dx = d1;
+			    dy = d2;
+			    dz = 0;
+			    break;
+			default:
+			    bug("unknown axis %d", axis);
+			}
+			pp = point_add(*p, get_point(dx, dy, dz));
+			if (sim_active_p(self, pp) && ary[pp.i][pp.j][pp.k])
+			    n += 1;
+		    }
+		}
+	    }
+	    assert(n > 0 && n <= 4);
+	    self->heatflow_ary[p->i][p->j][p->k][obj->uval.h->dir] = obj->uval.h->value * n;
+	    ntotal += n;
+	}
+	for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
+	    if (ary[p->i][p->j][p->k]) {
+		self->heatflow_ary[p->i][p->j][p->k][obj->uval.h->dir] /= ntotal;
+	    }
+	}
+    }
+    for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
+	for (idir = 0; idir < NELEMS(dir_array); ++idir) {
+	    dir = dir_array[idir];
+	}
+    }
 }
 
 static void sim_set_region_lambda(Sim *self)
@@ -484,26 +608,20 @@ static void sim_set_region(Sim *self)
 
 static void sim_set_matrix_const(Sim *self, int i, int j, int k, Point point)
 {
-    int dir;
+    int idir, dir;
 
-    static int XXX = 1;
-    if (XXX) {
-	fprintf(stderr, "XXX sim_set_matrix_const\n");
-	XXX = 0;
-    }
-
-    for (dir = 0; dir < NELEMS(dir_array); ++dir) {
-	/*
-	 * next if @heatflow_ary[i, j, k][dir].nil?
-	 * @coefs[*point.to_a].const += @heatflow_ary[i, j, k][dir]
-	 */
+    for (idir = 0; idir < NELEMS(dir_array); ++idir) {
+	dir = dir_array[idir];
+	if (self->heatflow_ary[i][j][k][dir] < 0.0)
+	    continue;
+	self->coefs[point.i][point.j][point.k]->cnst += self->heatflow_ary[i][j][k][dir];
     }
 }
 
 static void sim_set_matrix_coef0(Sim *self,
 	int i, int j, int k, Point point, double dx, double dy, double dz)
 {
-    int dir;
+    int idir, dir;
     int ix, iy, iz;
     Point pp;
     double l;
@@ -514,8 +632,10 @@ static void sim_set_matrix_coef0(Sim *self,
 	XXX = 0;
     }
 
-    for (dir = 0; dir < NELEMS(dir_array); ++dir) {
-	/* next unless @heatflow_ary[i, j, k][dir].nil? */
+    for (idir = 0; idir < NELEMS(dir_array); ++idir) {
+	dir = dir_array[idir];
+	if (self->heatflow_ary[i][j][k][dir] >= 0.0)
+	    continue;
 	if (!sim_active_p(self, point_add(point, self->dir_to_point[dir])))
 	    continue;
 	switch (dir) {
@@ -576,7 +696,7 @@ static void sim_set_matrix_coef0(Sim *self,
 static void sim_set_matrix_coef(Sim *self,
 	int i, int j, int k, Point point, double dx, double dy, double dz)
 {
-    int dir;
+    int idir, dir;
     double value;
     int ix, iy, iz;
     Point pp;
@@ -588,16 +708,15 @@ static void sim_set_matrix_coef(Sim *self,
 	XXX = 0;
     }
 
-    for (dir = 0; dir < NELEMS(dir_array); ++dir) {
+    for (idir = 0; idir < NELEMS(dir_array); ++idir) {
+	dir = dir_array[idir];
 	if (!sim_active_p(self, point_add(point, self->dir_to_point[dir]))) {
 	    self->coefs[point.i][point.j][point.k]->coef[dir]->index = -1;
 	    continue;
 	}
-	/*
-	unless @heatflow_ary[i, j, k][dir].nil?
-	  raise "heatflow comes from active cell at (#{i}, #{j}, #{k})"
-	end
-	*/
+	if (self->heatflow_ary[i][j][k][dir] >= 0.0)
+	    warn_exit("heatflow comes from active cell at (%d, %d, %d)", i, j, k);
+
 	self->coefs[point.i][point.j][point.k]->coef[dir]->index =
 	    world_to_index(self->world, point_add(point, self->dir_to_point[dir]));
 	value = 0.0;
@@ -661,13 +780,7 @@ static void sim_set_matrix(Sim *self)
 {
     Point *p;
     double dx, dy, dz;
-    Point point;
-
-    static int XXX = 1;
-    if (XXX) {
-	fprintf(stderr, "XXX sim_set_matrix\n");
-	XXX = 0;
-    }
+    Point *pp, point;
 
     ALLOCATE_3D2(self->u, double, self->ni, self->nj, self->nk, 0.0);
     for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
@@ -688,16 +801,13 @@ static void sim_set_matrix(Sim *self)
 	if (self->fix_ary[p->i][p->j][p->k] >= 0.0)
 	    continue;
 
-	/*
-	  point = @heatflow_point_ary[i, j, k]
-	  if point.nil?
-	    point = Point.new(i, j, k)
-	  elsif point != Point.new(i, j, k)
-	    next
-	  end
-	  */
-
-	point = get_point(p->i, p->j, p->k);
+	pp = self->heatflow_point_ary[p->i][p->j][p->k];
+	if (pp == NULL)
+	    point = get_point(p->i, p->j, p->k);
+	else if (!point_eq(*pp, *p))
+	    continue;
+	else
+	    point = *pp;
 
 	sim_set_matrix_const(self, p->i, p->j, p->k, point);
 	sim_set_matrix_coef0(self, p->i, p->j, p->k, point, dx, dy, dz);
@@ -730,7 +840,7 @@ Array3Dd sim_calc(Sim *self)
     Solvele *solver;
     Point *p;
     int index, index2;
-    int dir;
+    int idir, dir;
     double c;
     double *sol;
     Array3Dd ary;
@@ -742,15 +852,16 @@ Array3Dd sim_calc(Sim *self)
 	if (self->fix_ary[p->i][p->j][p->k] >= 0.0 || !self->active_p_ary[p->i][p->j][p->k]) {
 	    solvele_set_matrix(solver, index, index, 1.0);
 	    solvele_set_vector(solver, index, self->u[p->i][p->j][p->k]);
-	} else if (0) {
-	    /*
-	      elsif not @heatflow_point_ary[i, j, k].nil? and (point != @heatflow_point_ary[i, j, k])
-		solver.set_matrix(index, index, 1.0);
-		solver.set_matrix(index, @world.to_index(@heatflow_point_ary[i, j, k]), -1.0);
-		solver.set_vector(index, 0.0);
-		*/
+	} else if (self->heatflow_point_ary[p->i][p->j][p->k] != NULL &&
+		!point_eq(*p, *(self->heatflow_point_ary[p->i][p->j][p->k]))) {
+	    solvele_set_matrix(solver, index, index, 1.0);
+	    solvele_set_matrix(solver,
+		    index, world_to_index(self->world, *self->heatflow_point_ary[p->i][p->j][p->k]),
+		    -1.0);
+	    solvele_set_vector(solver, index, 0.0);
 	} else {
-	    for (dir = 0; dir < NELEMS(dir_array); ++dir) {
+	    for (idir = 0; idir < NELEMS(dir_array); ++idir) {
+		dir = dir_array[idir];
 		index2 = self->coefs[p->i][p->j][p->k]->coef[dir]->index;
 		if (index2 < 0)
 		    continue;
@@ -762,12 +873,14 @@ Array3Dd sim_calc(Sim *self)
 	}
     }
 
-    sol = solvele_solve(solver, 0);
+    solvele_print_matrix(solver);
+    solvele_print_vector(solver);
+
+    sol = solvele_solve(solver, 1);
 
     ALLOCATE_3D(ary, double, self->ni, self->nj, self->nk);
-    index = 0;
     for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
-	ary[p->i][p->j][p->k] = sol[index++];
+	ary[p->i][p->j][p->k] = sol[world_to_index(self->world, *p)];
     }
 
     return ary;

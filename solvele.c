@@ -1,5 +1,9 @@
-#include <math.h>
 #include "config.h"
+
+#ifdef HAVE_UMFPACK_H
+#include "umfpack.h"
+#endif
+#include <math.h>
 #include "solvele.h"
 #include "sparse_matrix.h"
 #include "mem.h"
@@ -7,7 +11,7 @@
 
 #define DBL_EPS	1.0e-15
 #define EPS	1.0e-6
-#define OMEGA	1.9
+#define OMEGA	1.0
 
 void solvele_set_matrix(Solvele *self, int i, int j, double val)
 {

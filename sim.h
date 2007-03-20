@@ -12,6 +12,8 @@ typedef struct Point {
     int k;
 } Point;
 
+typedef Point *** Array3Dp;
+
 Point get_point(int i, int j, int k);
 
 typedef struct Coef {
@@ -48,6 +50,11 @@ typedef struct World {
     int nk;
     Each *each;
 } World;
+
+typedef struct Heatflow {
+    int dir;
+    double value;
+} Heatflow;
 
 enum {
     AXIS_X,
@@ -86,11 +93,13 @@ union uobj {
 enum {
     OBJVAL_I,
     OBJVAL_D,
+    OBJVAL_H,
 };
 
 union uval {
     int i;
     double d;
+    Heatflow *h;
 } uval;
 
 typedef struct Obj {
@@ -122,6 +131,8 @@ typedef struct Sim {
     int nk;
     Array3Di active_p_ary;
     Array3Dd fix_ary;
+    Array3Dd *heatflow_ary;
+    Array3Dp *heatflow_point_ary;
     Array3Dd u;
     Array3Dc *coefs;
 } Sim;
