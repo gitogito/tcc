@@ -3,15 +3,19 @@
 #ifdef HAVE_UMFPACK_H
 #include "umfpack.h"
 #endif
+#include <stdio.h>
 #include <math.h>
 #include "solvele.h"
 #include "sparse_matrix.h"
 #include "mem.h"
 #include "tc.h"
 
+#ifndef M_PI
+#define M_PI	3.14159265358979323846
+#endif
+
 #define DBL_EPS	1.0e-15
 #define EPS	1.0e-6
-#define OMEGA	1.0
 
 void solvele_set_matrix(Solvele *self, int i, int j, double val)
 {
@@ -41,7 +45,7 @@ void solvele_print_vector(Solvele *self)
     dvec_print(self->vec);
 }
 
-double *solvele_solve(Solvele *self, int use_umfpack_p)
+double *solvele_solve(Solvele *self, int ni, int nj, int nk, int use_umfpack_p)
 {
     int *ap;
     int *ai;
@@ -51,6 +55,7 @@ double *solvele_solve(Solvele *self, int use_umfpack_p)
 #ifdef HAVE_UMFPACK_H
     void *Symbolic, *Numeric;
 #endif
+    double omega;
     int size, ok, pi, i, j;
     double v, old_val, new_val, c0;
 
@@ -73,6 +78,7 @@ double *solvele_solve(Solvele *self, int use_umfpack_p)
         for (i = 0; i < size; ++i) {
             u[i] = 0.0;
         }
+        omega = 2.0 / (1.0 + sqrt(1.0 - 1.0/3.0 * (cos(M_PI / ni) + cos(M_PI / nj) + cos(M_PI / nk))));
         for (;;) {
             ok = 1;
             for (i = 0; i < size; ++i) {
@@ -86,7 +92,7 @@ double *solvele_solve(Solvele *self, int use_umfpack_p)
                 }
                 new_val = v / c0;
                 old_val = u[i];
-                u[i] += OMEGA * (new_val - old_val);
+                u[i] += omega * (new_val - old_val);
                 if (ok && fabs(new_val) > DBL_EPS &&
                         fabs(new_val - old_val) > EPS * fabs(new_val))
                 {

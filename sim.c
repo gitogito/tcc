@@ -472,7 +472,7 @@ static Config *config_new(void)
     self = EALLOC(Config);
     self->world = world_new(0.0, 0.0, 0.0,
 	    1.0, 1.0, 1.0,
-	    1.0 / 10, 1.0 / 10, 1.0 / 10);
+	    1.0 / 50, 1.0 / 50, 1.0 / 50);
     self->active_obj_ary = aryobj_new();
     {
 	obj = obj_new(OBJ_BOX, OBJVAL_I);
@@ -962,7 +962,7 @@ Array3Dd sim_calc(Sim *self)
     //solvele_print_matrix(solver);
     //solvele_print_vector(solver);
 
-    sol = solvele_solve(solver, 1);
+    sol = solvele_solve(solver, self->ni, self->nj, self->nk, 0);
 
     ALLOCATE_3D(ary, double, self->ni, self->nj, self->nk);
     for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
