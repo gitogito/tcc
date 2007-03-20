@@ -1,5 +1,5 @@
 CC = gcc
-CFLAGS = -g -Wall -O0
+CFLAGS = -g -Wall -O2
 LIBS = -lgc -lm
 
 TARGET = a.out
