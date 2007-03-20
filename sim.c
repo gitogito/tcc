@@ -291,7 +291,7 @@ static Point *box_each_begin(Box *self)
     n = 0;
     do {
 	for (k = p->k; k < p->k + leni; ++k) {
-	    point_ary[n++] = *p;
+	    point_ary[n++] = get_point(p->i, p->j, k);
 	}
 	p = rect_each(self->rect);
     } while (p != NULL);
@@ -392,11 +392,17 @@ static Config *config_new(void)
     self = EALLOC(Config);
     self->world = world_new(0.0, 0.0, 0.0,
 	    1.0, 1.0, 1.0,
-	    1.0 / 2, 1.0 / 2, 1.0 / 2);
+	    1.0 / 4, 1.0 / 4, 1.0 / 4);
     self->active_obj_ary = aryobj_new();
     {
 	obj = obj_new(OBJ_BOX, OBJVAL_I);
-	obj->uobj.box = box_new(self->world, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
+	obj->uobj.box = box_new(self->world, 0.0, 0.0, 0.0, 1.0, 1.0, 0.5);
+	obj->uval.i = 1;
+	aryobj_push(self->active_obj_ary, obj);
+    }
+    {
+	obj = obj_new(OBJ_RECT, OBJVAL_I);
+	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
 	obj->uval.i = 1;
 	aryobj_push(self->active_obj_ary, obj);
     }
@@ -412,7 +418,7 @@ static Config *config_new(void)
     */
     {
 	obj = obj_new(OBJ_RECT, OBJVAL_D);
-	obj->uobj.rect = rect_new(self->world, 1.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
+	obj->uobj.rect = rect_new(self->world, 1.0, 0.0, 0.0, AXIS_X, 1.0, 0.5);
 	obj->uval.d = 0.0;
 	aryobj_push(self->fix_obj_ary, obj);
     }
@@ -420,7 +426,7 @@ static Config *config_new(void)
     self->heatflow_obj_ary = aryobj_new();
     {
 	obj = obj_new(OBJ_RECT, OBJVAL_H);
-	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
+	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 1.0, 0.5);
 	obj->uval.h = heatflow_new(DIR_LEFT, 1.0);
 	aryobj_push(self->heatflow_obj_ary, obj);
     }
@@ -444,42 +450,45 @@ int sim_active_p(Sim *self, Point point)
 
 static void sim_set_region_active(Sim *self)
 {
+    static int dir_xyz[3][2] = {
+	{ DIR_LEFT, DIR_RIGHT },
+	{ DIR_FRONT, DIR_BACK },
+	{ DIR_BELOW, DIR_ABOVE }
+    };
     Point *p;
     AryObj *active_obj_ary;
     Obj *obj;
-    int i;
+    int index;
+    int continue_p;
+    int *dirs;
 
-    ALLOCATE_3D2(self->active_p_ary, int, self->ni, self->nj, self->nk, -1);
+    ALLOCATE_3D2(self->active_p_ary, int, self->ni, self->nj, self->nk, 0);
     active_obj_ary = self->config->active_obj_ary;
-    for (i = 0; i < active_obj_ary->size; ++i) {
-	obj = active_obj_ary->ptr[i];
+    for (index = 0; index < active_obj_ary->size; ++index) {
+	obj = active_obj_ary->ptr[index];
 	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
 	    (self->active_p_ary)[p->i][p->j][p->k] = obj->uval.i;
 	}
     }
-    /*
-    # remove active flag from the point having active alone plane in NDIR directions
-    begin
-      continue_p = false
-      @world.each do |i, j, k|
-        next unless @active_p_ary[i, j, k]
-        pnt = Point.new(i, j, k)
-        [
-          [:LEFT, :RIGHT],
-          [:FRONT, :BACK],
-          [:BELOW, :ABOVE]
-        ].each do |dirs|
-          if not active_p(pnt + @dir_to_point[dirs[0]]) and
-            not active_p(pnt + @dir_to_point[dirs[1]])
-            @active_p_ary[i, j, k] = false
-            continue_p = true
-            STDERR.puts "removed (#{i}, #{j}, #{k})"
-          end
-        end
-      end
-    end while continue_p
-    */
-    fprintf(stderr, "XXX sim_set_region_active\n");
+
+    /* remove active flag from the point having active alone plane in NDIR directions */
+    do {
+	continue_p = 0;
+	for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
+	    if (!self->active_p_ary[p->i][p->j][p->k])
+		continue;
+
+	    for (index = 0; index < NELEMS(dir_xyz); ++index) {
+		dirs = dir_xyz[index];
+		if (!sim_active_p(self, point_add(*p, self->dir_to_point[dirs[0]])) &&
+			!sim_active_p(self, point_add(*p, self->dir_to_point[dirs[1]]))) {
+		    self->active_p_ary[p->i][p->j][p->k] = 0;
+		    continue_p = 1;
+		    fprintf(stderr, "removed (%d, %d, %d)\n", p->i, p->j, p->k);
+		}
+	    }
+	}
+    } while (continue_p);
 }
 
 static void sim_set_region_fix(Sim *self)
@@ -873,8 +882,8 @@ Array3Dd sim_calc(Sim *self)
 	}
     }
 
-    solvele_print_matrix(solver);
-    solvele_print_vector(solver);
+    //solvele_print_matrix(solver);
+    //solvele_print_vector(solver);
 
     sol = solvele_solve(solver, 1);
 
