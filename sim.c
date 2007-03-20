@@ -39,6 +39,46 @@ Point get_point(int i, int j, int k)
     return point;
 }
 
+Point point_offset(Point point, int dirx, int diry, int dirz)
+{
+    int i, j, k;
+
+    switch (dirx) {
+    case DIR_LEFT:
+	i = point.i - 1;
+	break;
+    case DIR_RIGHT:
+	i = point.i;
+	break;
+    default:
+	bug("unknown dir %d", dirx);
+    }
+
+    switch (diry) {
+    case DIR_FRONT:
+	j = point.j - 1;
+	break;
+    case DIR_BACK:
+	j = point.j;
+	break;
+    default:
+	bug("unknown dir %d", diry);
+    }
+
+    switch (dirz) {
+    case DIR_BELOW:
+	k = point.k - 1;
+	break;
+    case DIR_ABOVE:
+	k = point.k;
+	break;
+    default:
+	bug("unknown dir %d", dirz);
+    }
+
+    return get_point(i, j, k);
+}
+
 static int point_eq(Point ponint1, Point ponint2)
 {
     if (ponint1.i == ponint2.i && ponint1.j == ponint2.j && ponint1.k == ponint2.k)
@@ -259,6 +299,26 @@ static Point *rect_each(Rect *self)
     return each_each(self->each);
 }
 
+static void rect_offset(Rect *self)
+{
+    switch (self->axis) {
+    case AXIS_X:
+	self->len1 -= self->world->dy;
+	self->len2 -= self->world->dz;
+	break;
+    case AXIS_Y:
+	self->len1 -= self->world->dz;
+	self->len2 -= self->world->dx;
+	break;
+    case AXIS_Z:
+	self->len1 -= self->world->dx;
+	self->len2 -= self->world->dy;
+	break;
+    default:
+	bug("unknow axis %d", self->axis);
+    }
+}
+
 /* Box */
 
 static Box *box_new(World *world, double x, double y, double z, double xlen, double ylen, double zlen)
@@ -303,6 +363,12 @@ static Point *box_each_begin(Box *self)
 static Point *box_each(Box *self)
 {
     return each_each(self->each);
+}
+
+static void box_offset(Box *self)
+{
+    rect_offset(self->rect);
+    self->sweeplen -= self->world->dz;
 }
 
 /* Obj */
@@ -351,6 +417,20 @@ static Point *obj_each(Obj *self)
     return p;
 }
 
+static void obj_offset(Obj *self)
+{
+    switch (self->objtype) {
+    case OBJ_RECT:
+	rect_offset(self->uobj.rect);
+	break;
+    case OBJ_BOX:
+	box_offset(self->uobj.box);
+	break;
+    default:
+	bug("unknown obj %d", self->objtype);
+    }
+}
+
 /* AryObj */
 
 static AryObj *aryobj_new(void)
@@ -392,46 +472,47 @@ static Config *config_new(void)
     self = EALLOC(Config);
     self->world = world_new(0.0, 0.0, 0.0,
 	    1.0, 1.0, 1.0,
-	    1.0 / 4, 1.0 / 4, 1.0 / 4);
+	    1.0 / 10, 1.0 / 10, 1.0 / 10);
     self->active_obj_ary = aryobj_new();
     {
 	obj = obj_new(OBJ_BOX, OBJVAL_I);
-	obj->uobj.box = box_new(self->world, 0.0, 0.0, 0.0, 1.0, 1.0, 0.5);
-	obj->uval.i = 1;
-	aryobj_push(self->active_obj_ary, obj);
-    }
-    {
-	obj = obj_new(OBJ_RECT, OBJVAL_I);
-	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
+	obj->uobj.box = box_new(self->world, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
 	obj->uval.i = 1;
 	aryobj_push(self->active_obj_ary, obj);
     }
 
     self->fix_obj_ary = aryobj_new();
-    /*
     {
 	obj = obj_new(OBJ_RECT, OBJVAL_D);
 	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
-	obj->uval.d = 0.0;
+	obj->uval.d = 1.0;
 	aryobj_push(self->fix_obj_ary, obj);
     }
-    */
     {
 	obj = obj_new(OBJ_RECT, OBJVAL_D);
-	obj->uobj.rect = rect_new(self->world, 1.0, 0.0, 0.0, AXIS_X, 1.0, 0.5);
+	obj->uobj.rect = rect_new(self->world, 1.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
 	obj->uval.d = 0.0;
 	aryobj_push(self->fix_obj_ary, obj);
     }
 
     self->heatflow_obj_ary = aryobj_new();
+    /*
     {
 	obj = obj_new(OBJ_RECT, OBJVAL_H);
-	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 1.0, 0.5);
+	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
 	obj->uval.h = heatflow_new(DIR_LEFT, 1.0);
 	aryobj_push(self->heatflow_obj_ary, obj);
     }
+    */
 
     self->lambda_obj_ary = aryobj_new();
+    {
+	obj = obj_new(OBJ_BOX, OBJVAL_D);
+	obj->uobj.box = box_new(self->world, 0.0, 0.0, 0.0, 0.5, 1.0, 1.0);
+	obj->uval.d = 10.0;
+	obj_offset(obj);
+	aryobj_push(self->lambda_obj_ary, obj);
+    }
 
     return self;
 }
@@ -599,7 +680,19 @@ static void sim_set_region_heatflow(Sim *self)
 
 static void sim_set_region_lambda(Sim *self)
 {
-    fprintf(stderr, "XXX sim_set_region_lambda\n");
+    int index;
+    AryObj *obj_ary;
+    Obj *obj;
+    Point *p;
+
+    ALLOCATE_3D2(self->lambda_ary, double, self->ni, self->nj, self->nk, 1.0);
+    obj_ary = self->config->lambda_obj_ary;
+    for (index = 0; index < obj_ary->size; ++index) {
+	obj = obj_ary->ptr[index];
+	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
+	    self->lambda_ary[p->i][p->j][p->k] = obj->uval.d;
+	}
+    }
 }
 
 static void sim_set_region(Sim *self)
@@ -632,14 +725,9 @@ static void sim_set_matrix_coef0(Sim *self,
 {
     int idir, dir;
     int ix, iy, iz;
-    Point pp;
+    int dirx, diry, dirz;
+    Point pp, point_l;
     double l;
-
-    static int XXX = 1;
-    if (XXX) {
-	fprintf(stderr, "XXX sim_set_matrix_coef0\n");
-	XXX = 0;
-    }
 
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
@@ -650,15 +738,14 @@ static void sim_set_matrix_coef0(Sim *self,
 	switch (dir) {
 	case DIR_LEFT: case DIR_RIGHT:
 	    for (iy = 0; iy < NELEMS(dir_y); ++iy) {
+		diry = dir_y[iy];
 		for (iz = 0; iz < NELEMS(dir_z); ++iz) {
-		    pp = point_add(point, self->dir_to_point[dir_y[iy]]);
-		    pp = point_add(pp, self->dir_to_point[dir_z[iz]]);
+		    dirz = dir_z[iz];
+		    pp = point_add(point, self->dir_to_point[diry]);
+		    pp = point_add(pp, self->dir_to_point[dirz]);
 		    if (sim_active_p(self, pp)) {
-			/*
-			   pnt_l = point.offset(dir, diry, dirz);
-			   l = @lambda_ary[*pnt_l.to_a];
-			   */
-			l = 1.0;
+			point_l = point_offset(point, dir, diry, dirz);
+			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
 			self->coefs[point.i][point.j][point.k]->coef0 += -l/dx*(dy/2)*(dz/2);
 		    }
 		}
@@ -666,15 +753,14 @@ static void sim_set_matrix_coef0(Sim *self,
 	    break;
 	case DIR_FRONT: case DIR_BACK:
 	    for (iz = 0; iz < NELEMS(dir_z); ++iz) {
+		dirz = dir_z[iz];
 		for (ix = 0; ix < NELEMS(dir_x); ++ix) {
-		    pp = point_add(point, self->dir_to_point[dir_z[iz]]);
-		    pp = point_add(pp, self->dir_to_point[dir_x[ix]]);
+		    dirx = dir_x[ix];
+		    pp = point_add(point, self->dir_to_point[dirz]);
+		    pp = point_add(pp, self->dir_to_point[dirx]);
 		    if (sim_active_p(self, pp)) {
-			/*
-			   pnt_l = point.offset(dirx, dir, dirz);
-			   l = @lambda_ary[*pnt_l.to_a];
-			   */
-			l = 1.0;
+			point_l = point_offset(point, dirx, dir, dirz);
+			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
 			self->coefs[point.i][point.j][point.k]->coef0 += -l/dy*(dz/2)*(dx/2);
 		    }
 		}
@@ -682,15 +768,14 @@ static void sim_set_matrix_coef0(Sim *self,
 	    break;
 	case DIR_BELOW: case DIR_ABOVE:
 	    for (ix = 0; ix < NELEMS(dir_x); ++ix) {
+		dirx = dir_x[ix];
 		for (iy = 0; iy < NELEMS(dir_y); ++iy) {
-		    pp = point_add(point, self->dir_to_point[dir_x[ix]]);
-		    pp = point_add(pp, self->dir_to_point[dir_y[iy]]);
+		    diry = dir_y[iy];
+		    pp = point_add(point, self->dir_to_point[dirx]);
+		    pp = point_add(pp, self->dir_to_point[diry]);
 		    if (sim_active_p(self, pp)) {
-			/*
-			   pnt_l = point.offset(dirx, diry, dir);
-			   l = @lambda_ary[*pnt_l.to_a];
-			   */
-			l = 1.0;
+			point_l = point_offset(point, dirx, diry, dir);
+			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
 			self->coefs[point.i][point.j][point.k]->coef0 += -l/dz*(dx/2)*(dy/2);
 		    }
 		}
@@ -706,16 +791,11 @@ static void sim_set_matrix_coef(Sim *self,
 	int i, int j, int k, Point point, double dx, double dy, double dz)
 {
     int idir, dir;
+    int dirx, diry, dirz;
     double value;
     int ix, iy, iz;
-    Point pp;
+    Point pp, point_l;
     double l;
-
-    static int XXX = 1;
-    if (XXX) {
-	fprintf(stderr, "XXX sim_set_matrix_coef\n");
-	XXX = 0;
-    }
 
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
@@ -732,15 +812,14 @@ static void sim_set_matrix_coef(Sim *self,
 	switch (dir) {
 	case DIR_LEFT: case DIR_RIGHT:
 	    for (iy = 0; iy < NELEMS(dir_y); ++iy) {
+		diry = dir_y[iy];
 		for (iz = 0; iz < NELEMS(dir_z); ++iz) {
-		    pp = point_add(point, self->dir_to_point[dir_y[iy]]);
-		    pp = point_add(pp, self->dir_to_point[dir_z[iz]]);
+		    dirz = dir_z[iz];
+		    pp = point_add(point, self->dir_to_point[diry]);
+		    pp = point_add(pp, self->dir_to_point[dirz]);
 		    if (sim_active_p(self, pp)) {
-			/*
-			   pnt_l = point.offset(dir, diry, dirz);
-			   l = @lambda_ary[*pnt_l.to_a];
-			   */
-			l = 1.0;
+			point_l = point_offset(point, dir, diry, dirz);
+			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
 			value += l/dx*(dy/2)*(dz/2);
 		    }
 		}
@@ -748,15 +827,14 @@ static void sim_set_matrix_coef(Sim *self,
 	    break;
 	case DIR_FRONT: case DIR_BACK:
 	    for (iz = 0; iz < NELEMS(dir_z); ++iz) {
+		dirz = dir_z[iz];
 		for (ix = 0; ix < NELEMS(dir_x); ++ix) {
-		    pp = point_add(point, self->dir_to_point[dir_z[iz]]);
-		    pp = point_add(pp, self->dir_to_point[dir_x[ix]]);
+		    dirx = dir_x[ix];
+		    pp = point_add(point, self->dir_to_point[dirz]);
+		    pp = point_add(pp, self->dir_to_point[dirx]);
 		    if (sim_active_p(self, pp)) {
-			/*
-			   pnt_l = point.offset(dirx, dir, dirz);
-			   l = @lambda_ary[*pnt_l.to_a];
-			   */
-			l = 1.0;
+			point_l = point_offset(point, dirx, dir, dirz);
+			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
 			value += l/dy*(dz/2)*(dx/2);
 		    }
 		}
@@ -764,15 +842,14 @@ static void sim_set_matrix_coef(Sim *self,
 	    break;
 	case DIR_BELOW: case DIR_ABOVE:
 	    for (ix = 0; ix < NELEMS(dir_x); ++ix) {
+		dirx = dir_x[ix];
 		for (iy = 0; iy < NELEMS(dir_y); ++iy) {
-		    pp = point_add(point, self->dir_to_point[dir_x[ix]]);
-		    pp = point_add(pp, self->dir_to_point[dir_y[iy]]);
+		    diry = dir_y[iy];
+		    pp = point_add(point, self->dir_to_point[dirx]);
+		    pp = point_add(pp, self->dir_to_point[diry]);
 		    if (sim_active_p(self, pp)) {
-			/*
-			   pnt_l = point.offset(dirx, diry, dir);
-			   l = @lambda_ary[*pnt_l.to_a];
-			   */
-			l = 1.0;
+			point_l = point_offset(point, dirx, diry, dir);
+			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
 			value += l/dz*(dx/2)*(dy/2);
 		    }
 		}

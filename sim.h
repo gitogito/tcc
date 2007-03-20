@@ -133,6 +133,7 @@ typedef struct Sim {
     Array3Dd fix_ary;
     Array3Dd *heatflow_ary;
     Array3Dp *heatflow_point_ary;
+    Array3Dd lambda_ary;
     Array3Dd u;
     Array3Dc *coefs;
 } Sim;
