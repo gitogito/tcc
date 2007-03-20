@@ -18,6 +18,17 @@
 	} \
     } \
 } while (0)
+#define ALLOCATE_3D2(var, type, ni, nj, nk, init)	do { \
+    int i, j, k; \
+    ALLOCATE_3D((var), type, (ni), (nj), (nk)); \
+    for (i = 0; i < (ni); ++i) { \
+	for (j = 0; j < (nj); ++j) { \
+            for (k = 0; k < (nk); ++k) { \
+                (var)[i][j][k] = init; \
+            } \
+        } \
+    } \
+} while (0)
 
 #ifdef HAVE_LIBGC
 

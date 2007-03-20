@@ -1,6 +1,8 @@
 #ifndef _SIM_H_
 #define _SIM_H_
 
+#define NDIRS   (2 * 3) /* 2 * (number of dimensions) */
+
 typedef double *** Array3Dd;
 typedef int *** Array3Di;
 
@@ -9,6 +11,21 @@ typedef struct Point {
     int j;
     int k;
 } Point;
+
+Point get_point(int i, int j, int k);
+
+typedef struct Coef {
+    int index;
+    double value;
+} Coef;
+
+typedef struct Coefs {
+    Coef *coef[NDIRS];
+    double coef0;
+    double cnst;
+} Coefs;
+
+typedef Coefs *** Array3Dc;
 
 typedef struct Each {
     int size;
@@ -98,14 +115,18 @@ typedef struct Config {
 
 typedef struct Sim {
     Config *config;
+    Point dir_to_point[NDIRS];
     World *world;
     int ni;
     int nj;
     int nk;
     Array3Di active_p_ary;
     Array3Dd fix_ary;
+    Array3Dd u;
+    Array3Dc *coefs;
 } Sim;
 
+int sim_active_p(Sim *self, Point point);
 Sim *sim_new(void);
 Array3Dd sim_calc(Sim *sim);
 
