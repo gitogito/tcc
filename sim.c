@@ -804,7 +804,7 @@ static void sim_set_matrix_coef(Sim *self,
 	    continue;
 	}
 	if (self->heatflow_ary[i][j][k][dir] >= 0.0)
-	    warn_exit("heatflow comes from active cell at (%d, %d, %d)", i, j, k);
+	    warn_exit("heatflow(%g) comes from active cell at (%d, %d, %d), dir(%d)", self->heatflow_ary[i][j][k][dir], i, j, k, dir);
 
 	self->coefs[point.i][point.j][point.k]->coef[dir]->index =
 	    world_to_index(self->world, point_add(point, self->dir_to_point[dir]));

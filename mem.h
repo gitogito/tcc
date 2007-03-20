@@ -1,6 +1,8 @@
 #ifndef _MEM_H_
 #define _MEM_H_
 
+#include "config.h"
+
 #define EALLOCN(type, n)	((type *) emalloc(sizeof(type) * (n)))
 #define EALLOC(type)		(EALLOCN(type, 1))
 #define EALLOCN_ATOMIC(type, n)	((type *) emalloc_atomic(sizeof(type) * (n)))
@@ -9,7 +11,7 @@
     int i, j; \
     (var) = EALLOCN(type **, (ni)); \
     (var)[0] = EALLOCN(type *, (ni) * (nj)); \
-    (var)[0][0] = EALLOCN_ATOMIC(type, (ni) * (nj) * (nk)); \
+    (var)[0][0] = EALLOCN(type, (ni) * (nj) * (nk)); \
     for (i = 0; i < (ni); ++i) { \
 	(var)[i] = (var)[0] + (nj) * i; \
 	(var)[i][0] = (var)[0][0] + ((nj) * (nk)) * i; \
