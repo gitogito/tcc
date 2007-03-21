@@ -14,10 +14,10 @@ $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $@ $(LIBS)
 
 y.tab.c y.tab.h: parser.y
-	$(YACC) $(YFLAGS) $?
+	$(YACC) $(YFLAGS) $<
 
 lex.yy.c: lexer.l
-	$(LEX) $?
+	$(LEX) $<
 
 depend: y.tab.c y.tab.h lex.yy.c
 	makedepend $(SRCS)
