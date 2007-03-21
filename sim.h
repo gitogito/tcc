@@ -3,6 +3,15 @@
 
 #define NDIRS   (2 * 3) /* 2 * (number of dimensions) */
 
+enum {
+    DIR_LEFT = 0,
+    DIR_RIGHT,
+    DIR_FRONT,
+    DIR_BACK,
+    DIR_BELOW,
+    DIR_ABOVE
+};
+
 typedef double *** Array3Dd;
 typedef int *** Array3Di;
 
@@ -51,10 +60,16 @@ typedef struct World {
     Each *each;
 } World;
 
+World *world_new(double x, double y, double z,
+	double xlen, double ylen, double zlen,
+	double dx, double dy, double dz);
+
 typedef struct Heatflow {
     int dir;
     double value;
 } Heatflow;
+
+Heatflow *heatflow_new(int dir, double value);
 
 enum {
     AXIS_X,
@@ -73,12 +88,16 @@ typedef struct Rect {
     Each *each;
 } Rect;
 
+Rect *rect_new(World *world, double x, double y, double z, int axis, double len1, double len2);
+
 typedef struct Box {
     World *world;
     Rect *rect;
     double sweeplen;
     Each * each;
 } Box;
+
+Box *box_new(World *world, double x, double y, double z, double xlen, double ylen, double zlen);
 
 enum {
     OBJ_RECT,
@@ -90,12 +109,6 @@ union uobj {
     Box *box;
 };
 
-enum {
-    OBJVAL_I,
-    OBJVAL_D,
-    OBJVAL_H,
-};
-
 union uval {
     int i;
     double d;
@@ -105,14 +118,18 @@ union uval {
 typedef struct Obj {
     int objtype;
     union uobj uobj;
-    int valtype;
     union uval uval;
 } Obj;
+
+Obj *obj_new(int objtype);
 
 typedef struct AryObj {
     Obj **ptr;
     int size;
 } AryObj;
+
+AryObj *aryobj_new(void);
+void aryobj_push(AryObj *self, Obj *obj);
 
 typedef struct Config {
     World *world;
@@ -121,6 +138,8 @@ typedef struct Config {
     AryObj *heatflow_obj_ary;
     AryObj *lambda_obj_ary;
 } Config;
+
+extern Config *config_parser;
 
 typedef struct Sim {
     Config *config;

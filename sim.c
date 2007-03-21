@@ -7,14 +7,7 @@
 
 #define NELEMS(ary)	(sizeof(ary) / sizeof((ary)[0]))
 
-enum {
-    DIR_LEFT = 0,
-    DIR_RIGHT,
-    DIR_FRONT,
-    DIR_BACK,
-    DIR_BELOW,
-    DIR_ABOVE
-};
+Config *config_parser;
 
 static int dir_array[NDIRS] = { DIR_LEFT, DIR_RIGHT, DIR_FRONT, DIR_BACK, DIR_BELOW, DIR_ABOVE };
 static int dir_x[] = { DIR_LEFT, DIR_RIGHT };
@@ -169,7 +162,7 @@ static int world_to_index(World *self, Point point)
     return point.i + self->ni * (point.j + self->nj * point.k);
 }
 
-static World *world_new(double x, double y, double z,
+World *world_new(double x, double y, double z,
 	double xlen, double ylen, double zlen,
 	double dx, double dy, double dz)
 {
@@ -222,7 +215,7 @@ static Point *world_each(World *self)
 
 /* Rect */
 
-static Rect *rect_new(World *world, double x, double y, double z, int axis, double len1, double len2)
+Rect *rect_new(World *world, double x, double y, double z, int axis, double len1, double len2)
 {
     Rect *self;
 
@@ -321,7 +314,7 @@ static void rect_offset(Rect *self)
 
 /* Box */
 
-static Box *box_new(World *world, double x, double y, double z, double xlen, double ylen, double zlen)
+Box *box_new(World *world, double x, double y, double z, double xlen, double ylen, double zlen)
 {
     Box *self;
 
@@ -373,13 +366,12 @@ static void box_offset(Box *self)
 
 /* Obj */
 
-static Obj *obj_new(int objtype, int valtype)
+Obj *obj_new(int objtype)
 {
     Obj *self;
 
     self = EALLOC(Obj);
     self->objtype = objtype;
-    self->valtype = valtype;
     return self;
 }
 
@@ -433,7 +425,7 @@ static void obj_offset(Obj *self)
 
 /* AryObj */
 
-static AryObj *aryobj_new(void)
+AryObj *aryobj_new(void)
 {
     AryObj *self;
 
@@ -443,7 +435,7 @@ static AryObj *aryobj_new(void)
     return self;
 }
 
-static void aryobj_push(AryObj *self, Obj *obj)
+void aryobj_push(AryObj *self, Obj *obj)
 {
     ++self->size;
     self->ptr = erealloc(self->ptr, sizeof(Obj) * self->size);
@@ -452,7 +444,7 @@ static void aryobj_push(AryObj *self, Obj *obj)
 
 /* Heatflow */
 
-static Heatflow *heatflow_new(int dir, double value)
+Heatflow *heatflow_new(int dir, double value)
 {
     Heatflow *self;
 
@@ -464,55 +456,29 @@ static Heatflow *heatflow_new(int dir, double value)
 
 /* Config */
 
+static void config_parse(Config *self)
+{
+    extern int yyparse();
+    /* extern int yydebug; */
+
+    /* yydebug = 1; */
+
+    config_parser = self;
+    yyparse();
+}
+
 static Config *config_new(void)
 {
     Config *self;
-    Obj *obj;
 
     self = EALLOC(Config);
-    self->world = world_new(0.0, 0.0, 0.0,
-	    1.0, 1.0, 1.0,
-	    1.0 / 50, 1.0 / 50, 1.0 / 50);
+    self->world = NULL;
     self->active_obj_ary = aryobj_new();
-    {
-	obj = obj_new(OBJ_BOX, OBJVAL_I);
-	obj->uobj.box = box_new(self->world, 0.0, 0.0, 0.0, 1.0, 1.0, 1.0);
-	obj->uval.i = 1;
-	aryobj_push(self->active_obj_ary, obj);
-    }
-
     self->fix_obj_ary = aryobj_new();
-    {
-	obj = obj_new(OBJ_RECT, OBJVAL_D);
-	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
-	obj->uval.d = 1.0;
-	aryobj_push(self->fix_obj_ary, obj);
-    }
-    {
-	obj = obj_new(OBJ_RECT, OBJVAL_D);
-	obj->uobj.rect = rect_new(self->world, 1.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
-	obj->uval.d = 0.0;
-	aryobj_push(self->fix_obj_ary, obj);
-    }
-
     self->heatflow_obj_ary = aryobj_new();
-    /*
-    {
-	obj = obj_new(OBJ_RECT, OBJVAL_H);
-	obj->uobj.rect = rect_new(self->world, 0.0, 0.0, 0.0, AXIS_X, 1.0, 1.0);
-	obj->uval.h = heatflow_new(DIR_LEFT, 1.0);
-	aryobj_push(self->heatflow_obj_ary, obj);
-    }
-    */
-
     self->lambda_obj_ary = aryobj_new();
-    {
-	obj = obj_new(OBJ_BOX, OBJVAL_D);
-	obj->uobj.box = box_new(self->world, 0.0, 0.0, 0.0, 0.5, 1.0, 1.0);
-	obj->uval.d = 10.0;
-	obj_offset(obj);
-	aryobj_push(self->lambda_obj_ary, obj);
-    }
+
+    config_parse(self);
 
     return self;
 }
@@ -690,6 +656,11 @@ static void sim_set_region_lambda(Sim *self)
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
 	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
+	    puts("---");
+	    printf("AAA %g\n", obj->uval.d);
+	    printf("AAA %d, %d, %d\n", p->i, p->j, p->k);
+	    printf("AAA %p\n", self->lambda_ary[p->i][p->j]);
+	    fflush(stdout);
 	    self->lambda_ary[p->i][p->j][p->k] = obj->uval.d;
 	}
     }
@@ -958,9 +929,6 @@ Array3Dd sim_calc(Sim *self)
 	    solvele_set_vector(solver, index, -self->coefs[p->i][p->j][p->k]->cnst);
 	}
     }
-
-    //solvele_print_matrix(solver);
-    //solvele_print_vector(solver);
 
     sol = solvele_solve(solver, self->ni, self->nj, self->nk, 0);
 

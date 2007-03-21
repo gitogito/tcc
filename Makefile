@@ -1,17 +1,27 @@
+YACC	= bison -y
+YFLAGS	= -d -v
+LEX	= flex
+
 CC = gcc
-CFLAGS = -g -Wall -O2 -I/usr/include/ufsparse
+CFLAGS = -g -Wall -O0 -I/usr/include/ufsparse
 LIBS = -lgc -lm -lumfpack -lamd
 
 TARGET = a.out
-SRCS = tc.c sim.c mem.c solvele.c sparse_matrix.c
-OBJS = tc.o sim.o mem.o solvele.o sparse_matrix.o
+SRCS = tc.c sim.c mem.c solvele.c sparse_matrix.c y.tab.c lex.yy.c
+OBJS = tc.o sim.o mem.o solvele.o sparse_matrix.o y.tab.o lex.yy.o
 
 $(TARGET): $(OBJS)
 	$(CC) $(CFLAGS) $(OBJS) -o $@ $(LIBS)
 
-depend:
+y.tab.c y.tab.h: parser.y
+	$(YACC) $(YFLAGS) $?
+
+lex.yy.c: lexer.l
+	$(LEX) $?
+
+depend: y.tab.c y.tab.h lex.yy.c
 	makedepend $(SRCS)
 
 clean:
-	rm -f $(OBJS) $(TARGET)
+	rm -f $(OBJS) $(TARGET) y.tab.[hc] y.output lex.yy.c
 
