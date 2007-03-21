@@ -894,6 +894,8 @@ Sim *sim_new(void)
     Sim *self;
 
     self = EALLOC(Sim);
+    if (opt_v)
+	warn("configuring ...");
     self->config = config_new();
     self->dir_to_point[DIR_LEFT]  = get_point(-1,  0,  0);
     self->dir_to_point[DIR_RIGHT] = get_point( 1,  0,  0);
@@ -902,7 +904,11 @@ Sim *sim_new(void)
     self->dir_to_point[DIR_BELOW] = get_point( 0,  0, -1);
     self->dir_to_point[DIR_ABOVE] = get_point( 0,  0,  1);
 
+    if (opt_v)
+	warn("setting region ...");
     sim_set_region(self);
+    if (opt_v)
+	warn("setting matrix ...");
     sim_set_matrix(self);
 
     return self;
@@ -947,7 +953,9 @@ Array3Dd sim_calc(Sim *self)
 	}
     }
 
-    sol = solvele_solve(solver, self->ni, self->nj, self->nk, 0);
+    if (opt_v)
+	warn("solving equations ...");
+    sol = solvele_solve(solver, self->ni, self->nj, self->nk);
 
     ALLOCATE_3D(ary, double, self->ni, self->nj, self->nk);
     for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {

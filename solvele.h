@@ -9,11 +9,13 @@ typedef struct Solvele {
     DenseVector *vec;
 } Solvele;
 
+extern double omega_sor;
+
 void solvele_set_matrix(Solvele *self, int i, int j, double val);
 void solvele_set_vector(Solvele *self, int i, double val);
 void solvele_print_matrix(Solvele *self);
 void solvele_print_vector(Solvele *self);
-double *solvele_solve(Solvele *self, int ni, int nj, int nk, int use_umfpack_p);
+double *solvele_solve(Solvele *self, int ni, int nj, int nk);
 Solvele *solvele_new(int size);
 
 #endif

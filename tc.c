@@ -2,8 +2,13 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include "sim.h"
+#include "solvele.h"
 
 char *prgname;
+
+int opt_o;
+int opt_u;
+int opt_v;
 
 void bug(char *fmt, ...)
 {
@@ -16,6 +21,18 @@ void bug(char *fmt, ...)
     fprintf(stderr, "\n");
     fflush(stderr);
     abort();
+}
+
+void warn(char *fmt, ...)
+{
+    va_list ap;
+
+    fprintf(stderr, "%s: ", prgname);
+    va_start(ap, fmt);
+    vfprintf(stderr, fmt, ap);
+    va_end(ap);
+    fprintf(stderr, "\n");
+    fflush(stderr);
 }
 
 void warn_exit(char *fmt, ...)
@@ -33,6 +50,7 @@ void warn_exit(char *fmt, ...)
 
 int main(int argc, char **argv)
 {
+    char *s;
     Sim *sim;
     Array3Dd ary;
     int ni, nj, nk;
@@ -45,6 +63,36 @@ int main(int argc, char **argv)
     prgname = argv[0];
     --argc;
     ++argv;
+
+    opt_o = 0;
+    opt_u = 0;
+    opt_v = 0;
+
+    while (argc > 0) {
+	if (argv[0][0] != '-')
+	    break;
+	for (s = argv[0] +1; *s != '\0'; s++) {
+	    if (*s == 'o') {
+		opt_o = 1;
+		if (*(s + 1) != '\0')
+		    warn_exit("option 'o' must have an argument");
+		argc--;
+		argv++;
+		omega_sor = atof(argv[0]);
+		if (omega_sor <= 0.0 || omega_sor >= 2.0)
+		    warn_exit("invalid omega %g", omega_sor);
+		break;
+	    } else if (*s == 'u') {
+		opt_u = 1;
+	    } else if (*s == 'v') {
+		opt_v = 1;
+	    } else {
+		warn_exit("invalid option: %c", *s);
+	    }
+	}
+	argc--;
+	argv++;
+    }
 
     sim = sim_new();
     ary = sim_calc(sim);

@@ -17,6 +17,8 @@
 #define DBL_EPS	1.0e-15
 #define EPS	1.0e-6
 
+double omega_sor;
+
 void solvele_set_matrix(Solvele *self, int i, int j, double val)
 {
     if (i < 0 || j < 0)
@@ -45,7 +47,7 @@ void solvele_print_vector(Solvele *self)
     dvec_print(self->vec);
 }
 
-double *solvele_solve(Solvele *self, int ni, int nj, int nk, int use_umfpack_p)
+double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 {
     int *ap;
     int *ai;
@@ -63,8 +65,10 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk, int use_umfpack_p)
 
     u = EALLOCN(double, self->size);
 
-    if (use_umfpack_p) {
+    if (opt_u) {
 #ifdef HAVE_UMFPACK_H
+	if (opt_v)
+	    warn("solving using UMFPACK ...");
         umfpack_di_symbolic(self->size, self->size, ap, ai, ax, &Symbolic, NULL, NULL);
         umfpack_di_numeric(ap, ai, ax, Symbolic, &Numeric, NULL, NULL);
         umfpack_di_free_symbolic(&Symbolic);
@@ -74,11 +78,18 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk, int use_umfpack_p)
         warn_exit("solver with UMFPACK is not implemented in solvele_solve");
 #endif
     } else {
+	if (opt_v)
+	    warn("solving using SOR method ...");
         size = self->size;
         for (i = 0; i < size; ++i) {
             u[i] = 0.0;
         }
-        omega = 2.0 / (1.0 + sqrt(1.0 - 1.0/3.0 * (cos(M_PI / ni) + cos(M_PI / nj) + cos(M_PI / nk))));
+	if (opt_o)
+	    omega = omega_sor;
+	else
+	    omega = 2.0 / (1.0 + sqrt(1.0 - 1.0/3.0 * (cos(M_PI / ni) + cos(M_PI / nj) + cos(M_PI / nk))));
+	if (opt_v)
+	    warn("SOR relaxation factor is %g", omega);
         for (;;) {
             ok = 1;
             for (i = 0; i < size; ++i) {
