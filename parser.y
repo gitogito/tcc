@@ -92,7 +92,7 @@ command:
 	    dir = DIR_BACK;
 	else if (strcmp($3, ":BELOW") == 0)
 	    dir = DIR_BELOW;
-	else if (strcmp($3, ":ABOV") == 0)
+	else if (strcmp($3, ":ABOVE") == 0)
 	    dir = DIR_ABOVE;
 	else
 	    yyerror("unknown direction");
