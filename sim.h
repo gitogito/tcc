@@ -45,9 +45,9 @@ typedef struct Each {
 } Each;
 
 typedef struct World {
-    double x;
-    double y;
-    double z;
+    double x0;
+    double y0;
+    double z0;
     double xlen;
     double ylen;
     double zlen;

@@ -162,16 +162,16 @@ static int world_to_index(World *self, Point point)
     return point.i + self->ni * (point.j + self->nj * point.k);
 }
 
-World *world_new(double x, double y, double z,
+World *world_new(double x0, double y0, double z0,
 	double xlen, double ylen, double zlen,
 	double dx, double dy, double dz)
 {
     World *self;
 
     self = EALLOC(World);
-    self->x = x;
-    self->y = y;
-    self->z = z;
+    self->x0 = x0;
+    self->y0 = y0;
+    self->z0 = z0;
     self->xlen = xlen;
     self->ylen = ylen;
     self->zlen = zlen;
@@ -256,9 +256,9 @@ static Point *rect_each_begin(Rect *self)
     if (self->each != NULL && self->each->index >= 0)
 	bug("rect_each_begin");
 
-    xi = iround((self->x - self->world->x) / self->world->dx);
-    yi = iround((self->y - self->world->y) / self->world->dy);
-    zi = iround((self->z - self->world->z) / self->world->dz);
+    xi = iround((self->x - self->world->x0) / self->world->dx);
+    yi = iround((self->y - self->world->y0) / self->world->dy);
+    zi = iround((self->z - self->world->z0) / self->world->dz);
     size = 0;
     switch (self->axis) {
     case AXIS_X:

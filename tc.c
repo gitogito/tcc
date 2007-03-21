@@ -54,6 +54,7 @@ int main(int argc, char **argv)
     Sim *sim;
     Array3Dd ary;
     int ni, nj, nk;
+    double x0, y0, z0;
     double dx, dy, dz;
     int i, j, k;
     double x, y, z;
@@ -100,19 +101,22 @@ int main(int argc, char **argv)
     ni = sim->world->ni;
     nj = sim->world->nj;
     nk = sim->world->nk;
+    x0 = sim->world->x0;
+    y0 = sim->world->y0;
+    z0 = sim->world->z0;
     dx = sim->world->dx;
     dy = sim->world->dy;
     dz = sim->world->dz;
 
-    printf("# %d\t%g\t%g\n", ni, sim->world->x, sim->world->xlen);
-    printf("# %d\t%g\t%g\n", nj, sim->world->y, sim->world->ylen);
-    printf("# %d\t%g\t%g\n", nk, sim->world->z, sim->world->zlen);
+    printf("# %d\t%g\t%g\n", ni, x0, x0 + sim->world->xlen);
+    printf("# %d\t%g\t%g\n", nj, y0, x0 + sim->world->ylen);
+    printf("# %d\t%g\t%g\n", nk, z0, x0 + sim->world->zlen);
     for (k = 0; k < nk; ++k) {
-        z = dz * k;
+        z = z0 + dz * k;
         for (j = 0; j < nj; ++j) {
-            y = dy * j;
+            y = y0 + dy * j;
             for (i = 0; i < ni; ++i) {
-                x = dx * i;
+                x = x0 + dx * i;
                 if (sim_active_p(sim, get_point(i, j, k))) {
                     val = ary[i][j][k];
                     act = 1;
