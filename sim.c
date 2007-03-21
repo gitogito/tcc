@@ -218,6 +218,20 @@ static Point *world_each(World *self)
 Rect *rect_new(World *world, double x, double y, double z, int axis, double len1, double len2)
 {
     Rect *self;
+    int ok, iaxis;
+
+    ok = 0;
+    for (iaxis = 0; iaxis < NELEMS(axis_array); ++iaxis) {
+	if (axis == axis_array[iaxis]) {
+	    ok = 1;
+	    break;
+	}
+    }
+    if (!ok)
+	bug("unknown axis %d", axis);
+
+    if (len1 <= 0.0 || len2 <= 0.0)
+	warn_exit("length is negative for Rect");
 
     self = EALLOC(Rect);
     self->world = world;
@@ -317,6 +331,9 @@ static void rect_offset(Rect *self)
 Box *box_new(World *world, double x, double y, double z, double xlen, double ylen, double zlen)
 {
     Box *self;
+
+    if (xlen <= 0.0 || ylen <= 0.0 || zlen <= 0.0)
+	warn_exit("length is negative for Rect");
 
     self = EALLOC(Box);
     self->world = world;
