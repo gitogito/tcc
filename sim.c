@@ -89,14 +89,14 @@ static Point point_add(Point ponint1, Point ponint2)
 	    );
 }
 
-static Point *point_new(Point point)
+static Point *point_new(int i, int j, int k)
 {
     Point *self;
 
     self = EALLOC(Point);
-    self->i = point.i;
-    self->j = point.j;
-    self->k = point.k;
+    self->i = i;
+    self->j = j;
+    self->k = k;
     return self;
 }
 
@@ -603,10 +603,10 @@ static void sim_set_region_heatflow(Sim *self)
 
 	p = obj_each_begin(obj);
 	point0 = *p;
-	self->heatflow_point_ary[p->i][p->j][p->k] = point_new(point0);
+	self->heatflow_point_ary[p->i][p->j][p->k] = point_new(point0.i, point0.j, point0.k);
 	ary[p->i][p->j][p->k] = 1;
 	for (; p != NULL; p = obj_each(obj)) {
-	    self->heatflow_point_ary[p->i][p->j][p->k] = point_new(point0);
+	    self->heatflow_point_ary[p->i][p->j][p->k] = point_new(point0.i, point0.j, point0.k);
 	    ary[p->i][p->j][p->k] = 1;
 	}
 
