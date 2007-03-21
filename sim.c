@@ -673,11 +673,6 @@ static void sim_set_region_lambda(Sim *self)
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
 	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
-	    puts("---");
-	    printf("AAA %g\n", obj->uval.d);
-	    printf("AAA %d, %d, %d\n", p->i, p->j, p->k);
-	    printf("AAA %p\n", self->lambda_ary[p->i][p->j]);
-	    fflush(stdout);
 	    self->lambda_ary[p->i][p->j][p->k] = obj->uval.d;
 	}
     }
