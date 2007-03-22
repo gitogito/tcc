@@ -455,7 +455,7 @@ AryObj *aryobj_new(void)
 void aryobj_push(AryObj *self, Obj *obj)
 {
     ++self->size;
-    self->ptr = erealloc(self->ptr, sizeof(Obj) * self->size);
+    self->ptr = erealloc(self->ptr, sizeof(Obj *) * self->size);
     self->ptr[self->size - 1] = obj;
 }
 
