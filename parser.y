@@ -167,7 +167,7 @@ expr:
 
   | '(' expr ')' { $$ = $2; }
 
-  | '-' TK_NUMBER  %prec NEG { $$ = - $2; }
+  | '-' expr  %prec NEG { $$ = - $2; }
 
   | TK_NUMBER { $$ = $1; }
 
