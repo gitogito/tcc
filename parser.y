@@ -1,6 +1,7 @@
 %{
 
 #include <string.h>
+#include <math.h>
 #include "tc.h"
 #include "sim.h"
 #include "parser.h"

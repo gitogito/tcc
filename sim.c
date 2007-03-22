@@ -548,7 +548,7 @@ static void sim_set_region_active(Sim *self)
 			!sim_active_p(self, point_add(*p, self->dir_to_point[dirs[1]]))) {
 		    self->active_p_ary[p->i][p->j][p->k] = 0;
 		    continue_p = 1;
-		    fprintf(stderr, "removed (%d, %d, %d)\n", p->i, p->j, p->k);
+		    warn("removed (%d, %d, %d)\n", p->i, p->j, p->k);
 		}
 	    }
 	}
@@ -580,12 +580,8 @@ static void sim_set_region_heatflow(Sim *self)
     AryObj *obj_ary;
     int index;
     Obj *obj;
-    Array3Di ary;
+    int first;
     Point point0;
-    int ntotal, n;
-    int iaxis, axis;
-    int d1, d2, dx, dy, dz;
-    Point pp;
 
     ALLOCATE_3D(self->heatflow_ary, double *, self->ni, self->nj, self->nk);
     for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
@@ -595,63 +591,19 @@ static void sim_set_region_heatflow(Sim *self)
 	    self->heatflow_ary[p->i][p->j][p->k][dir] = -1.0;
 	}
     }
+
     ALLOCATE_3D2(self->heatflow_point_ary, Point *, self->ni, self->nj, self->nk, NULL);
     obj_ary = self->config->heatflow_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
-	ALLOCATE_3D2(ary, int, self->ni, self->nj, self->nk, 0);
-
-	p = obj_each_begin(obj);
-	point0 = *p;
-	self->heatflow_point_ary[p->i][p->j][p->k] = point_new(point0.i, point0.j, point0.k);
-	ary[p->i][p->j][p->k] = 1;
-	for (; p != NULL; p = obj_each(obj)) {
+	first = 1;
+	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
+	    if (first) {
+		first = 0;
+		point0 = *p;
+	    }
 	    self->heatflow_point_ary[p->i][p->j][p->k] = point_new(point0.i, point0.j, point0.k);
-	    ary[p->i][p->j][p->k] = 1;
-	}
-
-	ntotal = 0;
-	for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
-	    if (!ary[p->i][p->j][p->k])
-		continue;
-	    n = 0;
-	    for (iaxis = 0; iaxis < NELEMS(axis_array); ++iaxis) {
-		axis = axis_array[iaxis];
-		for (d1 = -1; d1 <= 1; d1 += 2) {
-		    for (d2 = -1; d2 <= 1; d2 += 2) {
-			switch (axis) {
-			case AXIS_X:
-			    dx = 0;
-			    dy = d1;
-			    dz = d2;
-			    break;
-			case AXIS_Y:
-			    dx = d2;
-			    dy = 0;
-			    dz = d1;
-			    break;
-			case AXIS_Z:
-			    dx = d1;
-			    dy = d2;
-			    dz = 0;
-			    break;
-			default:
-			    bug("unknown axis %d", axis);
-			}
-			pp = point_add(*p, get_point(dx, dy, dz));
-			if (sim_active_p(self, pp) && ary[pp.i][pp.j][pp.k])
-			    n += 1;
-		    }
-		}
-	    }
-	    assert(n > 0 && n <= 4);
-	    self->heatflow_ary[p->i][p->j][p->k][obj->uval.h->dir] = obj->uval.h->value * n;
-	    ntotal += n;
-	}
-	for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
-	    if (ary[p->i][p->j][p->k]) {
-		self->heatflow_ary[p->i][p->j][p->k][obj->uval.h->dir] /= ntotal;
-	    }
+	    self->heatflow_ary[p->i][p->j][p->k][obj->uval.h->dir] = obj->uval.h->value;
 	}
     }
 }
@@ -686,20 +638,19 @@ static void sim_set_region(Sim *self)
     sim_set_region_lambda(self);
 }
 
-static void sim_set_matrix_const(Sim *self, int i, int j, int k, Point point)
+static void sim_set_matrix_const(Sim *self, int i, int j, int k, double dx, double dy, double dz)
 {
     int idir, dir;
 
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
-	if (self->heatflow_ary[i][j][k][dir] < 0.0)
-	    continue;
-	self->coefs[point.i][point.j][point.k]->cnst += self->heatflow_ary[i][j][k][dir];
+	if (self->heatflow_ary[i][j][k][dir] >= 0.0 &&
+		point_eq(*(self->heatflow_point_ary[i][j][k]), get_point(i, j, k)))
+	    self->coefs[i][j][k]->cnst = self->heatflow_ary[i][j][k][dir];
     }
 }
 
-static void sim_set_matrix_coef0(Sim *self,
-	int i, int j, int k, Point point, double dx, double dy, double dz)
+static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, double dy, double dz)
 {
     int idir, dir;
     int ix, iy, iz;
@@ -709,9 +660,7 @@ static void sim_set_matrix_coef0(Sim *self,
 
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
-	if (self->heatflow_ary[i][j][k][dir] >= 0.0)
-	    continue;
-	if (!sim_active_p(self, point_add(point, self->dir_to_point[dir])))
+	if (!sim_active_p(self, point_add(get_point(i, j, k), self->dir_to_point[dir])))
 	    continue;
 	switch (dir) {
 	case DIR_LEFT: case DIR_RIGHT:
@@ -719,12 +668,12 @@ static void sim_set_matrix_coef0(Sim *self,
 		diry = dir_y[iy];
 		for (iz = 0; iz < NELEMS(dir_z); ++iz) {
 		    dirz = dir_z[iz];
-		    pp = point_add(point, self->dir_to_point[diry]);
+		    pp = point_add(get_point(i, j, k), self->dir_to_point[diry]);
 		    pp = point_add(pp, self->dir_to_point[dirz]);
 		    if (sim_active_p(self, pp)) {
-			point_l = point_offset(point, dir, diry, dirz);
+			point_l = point_offset(get_point(i, j, k), dir, diry, dirz);
 			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
-			self->coefs[point.i][point.j][point.k]->coef0 += -l/dx*(dy/2)*(dz/2);
+			self->coefs[i][j][k]->coef0 += -l/dx*(dy/2)*(dz/2);
 		    }
 		}
 	    }
@@ -734,12 +683,12 @@ static void sim_set_matrix_coef0(Sim *self,
 		dirz = dir_z[iz];
 		for (ix = 0; ix < NELEMS(dir_x); ++ix) {
 		    dirx = dir_x[ix];
-		    pp = point_add(point, self->dir_to_point[dirz]);
+		    pp = point_add(get_point(i, j, k), self->dir_to_point[dirz]);
 		    pp = point_add(pp, self->dir_to_point[dirx]);
 		    if (sim_active_p(self, pp)) {
-			point_l = point_offset(point, dirx, dir, dirz);
+			point_l = point_offset(get_point(i, j, k), dirx, dir, dirz);
 			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
-			self->coefs[point.i][point.j][point.k]->coef0 += -l/dy*(dz/2)*(dx/2);
+			self->coefs[i][j][k]->coef0 += -l/dy*(dz/2)*(dx/2);
 		    }
 		}
 	    }
@@ -749,24 +698,23 @@ static void sim_set_matrix_coef0(Sim *self,
 		dirx = dir_x[ix];
 		for (iy = 0; iy < NELEMS(dir_y); ++iy) {
 		    diry = dir_y[iy];
-		    pp = point_add(point, self->dir_to_point[dirx]);
+		    pp = point_add(get_point(i, j, k), self->dir_to_point[dirx]);
 		    pp = point_add(pp, self->dir_to_point[diry]);
 		    if (sim_active_p(self, pp)) {
-			point_l = point_offset(point, dirx, diry, dir);
+			point_l = point_offset(get_point(i, j, k), dirx, diry, dir);
 			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
-			self->coefs[point.i][point.j][point.k]->coef0 += -l/dz*(dx/2)*(dy/2);
+			self->coefs[i][j][k]->coef0 += -l/dz*(dx/2)*(dy/2);
 		    }
 		}
 	    }
 	    break;
 	default:
-	    warn_exit("bug in sim_set_matrix_coef0");
+	    bug("sim_set_matrix_coef0");
 	}
     }
 }
 
-static void sim_set_matrix_coef(Sim *self,
-	int i, int j, int k, Point point, double dx, double dy, double dz)
+static void sim_set_matrix_coef(Sim *self, int i, int j, int k, double dx, double dy, double dz)
 {
     int idir, dir;
     int dirx, diry, dirz;
@@ -777,15 +725,15 @@ static void sim_set_matrix_coef(Sim *self,
 
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
-	if (!sim_active_p(self, point_add(point, self->dir_to_point[dir]))) {
-	    self->coefs[point.i][point.j][point.k]->coef[dir]->index = -1;
+	if (!sim_active_p(self, point_add(get_point(i, j, k), self->dir_to_point[dir]))) {
+	    self->coefs[i][j][k]->coef[dir]->index = -1;
 	    continue;
 	}
 	if (self->heatflow_ary[i][j][k][dir] >= 0.0)
 	    warn_exit("heatflow(%g) comes from active cell at (%d, %d, %d), dir(%d)", self->heatflow_ary[i][j][k][dir], i, j, k, dir);
 
-	self->coefs[point.i][point.j][point.k]->coef[dir]->index =
-	    world_to_index(self->world, point_add(point, self->dir_to_point[dir]));
+	self->coefs[i][j][k]->coef[dir]->index =
+	    world_to_index(self->world, point_add(get_point(i, j, k), self->dir_to_point[dir]));
 	value = 0.0;
 	switch (dir) {
 	case DIR_LEFT: case DIR_RIGHT:
@@ -793,10 +741,10 @@ static void sim_set_matrix_coef(Sim *self,
 		diry = dir_y[iy];
 		for (iz = 0; iz < NELEMS(dir_z); ++iz) {
 		    dirz = dir_z[iz];
-		    pp = point_add(point, self->dir_to_point[diry]);
+		    pp = point_add(get_point(i, j, k), self->dir_to_point[diry]);
 		    pp = point_add(pp, self->dir_to_point[dirz]);
 		    if (sim_active_p(self, pp)) {
-			point_l = point_offset(point, dir, diry, dirz);
+			point_l = point_offset(get_point(i, j, k), dir, diry, dirz);
 			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
 			value += l/dx*(dy/2)*(dz/2);
 		    }
@@ -808,10 +756,10 @@ static void sim_set_matrix_coef(Sim *self,
 		dirz = dir_z[iz];
 		for (ix = 0; ix < NELEMS(dir_x); ++ix) {
 		    dirx = dir_x[ix];
-		    pp = point_add(point, self->dir_to_point[dirz]);
+		    pp = point_add(get_point(i, j, k), self->dir_to_point[dirz]);
 		    pp = point_add(pp, self->dir_to_point[dirx]);
 		    if (sim_active_p(self, pp)) {
-			point_l = point_offset(point, dirx, dir, dirz);
+			point_l = point_offset(get_point(i, j, k), dirx, dir, dirz);
 			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
 			value += l/dy*(dz/2)*(dx/2);
 		    }
@@ -823,10 +771,10 @@ static void sim_set_matrix_coef(Sim *self,
 		dirx = dir_x[ix];
 		for (iy = 0; iy < NELEMS(dir_y); ++iy) {
 		    diry = dir_y[iy];
-		    pp = point_add(point, self->dir_to_point[dirx]);
+		    pp = point_add(get_point(i, j, k), self->dir_to_point[dirx]);
 		    pp = point_add(pp, self->dir_to_point[diry]);
 		    if (sim_active_p(self, pp)) {
-			point_l = point_offset(point, dirx, diry, dir);
+			point_l = point_offset(get_point(i, j, k), dirx, diry, dir);
 			l = self->lambda_ary[point_l.i][point_l.j][point_l.k];
 			value += l/dz*(dx/2)*(dy/2);
 		    }
@@ -834,9 +782,9 @@ static void sim_set_matrix_coef(Sim *self,
 	    }
 	    break;
 	default:
-	    warn_exit("bug in sim_set_matrix_coef");
+	    bug("sim_set_matrix_coef");
 	}
-	self->coefs[point.i][point.j][point.k]->coef[dir]->value = value;
+	self->coefs[i][j][k]->coef[dir]->value = value;
     }
 }
 
@@ -844,7 +792,6 @@ static void sim_set_matrix(Sim *self)
 {
     Point *p;
     double dx, dy, dz;
-    Point *pp, point;
 
     ALLOCATE_3D2(self->u, double, self->ni, self->nj, self->nk, 0.0);
     for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
@@ -865,17 +812,9 @@ static void sim_set_matrix(Sim *self)
 	if (self->fix_ary[p->i][p->j][p->k] >= 0.0)
 	    continue;
 
-	pp = self->heatflow_point_ary[p->i][p->j][p->k];
-	if (pp == NULL)
-	    point = get_point(p->i, p->j, p->k);
-	else if (!point_eq(*pp, *p))
-	    continue;
-	else
-	    point = *pp;
-
-	sim_set_matrix_const(self, p->i, p->j, p->k, point);
-	sim_set_matrix_coef0(self, p->i, p->j, p->k, point, dx, dy, dz);
-	sim_set_matrix_coef(self, p->i, p->j, p->k, point, dx, dy, dz);
+	sim_set_matrix_const(self, p->i, p->j, p->k, dx, dy, dz);
+	sim_set_matrix_coef0(self, p->i, p->j, p->k, dx, dy, dz);
+	sim_set_matrix_coef(self, p->i, p->j, p->k, dx, dy, dz);
     }
 }
 
@@ -908,7 +847,8 @@ Array3Dd sim_calc(Sim *self)
 {
     int nindex;
     Solvele *solver;
-    Point *p;
+    Point *p, *hfp;
+    Point point;
     int index, index2;
     int idir, dir;
     double c;
@@ -918,29 +858,35 @@ Array3Dd sim_calc(Sim *self)
     nindex = self->ni * self->nj * self->nk;
     solver = solvele_new(nindex);
     for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
-	index = world_to_index(self->world, *p);
+	hfp = self->heatflow_point_ary[p->i][p->j][p->k];
 	if (self->fix_ary[p->i][p->j][p->k] >= 0.0 || !self->active_p_ary[p->i][p->j][p->k]) {
+	    index = world_to_index(self->world, *p);
 	    solvele_set_matrix(solver, index, index, 1.0);
 	    solvele_set_vector(solver, index, self->u[p->i][p->j][p->k]);
-	} else if (self->heatflow_point_ary[p->i][p->j][p->k] != NULL &&
-		!point_eq(*p, *(self->heatflow_point_ary[p->i][p->j][p->k]))) {
-	    solvele_set_matrix(solver, index, index, 1.0);
-	    solvele_set_matrix(solver,
-		    index, world_to_index(self->world, *self->heatflow_point_ary[p->i][p->j][p->k]),
-		    -1.0);
-	    solvele_set_vector(solver, index, 0.0);
-	} else {
-	    for (idir = 0; idir < NELEMS(dir_array); ++idir) {
-		dir = dir_array[idir];
-		index2 = self->coefs[p->i][p->j][p->k]->coef[dir]->index;
-		if (index2 < 0)
-		    continue;
-		c = self->coefs[p->i][p->j][p->k]->coef[dir]->value;
-		solvele_set_matrix(solver, index, index2, c);
-	    }
-	    solvele_set_matrix(solver, index, index, self->coefs[p->i][p->j][p->k]->coef0);
-	    solvele_set_vector(solver, index, -self->coefs[p->i][p->j][p->k]->cnst);
+	    continue;
 	}
+	if (hfp != NULL) {
+	    if (!point_eq(*p, *hfp)) {
+		index = world_to_index(self->world, *p);
+		solvele_set_matrix(solver, index, index, 1.0);
+		solvele_set_matrix(solver, index, world_to_index(self->world, *hfp), -1.0);
+		solvele_set_vector(solver, index, 0.0);
+	    }
+	    point = *hfp;
+	} else {
+	    point = *p;
+	}
+	for (idir = 0; idir < NELEMS(dir_array); ++idir) {
+	    dir = dir_array[idir];
+	    index = world_to_index(self->world, point);
+	    index2 = self->coefs[p->i][p->j][p->k]->coef[dir]->index;
+	    if (index2 < 0)
+		continue;
+	    c = self->coefs[p->i][p->j][p->k]->coef[dir]->value;
+	    solvele_add_matrix(solver, index, index2, c);
+	}
+	solvele_add_matrix(solver, index, index, self->coefs[p->i][p->j][p->k]->coef0);
+	solvele_add_vector(solver, index, -self->coefs[p->i][p->j][p->k]->cnst);
     }
 
     if (opt_v)

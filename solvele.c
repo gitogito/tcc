@@ -29,6 +29,11 @@ void solvele_set_matrix(Solvele *self, int i, int j, double val)
     smat_set(self->mat, i, j, val);
 }
 
+void solvele_add_matrix(Solvele *self, int i, int j, double val)
+{
+    solvele_set_matrix(self, i, j, smat_ref(self->mat, i, j) + val);
+}
+
 void solvele_set_vector(Solvele *self, int i, double val)
 {
     if (i < 0)
@@ -36,6 +41,11 @@ void solvele_set_vector(Solvele *self, int i, double val)
     if (i >= self->size)
 	warn_exit("too large index in solvele_set_vector");
     dvec_set(self->vec, i, val);
+}
+
+void solvele_add_vector(Solvele *self, int i, double val)
+{
+    solvele_set_vector(self, i, dvec_ref(self->vec, i) + val);
 }
 
 void solvele_print_matrix(Solvele *self)
