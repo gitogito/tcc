@@ -72,20 +72,20 @@ static Point point_offset(Point point, int dirx, int diry, int dirz)
     return get_point(i, j, k);
 }
 
-static int point_eq(Point ponint1, Point ponint2)
+static int point_eq(Point point1, Point point2)
 {
-    if (ponint1.i == ponint2.i && ponint1.j == ponint2.j && ponint1.k == ponint2.k)
+    if (point1.i == point2.i && point1.j == point2.j && point1.k == point2.k)
 	return 1;
     else
 	return 0;
 }
 
-static Point point_add(Point ponint1, Point ponint2)
+static Point point_add(Point point1, Point point2)
 {
     return get_point(
-	    ponint1.i + ponint2.i,
-	    ponint1.j + ponint2.j,
-	    ponint1.k + ponint2.k
+	    point1.i + point2.i,
+	    point1.j + point2.j,
+	    point1.k + point2.k
 	    );
 }
 
