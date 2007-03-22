@@ -32,7 +32,7 @@ Point get_point(int i, int j, int k)
     return point;
 }
 
-Point point_offset(Point point, int dirx, int diry, int dirz)
+static Point point_offset(Point point, int dirx, int diry, int dirz)
 {
     int i, j, k;
 
@@ -426,7 +426,7 @@ static Point *obj_each(Obj *self)
     return p;
 }
 
-static void obj_offset(Obj *self)
+void obj_offset(Obj *self)
 {
     switch (self->objtype) {
     case OBJ_RECT:

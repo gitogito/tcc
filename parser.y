@@ -180,6 +180,7 @@ command:
 	    break;
 	case ST_LAMBDA:
 	    obj->uval.d = value;
+	    obj_offset(obj);
 	    aryobj_push(config_parser->lambda_obj_ary, obj);
 	    break;
 	default:

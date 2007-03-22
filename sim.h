@@ -122,6 +122,7 @@ typedef struct Obj {
 } Obj;
 
 Obj *obj_new(int objtype);
+void obj_offset(Obj *self);
 
 typedef struct AryObj {
     Obj **ptr;
