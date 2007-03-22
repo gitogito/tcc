@@ -2,9 +2,12 @@ YACC	= bison -y
 YFLAGS	= -d -v
 LEX	= flex
 
+DEP_COMAMND = gcc -MM $(SRCS)
+
 CC = gcc
 CFLAGS = -g -Wall -O2 -I/usr/include/ufsparse
 LIBS = -lgc -lm -lumfpack -lamd
+
 
 TARGET = a.out
 SRCS = tc.c sim.c mem.c solvele.c sparse_matrix.c y.tab.c lex.yy.c
@@ -20,8 +23,9 @@ lex.yy.c: lexer.l
 	$(LEX) $<
 
 depend: y.tab.c y.tab.h lex.yy.c
-	makedepend $(SRCS)
+	$(DEP_COMAMND) > Makefile.depend
 
 clean:
-	rm -f $(OBJS) $(TARGET) y.tab.[hc] y.output lex.yy.c
+	rm -f $(OBJS) $(TARGET) y.tab.[hc] y.output lex.yy.c Makefile.depend
 
+-include Makefile.depend
