@@ -8,7 +8,6 @@ CC = gcc
 CFLAGS = -g -Wall -O2 -I/usr/include/ufsparse
 LIBS = -lgc -lm -lumfpack -lamd
 
-
 TARGET = a.out
 SRCS = tc.c sim.c mem.c solvele.c sparse_matrix.c y.tab.c lex.yy.c
 OBJS = tc.o sim.o mem.o solvele.o sparse_matrix.o y.tab.o lex.yy.o
