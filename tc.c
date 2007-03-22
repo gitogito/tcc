@@ -6,6 +6,7 @@
 
 char *prgname;
 
+int opt_e;
 int opt_o;
 int opt_u;
 int opt_v;
@@ -65,6 +66,7 @@ int main(int argc, char **argv)
     --argc;
     ++argv;
 
+    opt_e = 0;
     opt_o = 0;
     opt_u = 0;
     opt_v = 0;
@@ -73,7 +75,17 @@ int main(int argc, char **argv)
 	if (argv[0][0] != '-')
 	    break;
 	for (s = argv[0] +1; *s != '\0'; s++) {
-	    if (*s == 'o') {
+	    if (*s == 'e') {
+		opt_e = 1;
+		if (*(s + 1) != '\0')
+		    warn_exit("option 'e' must have an argument");
+		argc--;
+		argv++;
+		eps_sor = atof(argv[0]);
+		if (eps_sor <= 0.0)
+		    warn_exit("invalid eps %g", eps_sor);
+		break;
+	    } else if (*s == 'o') {
 		opt_o = 1;
 		if (*(s + 1) != '\0')
 		    warn_exit("option 'o' must have an argument");

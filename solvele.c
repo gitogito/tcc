@@ -17,6 +17,7 @@
 #define DBL_EPS	1.0e-15
 #define EPS	1.0e-6
 
+double eps_sor;
 double omega_sor;
 
 void solvele_set_matrix(Solvele *self, int i, int j, double val)
@@ -57,7 +58,7 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 #ifdef HAVE_UMFPACK_H
     void *Symbolic, *Numeric;
 #endif
-    double omega;
+    double eps, omega;
     int size, ok, pi, i, j;
     double v, old_val, new_val, c0;
 
@@ -84,12 +85,18 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
         for (i = 0; i < size; ++i) {
             u[i] = 0.0;
         }
+	if (opt_e)
+	    eps = eps_sor;
+	else
+	    eps = EPS;
 	if (opt_o)
 	    omega = omega_sor;
 	else
 	    omega = 2.0 / (1.0 + sqrt(1.0 - 1.0/3.0 * (cos(M_PI / ni) + cos(M_PI / nj) + cos(M_PI / nk))));
-	if (opt_v)
+	if (opt_v) {
+	    warn("SOR epsilon is %g", eps);
 	    warn("SOR relaxation factor is %g", omega);
+	}
         for (;;) {
             ok = 1;
             for (i = 0; i < size; ++i) {
@@ -105,7 +112,7 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
                 old_val = u[i];
                 u[i] += omega * (new_val - old_val);
                 if (ok && fabs(new_val) > DBL_EPS &&
-                        fabs(new_val - old_val) > EPS * fabs(new_val))
+                        fabs(new_val - old_val) > eps * fabs(new_val))
                 {
                     ok = 0;
                 }

@@ -9,6 +9,7 @@ typedef struct Solvele {
     DenseVector *vec;
 } Solvele;
 
+extern double eps_sor;
 extern double omega_sor;
 
 void solvele_set_matrix(Solvele *self, int i, int j, double val);
