@@ -654,11 +654,6 @@ static void sim_set_region_heatflow(Sim *self)
 	    }
 	}
     }
-    for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
-	for (idir = 0; idir < NELEMS(dir_array); ++idir) {
-	    dir = dir_array[idir];
-	}
-    }
 }
 
 static void sim_set_region_lambda(Sim *self)

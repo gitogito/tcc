@@ -220,6 +220,8 @@ expr:
 
   | expr '/' expr { $$ = $1 / $3; }
 
+  | expr TK_POW expr { $$ = pow($1, $3); }
+
   | '(' expr ')' { $$ = $2; }
 
   | '-' expr  %prec NEG { $$ = - $2; }
