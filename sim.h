@@ -113,7 +113,7 @@ union uval {
     int i;
     double d;
     Heatflow *h;
-} uval;
+};
 
 typedef struct Obj {
     int objtype;
