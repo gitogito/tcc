@@ -46,6 +46,11 @@ world      	return TK_WORLD;
     return TK_NUMBER;
 }
 
+{word} {
+    yylval.str = estrdup(yytext);
+    return TK_WORD;
+}
+
 :{word} {
     yylval.str = estrdup(yytext);
     return TK_SYMBOL;
