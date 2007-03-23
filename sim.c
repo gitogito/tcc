@@ -652,7 +652,7 @@ static void sim_set_region(Sim *self)
     sim_set_region_lambda(self);
 }
 
-static void sim_set_matrix_const(Sim *self, int i, int j, int k, double dx, double dy, double dz)
+static void sim_set_matrix_const(Sim *self, int i, int j, int k)
 {
     int idir, dir;
 
@@ -826,7 +826,7 @@ static void sim_set_matrix(Sim *self)
 	if (self->fix_ary[p->i][p->j][p->k] >= 0.0)
 	    continue;
 
-	sim_set_matrix_const(self, p->i, p->j, p->k, dx, dy, dz);
+	sim_set_matrix_const(self, p->i, p->j, p->k);
 	sim_set_matrix_coef0(self, p->i, p->j, p->k, dx, dy, dz);
 	sim_set_matrix_coef(self, p->i, p->j, p->k, dx, dy, dz);
     }
