@@ -103,6 +103,34 @@ typedef struct Rect {
 
 Rect *rect_new(World *world, double x, double y, double z, int axis, double len1, double len2);
 
+typedef struct Triangle_z {
+    World *world;
+    double x1;
+    double y1;
+    double dx;
+    double x2;
+    double y2;
+    Each *each;
+} Triangle_z;
+
+typedef struct Triangle {
+    World *world;
+    int axis;
+    double u1;
+    double v1;
+    int wi;
+    double u2;
+    double v2;
+    double u3;
+    double v3;
+    Triangle_z *tr1;
+    Triangle_z *tr2;
+    Each *each;
+} Triangle;
+
+Triangle *triangle_new(World *world, double x1, double y1, double z1,
+	int axis, double u2, double v2, double u3, double v3);
+
 typedef struct Box {
     World *world;
     Rect *rect;
@@ -113,12 +141,14 @@ Box *box_new(World *world, double x, double y, double z, double xlen, double yle
 
 enum {
     OBJ_RECT,
+    OBJ_TRIANGLE,
     OBJ_BOX,
     OBJ_SWEEP
 };
 
 union uobj {
     Rect *rect;
+    Triangle *triangle;
     Box *box;
     Sweep *sweep;
 };

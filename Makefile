@@ -5,7 +5,8 @@ LEX	= flex
 DEP_COMAMND = gcc -MM $(SRCS)
 
 CC = gcc
-CFLAGS = -g -Wall -O2 -I/usr/include/ufsparse
+#CFLAGS = -g -Wall -O2 -I/usr/include/ufsparse
+CFLAGS = -g -Wall -O0 -I/usr/include/ufsparse
 LIBS = -lgc -lm -lumfpack -lamd
 
 TARGET = a.out

@@ -39,6 +39,7 @@ fix		return TK_FIX;
 heatflow	return TK_HEATFLOW;
 lambda  	return TK_LAMBDA;
 rect      	return TK_RECT;
+triangle      	return TK_TRIANGLE;
 sweep      	return TK_SWEEP;
 world      	return TK_WORLD;
 

@@ -1,4 +1,5 @@
 #include <stdio.h>
+#include <stdlib.h>
 #include <assert.h>
 #include "sim.h"
 #include "mem.h"
@@ -17,7 +18,24 @@ static int axis_array[] = { AXIS_X, AXIS_Y, AXIS_Z };
 
 static int iround(double x)
 {
+    assert(x >= 0.0);
     return (int) (x + 0.5);
+}
+
+static double mind2(double a, double b)
+{
+    if (a < b)
+        return a;
+    else
+        return b;
+}
+
+static double maxd2(double a, double b)
+{
+    if (a > b)
+        return a;
+    else
+        return b;
 }
 
 /* Point */
@@ -424,6 +442,259 @@ static void rect_offset(Rect *self)
     }
 }
 
+/* triangle_z */
+/*
+ *       (x2, y2)
+ *         **
+ *       **  ***
+ *     **       ***
+ *   *****************
+ *   <---------------> dx
+ * (x1, y1)
+ */
+static Triangle_z *triangle_z_new(World *world, double x1, double y1, double dx, double x2, double y2)
+{
+    Triangle_z *self;
+
+    self = EALLOC(Triangle_z);
+    self->world = world;
+    self->x1 = x1;
+    self->y1 = y1;
+    self->dx = dx;
+    self->x2 = x2;
+    self->y2 = y2;
+    self->each = NULL;
+    return self;
+}
+
+static Point *triangle_z_each_begin(Triangle_z *self)
+{
+    int i1, j1, i2, j2, ix, jx;
+    double a12, b12, ax2, bx2;
+    int size;
+    int i, j, i12, ix2, n;
+    int istart, iend, jstart, jend;
+    Point *point_ary;
+
+    i1 = iround((self->x1 - self->world->x0) / self->world->dx);
+    j1 = iround((self->y1 - self->world->y0) / self->world->dy);
+    i2 = iround((self->x2 - self->world->x0) / self->world->dx);
+    j2 = iround((self->y2 - self->world->y0) / self->world->dy);
+    ix = (((self->x1+self->dx) - self->world->x0) / self->world->dx);
+    jx = j1;
+
+    a12 = (double) (i1 - i2) / (j1 - j2);
+    b12 = (double) (i2*j1 - i1*j2) / (j1 - j2);
+    ax2 = (double) (ix - i2) / (jx - j2);
+    bx2 = (double) (i2*jx - ix*j2) / (jx - j2);
+
+    if (j1 < j2) {
+        jstart = j1;
+        jend = j2;
+    } else {
+        jstart = j2;
+        jend = j1;
+    }
+
+    size = 0;
+    for (j = jstart; j <= jend; ++j) {
+        i12 = iround(a12 * j + b12);
+        ix2 = iround(ax2 * j + bx2);
+        if (i12 < ix2) {
+            istart = i12;
+            iend = ix2;
+        } else {
+            istart = ix2;
+            iend = i12;
+        }
+        for (i = istart; i <= iend; ++i)
+            ++size;
+    }
+
+    point_ary = EALLOCN(Point, size);
+    n = 0;
+    for (j = jstart; j <= jend; ++j) {
+        i12 = iround(a12 * j + b12);
+        ix2 = iround(ax2 * j + bx2);
+        if (i12 < ix2) {
+            istart = i12;
+            iend = ix2;
+        } else {
+            istart = ix2;
+            iend = i12;
+        }
+        for (i = istart; i <= iend; ++i)
+            point_ary[n++] = get_point(i, j, 0);
+    }
+    assert(size == n);
+    self->each = each_new(size, point_ary);
+
+    return each_each(self->each);
+}
+
+static Point *triangle_z_each(Triangle_z *self)
+{
+    return each_each(self->each);
+}
+
+/* Triangle */
+
+Triangle *triangle_new(World *world, double x1, double y1, double z1,
+	int axis, double u2, double v2, double u3, double v3)
+{
+    Triangle *self;
+
+    self = EALLOC(Triangle);
+    self->world = world;
+    self->axis = axis;
+    switch (self->axis) {
+    case AXIS_X:
+        self->u1 = y1;
+        self->v1 = z1;
+        self->wi = iround((x1 - self->world->x0) / self->world->dx);
+        break;
+    case AXIS_Y:
+        self->u1 = x1;
+        self->v1 = z1;
+        self->wi = iround((y1 - self->world->y0) / self->world->dy);
+        break;
+    case AXIS_Z:
+        self->u1 = x1;
+        self->v1 = y1;
+        self->wi = iround((z1 - self->world->z0) / self->world->dz);
+        break;
+    default:
+        bug("unknow axis %d", self->axis);
+    }
+    self->u2 = u2;
+    self->v2 = v2;
+    self->u3 = u3;
+    self->v3 = v3;
+    self->tr1 = NULL;
+    self->tr2 = NULL;
+    self->each = NULL;
+    return self;
+}
+
+static Point *triangle_each2(Triangle *self, Point *p)
+{
+    int i2, j2, k2;
+
+    assert(p->k == 0);
+    switch (self->axis) {
+    case AXIS_X:
+        i2 = self->wi;
+        j2 = p->i;
+        k2 = p->j;
+        break;
+    case AXIS_Y:
+        i2 = p->j;
+        j2 = self->wi;
+        k2 = p->i;
+        break;
+    case AXIS_Z:
+        i2 = p->i;
+        j2 = p->j;
+        k2 = self->wi;
+        break;
+    default:
+        bug("unknow axis %d", self->axis);
+    }
+    return point_new(i2, j2, k2);
+}
+
+static Point *triangle_each_begin(Triangle *self)
+{
+    double ua, va;
+    double ux, vx;
+    double ub, vb;
+    double a, b, dx;
+    Point *p1, *p2;
+    Point *point_ary;
+    int size, n;
+
+    if (self->v1 == self->v2) {
+        self->tr1 = triangle_z_new(self->world, self->u1, self->v1, self->u2 - self->u1,
+                self->u3, self->v3);
+    } else if (self->v2 == self->v3) {
+        self->tr1 = triangle_z_new(self->world, self->u2, self->v2, self->u3 - self->u2,
+                self->u1, self->v1);
+    } else if (self->v3 == self->v1) {
+        self->tr1 = triangle_z_new(self->world, self->u3, self->v3, self->u1 - self->u3,
+                self->u2, self->v2);
+    } else {
+        /*
+         *           * pa
+         *          * *
+         *         *   *
+         *        *     *
+         *       *  dx   *
+         *      *<------->* px
+         *     *      ****
+         *    *   ****
+         *   *****
+         *  *
+         *  pb
+         */
+        if (self->v1 < maxd2(self->v2, self->v3) && self->v1 > mind2(self->v2, self->v3)) {
+            ua = self->u2;
+            va = self->v2;
+            ux = self->u1;
+            vx = self->v1;
+            ub = self->u3;
+            vb = self->v3;
+        } else if (self->v2 < maxd2(self->v3, self->v1) && self->v2 > mind2(self->v3, self->v1)) {
+            ua = self->u3;
+            va = self->v3;
+            ux = self->u2;
+            vx = self->v2;
+            ub = self->u1;
+            vb = self->v1;
+        } else if (self->v3 < maxd2(self->v1, self->v2) && self->v3 > mind2(self->v1, self->v2)) {
+            ua = self->u1;
+            va = self->v1;
+            ux = self->u3;
+            vx = self->v3;
+            ub = self->u2;
+            vb = self->v2;
+        } else {
+            bug("not reached");
+        }
+        a = (ua - ub) / (va - vb);
+        b = (ub*va - ua*vb) / (va - vb);
+        dx = a * vx + b - ux;
+        self->tr1 = triangle_z_new(self->world, ux, vx, dx, ua, va);
+        self->tr2 = triangle_z_new(self->world, ux, vx, dx, ub, vb);
+    }
+    assert(self->tr1 != NULL);
+
+    p1 = triangle_z_each_begin(self->tr1);
+    if (self->tr2 == NULL) {
+        size = self->tr1->each->size;
+    } else {
+        p2 = triangle_z_each_begin(self->tr2);
+        size = self->tr1->each->size + self->tr2->each->size;
+    }
+    point_ary = EALLOCN(Point, size);
+    n = 0;
+    for (; p1 != NULL; p1 = triangle_z_each(self->tr1))
+        point_ary[n++] = *triangle_each2(self, p1);
+    if (p2 != NULL) {
+        for (; p2 != NULL; p2 = triangle_z_each(self->tr2))
+            point_ary[n++] = *triangle_each2(self, p2);
+    }
+    assert(size == n);
+
+    self->each = each_new(size, point_ary);
+
+    return each_each(self->each);
+}
+
+static Point *triangle_each(Triangle *self)
+{
+    return each_each(self->each);
+}
+
 /* Box */
 
 Box *box_new(World *world, double x, double y, double z, double xlen, double ylen, double zlen)
@@ -477,6 +748,9 @@ static Point *obj_each_begin(Obj *self)
     case OBJ_RECT:
 	p = rect_each_begin(self->uobj.rect);
 	break;
+    case OBJ_TRIANGLE:
+	p = triangle_each_begin(self->uobj.triangle);
+	break;
     case OBJ_BOX:
 	p = box_each_begin(self->uobj.box);
 	break;
@@ -496,6 +770,9 @@ static Point *obj_each(Obj *self)
     switch (self->objtype) {
     case OBJ_RECT:
 	p = rect_each(self->uobj.rect);
+	break;
+    case OBJ_TRIANGLE:
+	p = triangle_each(self->uobj.triangle);
 	break;
     case OBJ_BOX:
 	p = box_each(self->uobj.box);
@@ -517,6 +794,9 @@ static int obj_each_size(Obj *self)
     case OBJ_RECT:
 	size = self->uobj.rect->each->size;
 	break;
+    case OBJ_TRIANGLE:
+	size = self->uobj.triangle->each->size;
+	break;
     case OBJ_BOX:
 	size = self->uobj.box->sweep->each->size;
 	break;
@@ -534,6 +814,10 @@ void obj_offset(Obj *self)
     switch (self->objtype) {
     case OBJ_RECT:
 	rect_offset(self->uobj.rect);
+	break;
+    case OBJ_TRIANGLE:
+        warn_exit("not yet obj_offset");
+	/* triangle_offset(self->uobj.triangle); */
 	break;
     case OBJ_BOX:
 	box_offset(self->uobj.box);
@@ -668,7 +952,8 @@ static void sim_set_region_active(Sim *self)
 			!sim_active_p(self, point_add(*p, self->dir_to_point[dirs[1]]))) {
 		    self->active_p_ary[p->i][p->j][p->k] = 0;
 		    continue_p = 1;
-		    warn("removed (%d, %d, %d)\n", p->i, p->j, p->k);
+		    if (opt_v)
+			warn("removed (%d, %d, %d)", p->i, p->j, p->k);
 		}
 	    }
 	}
