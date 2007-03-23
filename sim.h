@@ -133,7 +133,6 @@ Triangle *triangle_new(World *world, double x1, double y1, double z1,
 
 typedef struct Box {
     World *world;
-    Rect *rect;
     Sweep *sweep;
 } Box;
 

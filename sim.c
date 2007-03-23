@@ -18,11 +18,13 @@ static int axis_array[] = { AXIS_X, AXIS_Y, AXIS_Z };
 
 static int iround(double x)
 {
-    assert(x >= 0.0);
-    return (int) (x + 0.5);
+    if (x < 0.0)
+	return (int) (x - 0.5);
+    else
+	return (int) (x + 0.5);
 }
 
-static double mind2(double a, double b)
+static double min_d(double a, double b)
 {
     if (a < b)
         return a;
@@ -30,7 +32,7 @@ static double mind2(double a, double b)
         return b;
 }
 
-static double maxd2(double a, double b)
+static double max_d(double a, double b)
 {
     if (a > b)
         return a;
@@ -229,6 +231,16 @@ static Point *world_each_begin(World *self)
 static Point *world_each(World *self)
 {
     return each_each(self->each);
+}
+
+static int world_inside_p(World *self, Point point)
+{
+    if (point.i < 0 || point.i >= self->ni ||
+	    point.j < 0 || point.j >= self->nj ||
+	    point.k < 0 || point.k >= self->nk)
+	return 0;
+    else
+	return 1;
 }
 
 /* Sweep */
@@ -725,7 +737,6 @@ static Point *box_each(Box *self)
 
 static void box_offset(Box *self)
 {
-    rect_offset(self->rect);
     sweep_offset(self->sweep);
 }
 
@@ -935,6 +946,8 @@ static void sim_set_region_active(Sim *self)
     for (index = 0; index < active_obj_ary->size; ++index) {
 	obj = active_obj_ary->ptr[index];
 	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
+	    if (!world_inside_p(self->world, *p))
+		continue;
 	    (self->active_p_ary)[p->i][p->j][p->k] = obj->uval.i;
 	}
     }
@@ -973,6 +986,8 @@ static void sim_set_region_fix(Sim *self)
 	obj = obj_ary->ptr[i];
 	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
 	    assert(obj->uval.d >= 0.0);
+	    if (!world_inside_p(self->world, *p))
+		continue;
 	    self->fix_ary[p->i][p->j][p->k] = obj->uval.d;
 	}
     }
@@ -1003,6 +1018,8 @@ static void sim_set_region_heatflow(Sim *self)
 	obj = obj_ary->ptr[index];
 	first = 1;
 	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
+	    if (!world_inside_p(self->world, *p))
+		continue;
 	    if (first) {
 		first = 0;
 		point0 = *p;
@@ -1025,6 +1042,8 @@ static void sim_set_region_lambda(Sim *self)
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
 	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
+	    if (!world_inside_p(self->world, *p))
+		continue;
 	    self->lambda_ary[p->i][p->j][p->k] = obj->uval.d;
 	}
     }
