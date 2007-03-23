@@ -25,6 +25,6 @@ depend: y.tab.c y.tab.h lex.yy.c
 	$(DEP_COMAMND) > Makefile.depend
 
 clean:
-	rm -f $(OBJS) $(TARGET) y.tab.[hc] y.output lex.yy.c Makefile.depend
+	rm -f $(OBJS) $(TARGET) y.tab.[hc] y.output lex.yy.c
 
 -include Makefile.depend
