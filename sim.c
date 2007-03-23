@@ -648,21 +648,21 @@ static Point *triangle_each_begin(Triangle *self)
          *  *
          *  pb
          */
-        if (self->v1 < maxd2(self->v2, self->v3) && self->v1 > mind2(self->v2, self->v3)) {
+        if (self->v1 < max_d(self->v2, self->v3) && self->v1 > min_d(self->v2, self->v3)) {
             ua = self->u2;
             va = self->v2;
             ux = self->u1;
             vx = self->v1;
             ub = self->u3;
             vb = self->v3;
-        } else if (self->v2 < maxd2(self->v3, self->v1) && self->v2 > mind2(self->v3, self->v1)) {
+        } else if (self->v2 < max_d(self->v3, self->v1) && self->v2 > min_d(self->v3, self->v1)) {
             ua = self->u3;
             va = self->v3;
             ux = self->u2;
             vx = self->v2;
             ub = self->u1;
             vb = self->v1;
-        } else if (self->v3 < maxd2(self->v1, self->v2) && self->v3 > mind2(self->v1, self->v2)) {
+        } else if (self->v3 < max_d(self->v1, self->v2) && self->v3 > min_d(self->v1, self->v2)) {
             ua = self->u1;
             va = self->v1;
             ux = self->u3;
