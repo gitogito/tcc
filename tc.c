@@ -10,6 +10,7 @@ int opt_e;
 int opt_o;
 int opt_u;
 int opt_v;
+int opt_y;
 
 void bug(char *fmt, ...)
 {
@@ -70,6 +71,7 @@ int main(int argc, char **argv)
     opt_o = 0;
     opt_u = 0;
     opt_v = 0;
+    opt_y = 0;
 
     while (argc > 0) {
 	if (argv[0][0] != '-')
@@ -99,6 +101,8 @@ int main(int argc, char **argv)
 		opt_u = 1;
 	    } else if (*s == 'v') {
 		opt_v = 1;
+	    } else if (*s == 'y') {
+		opt_y = 1;
 	    } else {
 		warn_exit("invalid option: %c", *s);
 	    }

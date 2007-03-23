@@ -490,9 +490,9 @@ Heatflow *heatflow_new(int dir, double value)
 static void config_parse(Config *self)
 {
     extern int yyparse();
-    /* extern int yydebug; */
+    extern int yydebug;
 
-    /* yydebug = 1; */
+    yydebug = opt_y;
 
     config_parser = self;
     yyparse();
