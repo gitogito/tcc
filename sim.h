@@ -38,10 +38,13 @@ typedef struct Coefs {
 
 typedef Coefs *** Array3Dc;
 
+typedef struct Obj Obj;
+
 typedef struct Each {
     int size;
     Point *point_ary;
     int index;
+    Obj *obj;
 } Each;
 
 typedef struct World {
@@ -77,6 +80,16 @@ enum {
     AXIS_Z
 };
 
+typedef struct Sweep {
+    World *world;
+    int axis;
+    double len;
+    Obj *obj;
+    Each *each;
+} Sweep;
+
+Sweep *sweep_new(World *world, int axis, double len, Obj *obj);
+
 typedef struct Rect {
     World *world;
     double x;
@@ -93,20 +106,21 @@ Rect *rect_new(World *world, double x, double y, double z, int axis, double len1
 typedef struct Box {
     World *world;
     Rect *rect;
-    double sweeplen;
-    Each * each;
+    Sweep *sweep;
 } Box;
 
 Box *box_new(World *world, double x, double y, double z, double xlen, double ylen, double zlen);
 
 enum {
     OBJ_RECT,
-    OBJ_BOX
+    OBJ_BOX,
+    OBJ_SWEEP
 };
 
 union uobj {
     Rect *rect;
     Box *box;
+    Sweep *sweep;
 };
 
 union uval {
@@ -115,11 +129,11 @@ union uval {
     Heatflow *h;
 };
 
-typedef struct Obj {
+struct Obj {
     int objtype;
     union uobj uobj;
     union uval uval;
-} Obj;
+};
 
 Obj *obj_new(int objtype);
 void obj_offset(Obj *self);

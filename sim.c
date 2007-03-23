@@ -213,6 +213,104 @@ static Point *world_each(World *self)
     return each_each(self->each);
 }
 
+/* Sweep */
+
+Sweep *sweep_new(World *world, int axis, double len, Obj *obj)
+{
+    Sweep *self;
+
+    self = EALLOC(Sweep);
+    self->world = world;
+    self->axis = axis;
+    self->len = len;
+    self->obj = obj;
+    self->each = NULL;
+    return self;
+}
+
+static Point *obj_each_begin(Obj *self);
+static Point *obj_each(Obj *self);
+static int obj_each_size(Obj *obj);
+
+static Point *sweep_each_begin(Sweep *self)
+{
+    Point *p;
+    int leni;
+    int size;
+    Point *point_ary;
+    int n;
+    int i, j, k;
+
+    if (self->each != NULL)
+	bug("sweep_each_begin");
+    p = obj_each_begin(self->obj);
+    switch (self->axis) {
+    case AXIS_X:
+	leni = iround(self->len / self->world->dx) + 1;
+	size = obj_each_size(self->obj) * leni;
+	point_ary = EALLOCN(Point, size);
+	n = 0;
+	do {
+	    for (i = p->i; i < p->i + leni; ++i) {
+		point_ary[n++] = get_point(i, p->j, p->k);
+	    }
+	    p = obj_each(self->obj);
+	} while (p != NULL);
+	break;
+    case AXIS_Y:
+	leni = iround(self->len / self->world->dy) + 1;
+	size = obj_each_size(self->obj) * leni;
+	point_ary = EALLOCN(Point, size);
+	n = 0;
+	do {
+	    for (j = p->j; j < p->j + leni; ++j) {
+		point_ary[n++] = get_point(p->i, j, p->k);
+	    }
+	    p = obj_each(self->obj);
+	} while (p != NULL);
+	break;
+    case AXIS_Z:
+	leni = iround(self->len / self->world->dz) + 1;
+	size = obj_each_size(self->obj) * leni;
+	point_ary = EALLOCN(Point, size);
+	n = 0;
+	do {
+	    for (k = p->k; k < p->k + leni; ++k) {
+		point_ary[n++] = get_point(p->i, p->j, k);
+	    }
+	    p = obj_each(self->obj);
+	} while (p != NULL);
+	break;
+    default:
+	bug("unknow axis %d", self->axis);
+    }
+    assert(n == size);
+    self->each = each_new(size, point_ary);
+    return each_each(self->each);
+}
+
+static Point *sweep_each(Sweep *self)
+{
+    return each_each(self->each);
+}
+
+static void sweep_offset(Sweep *self)
+{
+    switch (self->axis) {
+    case AXIS_X:
+	self->len -= self->world->dx;
+	break;
+    case AXIS_Y:
+	self->len -= self->world->dy;
+	break;
+    case AXIS_Z:
+	self->len -= self->world->dz;
+	break;
+    default:
+	bug("unknow axis %d", self->axis);
+    }
+}
+
 /* Rect */
 
 Rect *rect_new(World *world, double x, double y, double z, int axis, double len1, double len2)
@@ -331,54 +429,33 @@ static void rect_offset(Rect *self)
 Box *box_new(World *world, double x, double y, double z, double xlen, double ylen, double zlen)
 {
     Box *self;
+    Obj *obj;
 
     if (xlen <= 0.0 || ylen <= 0.0 || zlen <= 0.0)
 	warn_exit("length is negative for Rect");
 
     self = EALLOC(Box);
     self->world = world;
-    self->rect = rect_new(world, x, y, z, AXIS_Z, xlen, ylen);
-    self->sweeplen = zlen;
-    self->each = NULL;
+    obj = obj_new(OBJ_RECT);
+    obj->uobj.rect = rect_new(world, x, y, z, AXIS_Z, xlen, ylen);
+    self->sweep = sweep_new(self->world, AXIS_Z, zlen, obj);
     return self;
 }
 
 static Point *box_each_begin(Box *self)
 {
-    Point *p;
-    int leni;
-    int size;
-    Point *point_ary;
-    int n;
-    int k;
-
-    if (self->each != NULL)
-	bug("box_each_begin");
-    p = rect_each_begin(self->rect);
-    leni = iround(self->sweeplen / self->world->dz) + 1;
-    size = self->rect->each->size * leni;
-    point_ary = EALLOCN(Point, size);
-    n = 0;
-    do {
-	for (k = p->k; k < p->k + leni; ++k) {
-	    point_ary[n++] = get_point(p->i, p->j, k);
-	}
-	p = rect_each(self->rect);
-    } while (p != NULL);
-    assert(n == size);
-    self->each = each_new(size, point_ary);
-    return each_each(self->each);
+    return sweep_each_begin(self->sweep);
 }
 
 static Point *box_each(Box *self)
 {
-    return each_each(self->each);
+    return sweep_each(self->sweep);
 }
 
 static void box_offset(Box *self)
 {
     rect_offset(self->rect);
-    self->sweeplen -= self->world->dz;
+    sweep_offset(self->sweep);
 }
 
 /* Obj */
@@ -403,6 +480,9 @@ static Point *obj_each_begin(Obj *self)
     case OBJ_BOX:
 	p = box_each_begin(self->uobj.box);
 	break;
+    case OBJ_SWEEP:
+	p = sweep_each_begin(self->uobj.sweep);
+	break;
     default:
 	bug("unknown obj %d", self->objtype);
     }
@@ -420,10 +500,33 @@ static Point *obj_each(Obj *self)
     case OBJ_BOX:
 	p = box_each(self->uobj.box);
 	break;
+    case OBJ_SWEEP:
+	p = sweep_each(self->uobj.sweep);
+	break;
     default:
 	bug("unknown obj %d", self->objtype);
     }
     return p;
+}
+
+static int obj_each_size(Obj *self)
+{
+    int size;
+
+    switch (self->objtype) {
+    case OBJ_RECT:
+	size = self->uobj.rect->each->size;
+	break;
+    case OBJ_BOX:
+	size = self->uobj.box->sweep->each->size;
+	break;
+    case OBJ_SWEEP:
+	size = self->uobj.sweep->each->size;
+	break;
+    default:
+	bug("unknown obj %d", self->objtype);
+    }
+    return size;
 }
 
 void obj_offset(Obj *self)
@@ -434,6 +537,9 @@ void obj_offset(Obj *self)
 	break;
     case OBJ_BOX:
 	box_offset(self->uobj.box);
+	break;
+    case OBJ_SWEEP:
+	sweep_offset(self->uobj.sweep);
 	break;
     default:
 	bug("unknown obj %d", self->objtype);

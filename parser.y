@@ -75,7 +75,7 @@ static void var_assign(char *varname, double value)
 %token <val> TK_NUMBER
 %token <str> TK_WORD TK_SYMBOL
 
-%token	TK_LINES TK_ACTIVE TK_BOX TK_FIX TK_HEATFLOW TK_LAMBDA TK_RECT TK_WORLD
+%token	TK_LINES TK_ACTIVE TK_BOX TK_FIX TK_HEATFLOW TK_LAMBDA TK_RECT TK_SWEEP TK_WORLD
 
 %type <point>		point
 %type <point>		vector
@@ -262,6 +262,22 @@ obj:
 	else
 	    yyerror("unknown axis");
 	$$->uobj.rect = rect_new(config_parser->world, $2.x, $2.y, $2.z, axis, $6.v1, $6.v2);
+    }
+
+  | TK_SWEEP TK_SYMBOL ',' expr ',' obj
+    {
+	int axis;
+
+	$$ = obj_new(OBJ_SWEEP);
+	if (strcmp($2, ":X") == 0)
+	    axis = AXIS_X;
+	else if (strcmp($2, ":Y") == 0)
+	    axis = AXIS_Y;
+	else if (strcmp($2, ":Z") == 0)
+	    axis = AXIS_Z;
+	else
+	    yyerror("unknown axis");
+	$$->uobj.sweep = sweep_new(config_parser->world, axis, $4, $6);
     }
 
 %%
