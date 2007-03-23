@@ -464,6 +464,20 @@ void aryobj_push(AryObj *self, Obj *obj)
 Heatflow *heatflow_new(int dir, double value)
 {
     Heatflow *self;
+    int ok, idir;
+
+    ok = 0;
+    for (idir = 0; idir < NELEMS(dir_array); ++idir) {
+	if (dir == dir_array[idir]) {
+	    ok = 1;
+	    break;
+	}
+    }
+    if (!ok)
+	bug("unknown dir %d", dir);
+
+    if (value <= 0.0)
+	warn_exit("value is negative for Heatflow");
 
     self = EALLOC(Heatflow);
     self->dir = dir;
