@@ -697,7 +697,7 @@ static Point *triangle_each_begin(Triangle *self)
     n = 0;
     for (; p1 != NULL; p1 = triangle_z_each(self->tr1))
         point_ary[n++] = *triangle_each2(self, p1);
-    if (p2 != NULL) {
+    if (self->tr2 != NULL) {
         for (; p2 != NULL; p2 = triangle_z_each(self->tr2))
             point_ary[n++] = *triangle_each2(self, p2);
     }
