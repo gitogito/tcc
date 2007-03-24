@@ -456,7 +456,7 @@ static void rect_offset(Rect *self)
 
 /* triangle_z */
 /*
- *       (x2, y2)
+ *       (x1 + dx2, y1 + dy2)
  *         **
  *       **  ***
  *     **       ***
@@ -464,7 +464,7 @@ static void rect_offset(Rect *self)
  *   <---------------> dx
  * (x1, y1)
  */
-static Triangle_z *triangle_z_new(World *world, double x1, double y1, double dx, double x2, double y2)
+static Triangle_z *triangle_z_new(World *world, double x1, double y1, double dx, double dx2, double dy2)
 {
     Triangle_z *self;
 
@@ -473,8 +473,8 @@ static Triangle_z *triangle_z_new(World *world, double x1, double y1, double dx,
     self->x1 = x1;
     self->y1 = y1;
     self->dx = dx;
-    self->x2 = x2;
-    self->y2 = y2;
+    self->dx2 = dx2;
+    self->dy2 = dy2;
     self->each = NULL;
     return self;
 }
@@ -493,8 +493,8 @@ static Point *triangle_z_each_begin(Triangle_z *self)
 
     i1 = iround((self->x1 - self->world->x0) / self->world->dx);
     j1 = iround((self->y1 - self->world->y0) / self->world->dy);
-    i2 = iround((self->x2 - self->world->x0) / self->world->dx);
-    j2 = iround((self->y2 - self->world->y0) / self->world->dy);
+    i2 = iround((self->x1 + self->dx2 - self->world->x0) / self->world->dx);
+    j2 = iround((self->y1 + self->dy2 - self->world->y0) / self->world->dy);
     ix = (((self->x1+self->dx) - self->world->x0) / self->world->dx);
     jx = j1;
 
@@ -555,7 +555,7 @@ static Point *triangle_z_each(Triangle_z *self)
 /* Triangle */
 
 Triangle *triangle_new(World *world, double x1, double y1, double z1,
-	int axis, double u2, double v2, double u3, double v3)
+	int axis, double du2, double dv2, double du3, double dv3)
 {
     Triangle *self;
 
@@ -581,10 +581,10 @@ Triangle *triangle_new(World *world, double x1, double y1, double z1,
     default:
         bug("unknow axis %d", self->axis);
     }
-    self->u2 = u2;
-    self->v2 = v2;
-    self->u3 = u3;
-    self->v3 = v3;
+    self->du2 = du2;
+    self->dv2 = dv2;
+    self->du3 = du3;
+    self->dv3 = dv3;
     self->tr1 = NULL;
     self->tr2 = NULL;
     self->each = NULL;
@@ -620,6 +620,7 @@ static Point *triangle_each2(Triangle *self, Point *p)
 
 static Point *triangle_each_begin(Triangle *self)
 {
+    double u1, v1, u2, v2, u3, v3;
     double ua, va;
     double ux, vx;
     double ub, vb;
@@ -631,15 +632,19 @@ static Point *triangle_each_begin(Triangle *self)
     if (self->each != NULL && self->each->index >= 0)
 	bug("triangle_each_begin");
 
-    if (self->v1 == self->v2) {
-        self->tr1 = triangle_z_new(self->world, self->u1, self->v1, self->u2 - self->u1,
-                self->u3, self->v3);
-    } else if (self->v2 == self->v3) {
-        self->tr1 = triangle_z_new(self->world, self->u2, self->v2, self->u3 - self->u2,
-                self->u1, self->v1);
-    } else if (self->v3 == self->v1) {
-        self->tr1 = triangle_z_new(self->world, self->u3, self->v3, self->u1 - self->u3,
-                self->u2, self->v2);
+    u1 = self->u1;
+    v1 = self->v1;
+    u2 = self->u1 + self->du2;
+    v2 = self->v1 + self->dv2;
+    u3 = self->u1 + self->du3;
+    v3 = self->v1 + self->dv3;
+
+    if (v1 == v2) {
+        self->tr1 = triangle_z_new(self->world, u1, v1, u2 - u1, u3 - u1, v3 - v1);
+    } else if (v2 == v3) {
+        self->tr1 = triangle_z_new(self->world, u2, v2, u3 - u2, u1 - u2, v1 - v2);
+    } else if (v3 == v1) {
+        self->tr1 = triangle_z_new(self->world, u3, v3, u1 - u3, u2 - u3, v2 - v3);
     } else {
         /*
          *           * pa
@@ -654,35 +659,35 @@ static Point *triangle_each_begin(Triangle *self)
          *  *
          *  pb
          */
-        if (self->v1 < max_d(self->v2, self->v3) && self->v1 > min_d(self->v2, self->v3)) {
-            ua = self->u2;
-            va = self->v2;
-            ux = self->u1;
-            vx = self->v1;
-            ub = self->u3;
-            vb = self->v3;
-        } else if (self->v2 < max_d(self->v3, self->v1) && self->v2 > min_d(self->v3, self->v1)) {
-            ua = self->u3;
-            va = self->v3;
-            ux = self->u2;
-            vx = self->v2;
-            ub = self->u1;
-            vb = self->v1;
-        } else if (self->v3 < max_d(self->v1, self->v2) && self->v3 > min_d(self->v1, self->v2)) {
-            ua = self->u1;
-            va = self->v1;
-            ux = self->u3;
-            vx = self->v3;
-            ub = self->u2;
-            vb = self->v2;
+        if (v1 < max_d(v2, v3) && v1 > min_d(v2, v3)) {
+            ua = u2;
+            va = v2;
+            ux = u1;
+            vx = v1;
+            ub = u3;
+            vb = v3;
+        } else if (v2 < max_d(v3, v1) && v2 > min_d(v3, v1)) {
+            ua = u3;
+            va = v3;
+            ux = u2;
+            vx = v2;
+            ub = u1;
+            vb = v1;
+        } else if (v3 < max_d(v1, v2) && v3 > min_d(v1, v2)) {
+            ua = u1;
+            va = v1;
+            ux = u3;
+            vx = v3;
+            ub = u2;
+            vb = v2;
         } else {
             bug("not reached");
         }
         a = (ua - ub) / (va - vb);
         b = (ub*va - ua*vb) / (va - vb);
         dx = a * vx + b - ux;
-        self->tr1 = triangle_z_new(self->world, ux, vx, dx, ua, va);
-        self->tr2 = triangle_z_new(self->world, ux, vx, dx, ub, vb);
+        self->tr1 = triangle_z_new(self->world, ux, vx, dx, ua - ux, va - vx);
+        self->tr2 = triangle_z_new(self->world, ux, vx, dx, ub - ux, vb - vx);
     }
     assert(self->tr1 != NULL);
 

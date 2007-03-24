@@ -108,8 +108,8 @@ typedef struct Triangle_z {
     double x1;
     double y1;
     double dx;
-    double x2;
-    double y2;
+    double dx2;
+    double dy2;
     Each *each;
 } Triangle_z;
 
@@ -119,17 +119,17 @@ typedef struct Triangle {
     double u1;
     double v1;
     int wi;
-    double u2;
-    double v2;
-    double u3;
-    double v3;
+    double du2;
+    double dv2;
+    double du3;
+    double dv3;
     Triangle_z *tr1;
     Triangle_z *tr2;
     Each *each;
 } Triangle;
 
 Triangle *triangle_new(World *world, double x1, double y1, double z1,
-	int axis, double u2, double v2, double u3, double v3);
+	int axis, double du2, double dv2, double du3, double dv3);
 
 typedef struct Box {
     World *world;
