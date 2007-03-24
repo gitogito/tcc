@@ -271,7 +271,7 @@ static Point *sweep_each_begin(Sweep *self)
     int n;
     int i, j, k;
 
-    if (self->each != NULL)
+    if (self->each != NULL && self->each->index >= 0)
 	bug("sweep_each_begin");
     p = obj_each_begin(self->obj);
     switch (self->axis) {
@@ -488,6 +488,9 @@ static Point *triangle_z_each_begin(Triangle_z *self)
     int istart, iend, jstart, jend;
     Point *point_ary;
 
+    if (self->each != NULL && self->each->index >= 0)
+	bug("triangle_z_each_begin");
+
     i1 = iround((self->x1 - self->world->x0) / self->world->dx);
     j1 = iround((self->y1 - self->world->y0) / self->world->dy);
     i2 = iround((self->x2 - self->world->x0) / self->world->dx);
@@ -624,6 +627,9 @@ static Point *triangle_each_begin(Triangle *self)
     Point *p1, *p2;
     Point *point_ary;
     int size, n;
+
+    if (self->each != NULL && self->each->index >= 0)
+	bug("triangle_each_begin");
 
     if (self->v1 == self->v2) {
         self->tr1 = triangle_z_new(self->world, self->u1, self->v1, self->u2 - self->u1,
