@@ -843,35 +843,35 @@ static iPoint *polygon_each_begin(Polygon *self)
 	va = ary->ptr[0];
 	vb = ary->ptr[1];
 	vc = ary->ptr[2];
-	if (vector2d_counter_clock_p(va, vb, vc)) {
-	    switch (self->axis) {
-	    case AXIS_X:
-		x1 = va.x;
-		y1 = va.y;
-		z1 = self->w;
-		break;
-	    case AXIS_Y:
-		x1 = va.x;
-		y1 = self->w;
-		z1 = va.y;
-		break;
-	    case AXIS_Z:
-		x1 = va.x;
-		y1 = va.y;
-		z1 = self->w;
-		break;
-	    default:
-		bug("unknow axis %d", self->axis);
-	    }
-	    tr = triangle_new(self->world, x1, y1, z1, self->axis,
-		    vb.x - x1, vb.y - y1, vc.x - x1, vc.y - y1);
-	    for (p = triangle_each_begin(tr); p != NULL; p = triangle_each(tr)) {
-		++size;
-		ipoint_ary = erealloc(ipoint_ary, sizeof(iPoint) * size);
-		ipoint_ary[size - 1] = *p;
-	    }
-	    vector2d_ary_delete_at(ary, 1);
+	if (!vector2d_counter_clock_p(va, vb, vc))
+	    warn_exit("points of polygon must be placed counterclockwise");
+	switch (self->axis) {
+	case AXIS_X:
+	    x1 = va.x;
+	    y1 = va.y;
+	    z1 = self->w;
+	    break;
+	case AXIS_Y:
+	    x1 = va.x;
+	    y1 = self->w;
+	    z1 = va.y;
+	    break;
+	case AXIS_Z:
+	    x1 = va.x;
+	    y1 = va.y;
+	    z1 = self->w;
+	    break;
+	default:
+	    bug("unknow axis %d", self->axis);
 	}
+	tr = triangle_new(self->world, x1, y1, z1, self->axis,
+		vb.x - x1, vb.y - y1, vc.x - x1, vc.y - y1);
+	for (p = triangle_each_begin(tr); p != NULL; p = triangle_each(tr)) {
+	    ++size;
+	    ipoint_ary = erealloc(ipoint_ary, sizeof(iPoint) * size);
+	    ipoint_ary[size - 1] = *p;
+	}
+	vector2d_ary_delete_at(ary, 1);
 	vector2d_ary_rotate(ary, 1);
     }
     self->each = each_new(size, ipoint_ary);
@@ -1118,17 +1118,10 @@ int sim_active_p(Sim *self, iPoint ipoint)
 
 static void sim_set_region_active(Sim *self)
 {
-    static int dir_xyz[3][2] = {
-	{ DIR_LEFT, DIR_RIGHT },
-	{ DIR_FRONT, DIR_BACK },
-	{ DIR_BELOW, DIR_ABOVE }
-    };
     iPoint *p;
     AryObj *active_obj_ary;
     Obj *obj;
     int index;
-    int continue_p;
-    int *dirs;
 
     ALLOCATE_3D2(self->active_p_ary, int, self->ni, self->nj, self->nk, 0);
     active_obj_ary = self->config->active_obj_ary;
