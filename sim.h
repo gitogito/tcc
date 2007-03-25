@@ -3,6 +3,10 @@
 
 #define NDIRS   (2 * 3) /* 2 * (number of dimensions) */
 
+#define NELEMS(ary)	(sizeof(ary) / sizeof((ary)[0]))
+
+int iround(double x);
+
 enum {
     DIR_LEFT = 0,
     DIR_RIGHT,
@@ -40,9 +44,13 @@ typedef struct iPoint {
     int k;
 } iPoint;
 
-typedef iPoint *** Array3Dp;
-
 iPoint get_ipoint(int i, int j, int k);
+iPoint ipoint_offset(iPoint ipoint, int dirx, int diry, int dirz);
+int ipoint_eq(iPoint ipoint1, iPoint ipoint2);
+iPoint ipoint_add(iPoint ipoint1, iPoint ipoint2);
+iPoint *ipoint_new(int i, int j, int k);
+
+typedef iPoint *** Array3Dp;
 
 typedef struct Coef {
     int index;
@@ -65,6 +73,9 @@ typedef struct Each {
     int index;
     Obj *obj;
 } Each;
+
+Each *each_new(int size, iPoint *ipoint_ary);
+iPoint *each_each(Each *self);
 
 typedef struct World {
     double x0;
@@ -197,6 +208,8 @@ struct Obj {
 };
 
 Obj *obj_new(int objtype);
+iPoint *obj_each_begin(Obj *self);
+iPoint *obj_each(Obj *self);
 void obj_offset(Obj *self);
 
 typedef struct AryObj {
