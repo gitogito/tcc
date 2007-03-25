@@ -1140,26 +1140,6 @@ static void sim_set_region_active(Sim *self)
 	    (self->active_p_ary)[p->i][p->j][p->k] = obj->uval.i;
 	}
     }
-
-    /* remove active flag from the point having active alone plane in NDIR directions */
-    do {
-	continue_p = 0;
-	for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
-	    if (!self->active_p_ary[p->i][p->j][p->k])
-		continue;
-
-	    for (index = 0; index < NELEMS(dir_xyz); ++index) {
-		dirs = dir_xyz[index];
-		if (!sim_active_p(self, ipoint_add(*p, self->dir_to_ipoint[dirs[0]])) &&
-			!sim_active_p(self, ipoint_add(*p, self->dir_to_ipoint[dirs[1]]))) {
-		    self->active_p_ary[p->i][p->j][p->k] = 0;
-		    continue_p = 1;
-		    if (opt_v)
-			warn("removed (%d, %d, %d)", p->i, p->j, p->k);
-		}
-	    }
-	}
-    } while (continue_p);
 }
 
 static void sim_set_region_fix(Sim *self)
