@@ -51,14 +51,14 @@ static Vector2d vector2d_sub(Vector2d va, Vector2d vb)
     return v;
 }
 
-static double outer_prod(Vector2d va, Vector2d vb)
+static double vector2d_outer_prod(Vector2d va, Vector2d vb)
 {
     return va.x * vb.y - va.y * vb.x;
 }
 
-static int counter_clock_p(Vector2d va, Vector2d vb, Vector2d vc)
+static int vector2d_counter_clock_p(Vector2d va, Vector2d vb, Vector2d vc)
 {
-    return outer_prod(vector2d_sub(va, vb), vector2d_sub(vc, vb)) <= 0.0;
+    return vector2d_outer_prod(vector2d_sub(va, vb), vector2d_sub(vc, vb)) <= 0.0;
 }
 
 /* Vector2d_ary */
@@ -843,7 +843,7 @@ static iPoint *polygon_each_begin(Polygon *self)
 	va = ary->ptr[0];
 	vb = ary->ptr[1];
 	vc = ary->ptr[2];
-	if (counter_clock_p(va, vb, vc)) {
+	if (vector2d_counter_clock_p(va, vb, vc)) {
 	    switch (self->axis) {
 	    case AXIS_X:
 		x1 = va.x;
