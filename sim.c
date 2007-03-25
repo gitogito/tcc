@@ -581,7 +581,7 @@ static iPoint *triangle_z_each_begin(Triangle_z *self)
     j1 = iround((self->y1 - self->world->y0) / self->world->dy);
     i2 = iround((self->x1 + self->dx2 - self->world->x0) / self->world->dx);
     j2 = iround((self->y1 + self->dy2 - self->world->y0) / self->world->dy);
-    ix = (((self->x1+self->dx) - self->world->x0) / self->world->dx);
+    ix = iround(((self->x1+self->dx) - self->world->x0) / self->world->dx);
     jx = j1;
 
     a12 = (double) (i1 - i2) / (j1 - j2);
