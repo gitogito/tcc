@@ -16,14 +16,33 @@ typedef double *** Array3Dd;
 typedef int *** Array3Di;
 
 typedef struct Point {
+    double x;
+    double y;
+    double z;
+} Point;
+
+typedef struct Vector2d {
+    double x;
+    double y;
+} Vector2d;
+
+typedef struct Vector2d_ary {
+    int size;
+    Vector2d *ptr;
+} Vector2d_ary;
+
+Vector2d_ary *vector2d_ary_new(void);
+void vector2d_ary_push(Vector2d_ary *self, Vector2d vector2d);
+
+typedef struct iPoint {
     int i;
     int j;
     int k;
-} Point;
+} iPoint;
 
-typedef Point *** Array3Dp;
+typedef iPoint *** Array3Dp;
 
-Point get_point(int i, int j, int k);
+iPoint get_ipoint(int i, int j, int k);
 
 typedef struct Coef {
     int index;
@@ -42,7 +61,7 @@ typedef struct Obj Obj;
 
 typedef struct Each {
     int size;
-    Point *point_ary;
+    iPoint *ipoint_ary;
     int index;
     Obj *obj;
 } Each;
@@ -131,6 +150,17 @@ typedef struct Triangle {
 Triangle *triangle_new(World *world, double x1, double y1, double z1,
 	int axis, double du2, double dv2, double du3, double dv3);
 
+typedef struct Polygon {
+    World *world;
+    int axis;
+    double w;
+    Vector2d_ary *vector2d_ary;
+    Each *each;
+} Polygon;
+
+Polygon *polygon_new(World *world, double x1, double y1, double z1,
+	int axis, Vector2d_ary *dudv_ary);
+
 typedef struct Box {
     World *world;
     Sweep *sweep;
@@ -141,6 +171,7 @@ Box *box_new(World *world, double x, double y, double z, double xlen, double yle
 enum {
     OBJ_RECT,
     OBJ_TRIANGLE,
+    OBJ_POLYGON,
     OBJ_BOX,
     OBJ_SWEEP
 };
@@ -148,6 +179,7 @@ enum {
 union uobj {
     Rect *rect;
     Triangle *triangle;
+    Polygon *polygon;
     Box *box;
     Sweep *sweep;
 };
@@ -187,7 +219,7 @@ extern Config *config_parser;
 
 typedef struct Sim {
     Config *config;
-    Point dir_to_point[NDIRS];
+    iPoint dir_to_ipoint[NDIRS];
     World *world;
     int ni;
     int nj;
@@ -195,13 +227,13 @@ typedef struct Sim {
     Array3Di active_p_ary;
     Array3Dd fix_ary;
     Array3Dd *heatflow_ary;
-    Array3Dp *heatflow_point_ary;
+    Array3Dp *heatflow_ipoint_ary;
     Array3Dd lambda_ary;
     Array3Dd u;
     Array3Dc *coefs;
 } Sim;
 
-int sim_active_p(Sim *self, Point point);
+int sim_active_p(Sim *self, iPoint ipoint);
 Sim *sim_new(void);
 Array3Dd sim_calc(Sim *sim);
 

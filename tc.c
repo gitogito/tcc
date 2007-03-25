@@ -133,7 +133,7 @@ int main(int argc, char **argv)
             y = y0 + dy * j;
             for (i = 0; i < ni; ++i) {
                 x = x0 + dx * i;
-                if (sim_active_p(sim, get_point(i, j, k))) {
+                if (sim_active_p(sim, get_ipoint(i, j, k))) {
                     val = ary[i][j][k];
                     act = 1;
                 } else {

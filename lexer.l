@@ -1,5 +1,5 @@
 %{
-#include "parser.h"
+#include "sim.h"
 #include "y.tab.h"
 #include "mem.h"
 
@@ -38,6 +38,7 @@ box	        return TK_BOX;
 fix		return TK_FIX;
 heatflow	return TK_HEATFLOW;
 lambda  	return TK_LAMBDA;
+polygon  	return TK_POLYGON;
 rect      	return TK_RECT;
 triangle      	return TK_TRIANGLE;
 sweep      	return TK_SWEEP;

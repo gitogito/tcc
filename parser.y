@@ -4,7 +4,7 @@
 #include <math.h>
 #include "tc.h"
 #include "sim.h"
-#include "parser.h"
+#include "mem.h"
 
 #define YYDEBUG 1
 
@@ -67,8 +67,9 @@ static void var_assign(char *varname, double value)
 %union {
     double val;
     char *str;
-    struct point_t point;
-    struct vector2d_t vector2d;
+    Point point;
+    Vector2d vector2d;
+    Vector2d_ary *vector2d_ary;
     Obj *obj;
 }
 
@@ -76,11 +77,12 @@ static void var_assign(char *varname, double value)
 %token <str> TK_WORD TK_SYMBOL
 
 %token	TK_ACTIVE TK_BOX TK_FIX TK_HEATFLOW TK_LAMBDA TK_LINES
-        TK_RECT TK_SWEEP TK_TRIANGLE TK_WORLD
+        TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE TK_WORLD
 
 %type <point>		point
 %type <point>		vector
 %type <vector2d>	vector2d
+%type <vector2d_ary>	vector2d_ary
 %type <val>		expr var_assign
 %type <obj>		obj
 
@@ -209,8 +211,21 @@ vector:
 vector2d:
     '<' expr ',' expr '>'
     {
-	$$.v1 = $2;
-	$$.v2 = $4;
+	$$.x = $2;
+	$$.y = $4;
+    }
+
+vector2d_ary:
+    vector2d
+    {
+	$$ = vector2d_ary_new();
+	vector2d_ary_push($$, $1);
+    }
+
+  | vector2d_ary ',' vector2d
+    {
+	$$ = $1;
+	vector2d_ary_push($$, $3);
     }
 
 expr:
@@ -262,7 +277,7 @@ obj:
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.rect = rect_new(config_parser->world, $2.x, $2.y, $2.z, axis, $6.v1, $6.v2);
+	$$->uobj.rect = rect_new(config_parser->world, $2.x, $2.y, $2.z, axis, $6.x, $6.y);
     }
 
   | TK_TRIANGLE point ',' TK_SYMBOL ',' vector2d ',' vector2d
@@ -279,7 +294,23 @@ obj:
 	else
 	    yyerror("unknown axis");
 	$$->uobj.triangle = triangle_new(config_parser->world, $2.x, $2.y, $2.z,
-            axis, $6.v1, $6.v2, $8.v1, $8.v2);
+            axis, $6.x, $6.y, $8.x, $8.y);
+    }
+
+  | TK_POLYGON point ',' TK_SYMBOL ',' vector2d_ary
+    {
+	int axis;
+
+	$$ = obj_new(OBJ_POLYGON);
+	if (strcmp($4, ":X") == 0)
+	    axis = AXIS_X;
+	else if (strcmp($4, ":Y") == 0)
+	    axis = AXIS_Y;
+	else if (strcmp($4, ":Z") == 0)
+	    axis = AXIS_Z;
+	else
+	    yyerror("unknown axis");
+	$$->uobj.polygon = polygon_new(config_parser->world, $2.x, $2.y, $2.z, axis, $6);
     }
 
   | TK_SWEEP TK_SYMBOL ',' expr ',' obj
