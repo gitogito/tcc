@@ -1,5 +1,6 @@
 #include <stdio.h>
 #include <stdlib.h>
+#include <math.h>
 #include <assert.h>
 #include "sim.h"
 #include "mem.h"
@@ -42,6 +43,11 @@ static double max_d(double a, double b)
 
 /* Vector2d */
 
+static double vector2d_length(Vector2d v)
+{
+    return sqrt(v.x * v.x + v.y * v.y);
+}
+
 static Vector2d vector2d_sub(Vector2d va, Vector2d vb)
 {
     Vector2d v;
@@ -49,6 +55,11 @@ static Vector2d vector2d_sub(Vector2d va, Vector2d vb)
     v.x = va.x - vb.x;
     v.y = va.y - vb.y;
     return v;
+}
+
+static double vector2d_inner_prod(Vector2d va, Vector2d vb)
+{
+    return va.x * vb.x + va.y * vb.y;
 }
 
 static double vector2d_outer_prod(Vector2d va, Vector2d vb)
@@ -59,6 +70,20 @@ static double vector2d_outer_prod(Vector2d va, Vector2d vb)
 static int vector2d_counter_clock_p(Vector2d va, Vector2d vb, Vector2d vc)
 {
     return vector2d_outer_prod(vector2d_sub(va, vb), vector2d_sub(vc, vb)) <= 0.0;
+}
+
+static int vector2d_inner_triangle_p(Vector2d vp, Vector2d va, Vector2d vb, Vector2d vc)
+{
+    double val_ab, val_bc, val_ca;
+
+    val_ab = vector2d_outer_prod(vector2d_sub(vb, va), vector2d_sub(vp, va));
+    val_bc = vector2d_outer_prod(vector2d_sub(vc, vb), vector2d_sub(vp, vb));
+    val_ca = vector2d_outer_prod(vector2d_sub(va, vc), vector2d_sub(vp, vc));
+    if ((val_ab >= 0.0 && val_bc >= 0.0 && val_ca >= 0.0) ||
+	    (val_ab <= 0.0 && val_bc <= 0.0 && val_ca <= 0.0))
+	return 1;
+    else
+	return 0;
 }
 
 /* Vector2d_ary */
@@ -828,6 +853,7 @@ static iPoint *polygon_each_begin(Polygon *self)
     int size;
     iPoint *ipoint_ary;
     Vector2d va, vb, vc;
+    int ok;
     double x1, y1, z1;
     Triangle *tr;
     iPoint *p;
@@ -840,38 +866,49 @@ static iPoint *polygon_each_begin(Polygon *self)
     size = 0;
     ipoint_ary = NULL;
     while (ary->size >= 3) {
+	for (index = 0; index < ary->size; ++index) {
+	}
 	va = ary->ptr[0];
 	vb = ary->ptr[1];
 	vc = ary->ptr[2];
-	if (!vector2d_counter_clock_p(va, vb, vc))
-	    warn_exit("points of polygon must be placed counterclockwise");
-	switch (self->axis) {
-	case AXIS_X:
-	    x1 = va.x;
-	    y1 = va.y;
-	    z1 = self->w;
-	    break;
-	case AXIS_Y:
-	    x1 = va.x;
-	    y1 = self->w;
-	    z1 = va.y;
-	    break;
-	case AXIS_Z:
-	    x1 = va.x;
-	    y1 = va.y;
-	    z1 = self->w;
-	    break;
-	default:
-	    bug("unknow axis %d", self->axis);
+	if (vector2d_counter_clock_p(va, vb, vc)) {
+	    ok = 1;
+	    for (index = 3; index < ary->size; ++index) {
+		if (vector2d_inner_triangle_p(ary->ptr[index], va, vb, vc)) {
+		    ok = 0;
+		    break;
+		}
+	    }
+	    if (ok) {
+		switch (self->axis) {
+		case AXIS_X:
+		    x1 = va.x;
+		    y1 = va.y;
+		    z1 = self->w;
+		    break;
+		case AXIS_Y:
+		    x1 = va.x;
+		    y1 = self->w;
+		    z1 = va.y;
+		    break;
+		case AXIS_Z:
+		    x1 = va.x;
+		    y1 = va.y;
+		    z1 = self->w;
+		    break;
+		default:
+		    bug("unknow axis %d", self->axis);
+		}
+		tr = triangle_new(self->world, x1, y1, z1, self->axis,
+			vb.x - x1, vb.y - y1, vc.x - x1, vc.y - y1);
+		for (p = triangle_each_begin(tr); p != NULL; p = triangle_each(tr)) {
+		    ++size;
+		    ipoint_ary = erealloc(ipoint_ary, sizeof(iPoint) * size);
+		    ipoint_ary[size - 1] = *p;
+		}
+		vector2d_ary_delete_at(ary, 1);
+	    }
 	}
-	tr = triangle_new(self->world, x1, y1, z1, self->axis,
-		vb.x - x1, vb.y - y1, vc.x - x1, vc.y - y1);
-	for (p = triangle_each_begin(tr); p != NULL; p = triangle_each(tr)) {
-	    ++size;
-	    ipoint_ary = erealloc(ipoint_ary, sizeof(iPoint) * size);
-	    ipoint_ary[size - 1] = *p;
-	}
-	vector2d_ary_delete_at(ary, 1);
 	vector2d_ary_rotate(ary, 1);
     }
     self->each = each_new(size, ipoint_ary);
