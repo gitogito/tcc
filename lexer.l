@@ -38,7 +38,7 @@ box	        return TK_BOX;
 circle	        return TK_CIRCLE;
 ellipse	        return TK_ELLIPSE;
 fix		return TK_FIX;
-heatflow	return TK_HEATFLOW;
+heat		return TK_HEAT;
 lambda  	return TK_LAMBDA;
 polygon  	return TK_POLYGON;
 rect      	return TK_RECT;

@@ -97,13 +97,6 @@ World *world_new(double x, double y, double z,
 	double xlen, double ylen, double zlen,
 	double dx, double dy, double dz);
 
-typedef struct Heatflow {
-    int dir;
-    double value;
-} Heatflow;
-
-Heatflow *heatflow_new(int dir, double value);
-
 enum {
     AXIS_X,
     AXIS_Y,
@@ -221,7 +214,6 @@ union uobj {
 union uval {
     int i;
     double d;
-    Heatflow *h;
 };
 
 struct Obj {
@@ -247,7 +239,7 @@ typedef struct Config {
     World *world;
     AryObj *active_obj_ary;
     AryObj *fix_obj_ary;
-    AryObj *heatflow_obj_ary;
+    AryObj *heat_obj_ary;
     AryObj *lambda_obj_ary;
 } Config;
 
@@ -262,8 +254,8 @@ typedef struct Sim {
     int nk;
     Array3Di active_p_ary;
     Array3Dd fix_ary;
-    Array3Dd *heatflow_ary;
-    Array3Dp *heatflow_ipoint_ary;
+    Array3Dd heat_ary;
+    Array3Dp *heat_ipoint_ary;
     Array3Dd lambda_ary;
     Array3Dd u;
     Array3Dc *coefs;

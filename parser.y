@@ -20,7 +20,7 @@ enum {
     ST_WORLD,
     ST_ACTIVE,
     ST_FIX,
-    ST_HEATFLOW,
+    ST_HEAT,
     ST_LAMBDA,
 };
 
@@ -31,7 +31,6 @@ typedef struct var_t {
 
 static int state = ST_START;
 static double value;
-static int dir = -1;
 
 static var_t vars[MAX_NVARS];
 static int nvars = 0;
@@ -76,7 +75,7 @@ static void var_assign(char *varname, double value)
 %token <val> TK_NUMBER
 %token <str> TK_WORD TK_SYMBOL
 
-%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_ELLIPSE TK_FIX TK_HEATFLOW TK_LAMBDA TK_LINE
+%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_ELLIPSE TK_FIX TK_HEAT TK_LAMBDA TK_LINE
         TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE TK_WORLD
 
 %type <point>		point
@@ -136,26 +135,11 @@ command:
 	value = $3;
     }
 
-  | TK_LINE TK_HEATFLOW TK_SYMBOL ',' expr
+  | TK_LINE TK_HEAT expr
     {
-	state = ST_HEATFLOW;
+	state = ST_HEAT;
 
-	if (strcmp($3, ":LEFT") == 0)
-	    dir = DIR_LEFT;
-	else if (strcmp($3, ":RIGHT") == 0)
-	    dir = DIR_RIGHT;
-	else if (strcmp($3, ":FRONT") == 0)
-	    dir = DIR_FRONT;
-	else if (strcmp($3, ":BACK") == 0)
-	    dir = DIR_BACK;
-	else if (strcmp($3, ":BELOW") == 0)
-	    dir = DIR_BELOW;
-	else if (strcmp($3, ":ABOVE") == 0)
-	    dir = DIR_ABOVE;
-	else
-	    warn_exit("unknown direction %d at line %ld", dir, lineno);
-
-	value = $5;
+	value = $3;
     }
 
   | TK_LINE TK_LAMBDA expr
@@ -178,9 +162,9 @@ command:
 	    obj->uval.d = value;
 	    aryobj_push(config_parser->fix_obj_ary, obj);
 	    break;
-	case ST_HEATFLOW:
-	    obj->uval.h = heatflow_new(dir, value);
-	    aryobj_push(config_parser->heatflow_obj_ary, obj);
+	case ST_HEAT:
+	    obj->uval.d = value;
+	    aryobj_push(config_parser->heat_obj_ary, obj);
 	    break;
 	case ST_LAMBDA:
 	    obj->uval.d = value;
