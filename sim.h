@@ -161,6 +161,18 @@ typedef struct Triangle {
 Triangle *triangle_new(World *world, double x1, double y1, double z1,
 	int axis, double du2, double dv2, double du3, double dv3);
 
+typedef struct Circle {
+    World *world;
+    double x;
+    double y;
+    double z;
+    int axis;
+    double r;
+    Each *each;
+} Circle;
+
+Circle *circle_new(World *world, double x, double y, double z, int axis, double r);
+
 typedef struct Polygon {
     World *world;
     int axis;
@@ -182,6 +194,7 @@ Box *box_new(World *world, double x, double y, double z, double xlen, double yle
 enum {
     OBJ_RECT,
     OBJ_TRIANGLE,
+    OBJ_CIRCLE,
     OBJ_POLYGON,
     OBJ_BOX,
     OBJ_SWEEP
@@ -190,6 +203,7 @@ enum {
 union uobj {
     Rect *rect;
     Triangle *triangle;
+    Circle *circle;
     Polygon *polygon;
     Box *box;
     Sweep *sweep;

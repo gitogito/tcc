@@ -76,7 +76,7 @@ static void var_assign(char *varname, double value)
 %token <val> TK_NUMBER
 %token <str> TK_WORD TK_SYMBOL
 
-%token	TK_ACTIVE TK_BOX TK_FIX TK_HEATFLOW TK_LAMBDA TK_LINES
+%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_FIX TK_HEATFLOW TK_LAMBDA TK_LINE
         TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE TK_WORLD
 
 %type <point>		point
@@ -111,7 +111,7 @@ var_assign:
     }
 
 world:
-    TK_LINES TK_WORLD point ',' vector ',' expr ',' expr ',' expr
+    TK_LINE TK_WORLD point ',' vector ',' expr ',' expr ',' expr
     {
 	if (config_parser->world != NULL)
 	    warn_exit("world is already defined at line %ld", lineno);
@@ -125,18 +125,18 @@ commands:
   | commands command
 
 command:
-    TK_LINES TK_ACTIVE
+    TK_LINE TK_ACTIVE
     {
 	state = ST_ACTIVE;
     }
 
-  | TK_LINES TK_FIX expr
+  | TK_LINE TK_FIX expr
     {
 	state = ST_FIX;
 	value = $3;
     }
 
-  | TK_LINES TK_HEATFLOW TK_SYMBOL ',' expr
+  | TK_LINE TK_HEATFLOW TK_SYMBOL ',' expr
     {
 	state = ST_HEATFLOW;
 
@@ -158,7 +158,7 @@ command:
 	value = $5;
     }
 
-  | TK_LINES TK_LAMBDA expr
+  | TK_LINE TK_LAMBDA expr
     {
 	state = ST_LAMBDA;
 	value = $3;
@@ -295,6 +295,22 @@ obj:
 	    yyerror("unknown axis");
 	$$->uobj.triangle = triangle_new(config_parser->world, $2.x, $2.y, $2.z,
             axis, $6.x, $6.y, $8.x, $8.y);
+    }
+
+  | TK_CIRCLE point ',' TK_SYMBOL ',' expr
+    {
+	int axis;
+
+	$$ = obj_new(OBJ_CIRCLE);
+	if (strcmp($4, ":X") == 0)
+	    axis = AXIS_X;
+	else if (strcmp($4, ":Y") == 0)
+	    axis = AXIS_Y;
+	else if (strcmp($4, ":Z") == 0)
+	    axis = AXIS_Z;
+	else
+	    yyerror("unknown axis");
+	$$->uobj.circle = circle_new(config_parser->world, $2.x, $2.y, $2.z, axis, $6);
     }
 
   | TK_POLYGON point ',' TK_SYMBOL ',' vector2d_ary

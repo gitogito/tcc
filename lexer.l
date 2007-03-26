@@ -32,9 +32,10 @@ number	{num1}|{num2}
     /* ignore comment */
 }
 
----+            return TK_LINES;
+---+            return TK_LINE;
 active		return TK_ACTIVE;
 box	        return TK_BOX;
+circle	        return TK_CIRCLE;
 fix		return TK_FIX;
 heatflow	return TK_HEATFLOW;
 lambda  	return TK_LAMBDA;

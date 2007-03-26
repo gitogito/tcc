@@ -683,6 +683,117 @@ static iPoint *triangle_each(Triangle *self)
     return each_each(self->each);
 }
 
+/* Circle */
+
+Circle *circle_new(World *world, double x, double y, double z, int axis, double r)
+{
+    Circle *self;
+
+    self = EALLOC(Circle);
+    self->world = world;
+    self->x = x;
+    self->y = y;
+    self->z = z;
+    self->axis = axis;
+    self->r = r;
+    self->each = NULL;
+    return self;
+}
+
+static void circle_ipoint_ary_add(int *psize, iPoint **pipoint_ary, int axis,
+	int wc, int u1, int u2, int v)
+{
+    int u;
+    iPoint ipoint;
+
+    for (u = u1; u <= u2; ++u) {
+	++(*psize);
+	*pipoint_ary = erealloc(*pipoint_ary, sizeof(iPoint) * (*psize));
+	switch (axis) {
+	case AXIS_X:
+	    ipoint = get_ipoint(wc, u, v);
+	    break;
+	case AXIS_Y:
+	    ipoint = get_ipoint(u, wc, v);
+	    break;
+	case AXIS_Z:
+	    ipoint = get_ipoint(u, v, wc);
+	    break;
+	default:
+	    bug("unknown axis %d", axis);
+	}
+	(*pipoint_ary)[*psize - 1] = ipoint;
+    }
+}
+
+iPoint *circle_each_begin(Circle *self)
+{
+    int uc, vc, wc, ru, rv;
+    int ui, vi, ri, u1, v1;
+    int size;
+    iPoint *ipoint_ary;
+
+    switch (self->axis) {
+    case AXIS_X:
+	uc = iround(self->y / self->world->dy);
+	vc = iround(self->z / self->world->dz);
+	wc = iround(self->x / self->world->dx);
+	ru = iround(self->r / self->world->dy);
+	rv = iround(self->r / self->world->dz);
+	break;
+    case AXIS_Y:
+	uc = iround(self->x / self->world->dx);
+	vc = iround(self->z / self->world->dz);
+	wc = iround(self->y / self->world->dy);
+	ru = iround(self->r / self->world->dx);
+	rv = iround(self->r / self->world->dz);
+	break;
+    case AXIS_Z:
+	uc = iround(self->x / self->world->dx);
+	vc = iround(self->y / self->world->dy);
+	wc = iround(self->z / self->world->dz);
+	ru = iround(self->r / self->world->dx);
+	rv = iround(self->r / self->world->dy);
+	break;
+    default:
+	bug("unknown axis %d", self->axis);
+    }
+    size = 0;
+    ipoint_ary = NULL;
+    if (ru > rv) {
+        ui = ri = ru;  vi = 0;
+        while (ui >= vi) {
+            u1 = (int)((long)ui * rv / ru);
+            v1 = (int)((long)vi * rv / ru);
+	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc - v1);
+	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc + v1);
+	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc - u1);
+	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc + u1);
+	    if ((ri -= (vi++ << 1) + 1) <= 0)
+                ri += (ui-- - 1) << 1;
+        }
+    } else {
+        ui = ri = rv;  vi = 0;
+        while (ui >= vi) {
+            u1 = (int)((long)ui * ru / rv);
+            v1 = (int)((long)vi * ru / rv);
+	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc - vi);
+	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc + vi);
+	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc - ui);
+	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc + ui);
+            if ((ri -= (vi++ << 1) - 1) < 0)
+                ri += (ui-- - 1) << 1;
+        }
+    }
+    self->each = each_new(size, ipoint_ary);
+    return each_each(self->each);
+}
+
+iPoint *circle_each(Circle *self)
+{
+    return each_each(self->each);
+}
+
 /* Polygon */
 
 Polygon *polygon_new(World *world, double x1, double y1, double z1,
@@ -854,6 +965,9 @@ iPoint *obj_each_begin(Obj *self)
     case OBJ_TRIANGLE:
 	p = triangle_each_begin(self->uobj.triangle);
 	break;
+    case OBJ_CIRCLE:
+	p = circle_each_begin(self->uobj.circle);
+	break;
     case OBJ_POLYGON:
 	p = polygon_each_begin(self->uobj.polygon);
 	break;
@@ -879,6 +993,9 @@ iPoint *obj_each(Obj *self)
 	break;
     case OBJ_TRIANGLE:
 	p = triangle_each(self->uobj.triangle);
+	break;
+    case OBJ_CIRCLE:
+	p = circle_each(self->uobj.circle);
 	break;
     case OBJ_POLYGON:
 	p = polygon_each(self->uobj.polygon);
@@ -906,6 +1023,9 @@ static int obj_each_size(Obj *self)
     case OBJ_TRIANGLE:
 	size = self->uobj.triangle->each->size;
 	break;
+    case OBJ_CIRCLE:
+	size = self->uobj.circle->each->size;
+	break;
     case OBJ_POLYGON:
 	size = self->uobj.polygon->each->size;
 	break;
@@ -923,6 +1043,7 @@ static int obj_each_size(Obj *self)
 
 void obj_offset(Obj *self)
 {
+    warn("XXX obj_offset");
     switch (self->objtype) {
     case OBJ_RECT:
 	rect_offset(self->uobj.rect);
@@ -930,6 +1051,10 @@ void obj_offset(Obj *self)
     case OBJ_TRIANGLE:
         warn_exit("not yet obj_offset for triangle");
 	/* triangle_offset(self->uobj.triangle); */
+	break;
+    case OBJ_CIRCLE:
+        warn_exit("not yet obj_offset for circle");
+	/* circle_offset(self->uobj.circle); */
 	break;
     case OBJ_POLYGON:
         warn_exit("not yet obj_offset for polygon");
