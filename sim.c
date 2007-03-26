@@ -473,13 +473,13 @@ Array3Dd sim_calc(Sim *self)
     nindex = self->ni * self->nj * self->nk;
     solver = solvele_new(nindex);
     for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
-	hfp = self->heat_ipoint_ary[p->i][p->j][p->k];
 	if (self->fix_ary[p->i][p->j][p->k] != NULL || !self->active_p_ary[p->i][p->j][p->k]) {
 	    index = world_to_index(self->world, *p);
 	    solvele_set_matrix(solver, index, index, 1.0);
 	    solvele_set_vector(solver, index, self->u[p->i][p->j][p->k]);
 	    continue;
 	}
+	hfp = self->heat_ipoint_ary[p->i][p->j][p->k];
 	if (hfp != NULL) {
 	    if (!ipoint_eq(*p, *hfp)) {
 		index = world_to_index(self->world, *p);
@@ -491,9 +491,9 @@ Array3Dd sim_calc(Sim *self)
 	} else {
 	    ipoint = *p;
 	}
+	index = world_to_index(self->world, ipoint);
 	for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	    dir = dir_array[idir];
-	    index = world_to_index(self->world, ipoint);
 	    index2 = self->coefs[p->i][p->j][p->k]->coef[dir]->index;
 	    if (index2 < 0)
 		continue;
