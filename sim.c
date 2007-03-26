@@ -11,6 +11,15 @@ static int dir_x[] = { DIR_LEFT, DIR_RIGHT };
 static int dir_y[] = { DIR_FRONT, DIR_BACK };
 static int dir_z[] = { DIR_BELOW, DIR_ABOVE };
 
+static double *double_new(double v)
+{
+    double *p;
+
+    p = EALLOC(double);
+    *p = v;
+    return p;
+}
+
 /* Coef */
 
 static Coef *coef_new(void)
@@ -179,15 +188,14 @@ static void sim_set_region_fix(Sim *self)
     Obj *obj;
     int i;
 
-    ALLOCATE_3D2(self->fix_ary, double, self->ni, self->nj, self->nk, -1.0);
+    ALLOCATE_3D2(self->fix_ary, double *, self->ni, self->nj, self->nk, NULL);
     obj_ary = self->config->fix_obj_ary;
     for (i = 0; i < obj_ary->size; ++i) {
 	obj = obj_ary->ptr[i];
 	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
-	    assert(obj->uval.d >= 0.0);
 	    if (!world_inside_p(self->world, *p))
 		continue;
-	    self->fix_ary[p->i][p->j][p->k] = obj->uval.d;
+	    self->fix_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
 	}
     }
 }
@@ -201,11 +209,7 @@ static void sim_set_region_heat(Sim *self)
     int first;
     iPoint ipoint0;
 
-    ALLOCATE_3D(self->heat_ary, double, self->ni, self->nj, self->nk);
-    for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
-	self->heat_ary[p->i][p->j][p->k] = -1.0;
-    }
-
+    ALLOCATE_3D2(self->heat_ary, double *, self->ni, self->nj, self->nk, NULL);
     ALLOCATE_3D2(self->heat_ipoint_ary, iPoint *, self->ni, self->nj, self->nk, NULL);
     obj_ary = self->config->heat_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
@@ -219,7 +223,7 @@ static void sim_set_region_heat(Sim *self)
 		ipoint0 = *p;
 	    }
 	    self->heat_ipoint_ary[p->i][p->j][p->k] = ipoint_new(ipoint0.i, ipoint0.j, ipoint0.k);
-	    self->heat_ary[p->i][p->j][p->k] = obj->uval.d;
+	    self->heat_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
 	}
     }
 }
@@ -258,9 +262,9 @@ static void sim_set_region(Sim *self)
 
 static void sim_set_matrix_const(Sim *self, int i, int j, int k)
 {
-    if (self->heat_ary[i][j][k] >= 0.0 &&
+    if (self->heat_ary[i][j][k] != NULL &&
 	    ipoint_eq(*(self->heat_ipoint_ary[i][j][k]), get_ipoint(i, j, k)))
-	self->coefs[i][j][k]->cnst = self->heat_ary[i][j][k];
+	self->coefs[i][j][k]->cnst = *(self->heat_ary[i][j][k]);
 }
 
 static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, double dy, double dz)
@@ -406,8 +410,8 @@ static void sim_set_matrix(Sim *self)
 
     ALLOCATE_3D2(self->u, double, self->ni, self->nj, self->nk, 0.0);
     for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
-	if (self->fix_ary[p->i][p->j][p->k] >= 0.0)
-	    self->u[p->i][p->j][p->k] = self->fix_ary[p->i][p->j][p->k];
+	if (self->fix_ary[p->i][p->j][p->k] != NULL)
+	    self->u[p->i][p->j][p->k] = *(self->fix_ary[p->i][p->j][p->k]);
     }
 
     ALLOCATE_3D(self->coefs, Coefs *, self->ni, self->nj, self->nk);
@@ -420,7 +424,7 @@ static void sim_set_matrix(Sim *self)
     dz = self->world->dz;
 
     for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
-	if (self->fix_ary[p->i][p->j][p->k] >= 0.0)
+	if (self->fix_ary[p->i][p->j][p->k] != NULL)
 	    continue;
 
 	sim_set_matrix_const(self, p->i, p->j, p->k);
@@ -470,7 +474,7 @@ Array3Dd sim_calc(Sim *self)
     solver = solvele_new(nindex);
     for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
 	hfp = self->heat_ipoint_ary[p->i][p->j][p->k];
-	if (self->fix_ary[p->i][p->j][p->k] >= 0.0 || !self->active_p_ary[p->i][p->j][p->k]) {
+	if (self->fix_ary[p->i][p->j][p->k] != NULL || !self->active_p_ary[p->i][p->j][p->k]) {
 	    index = world_to_index(self->world, *p);
 	    solvele_set_matrix(solver, index, index, 1.0);
 	    solvele_set_vector(solver, index, self->u[p->i][p->j][p->k]);

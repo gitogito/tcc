@@ -253,8 +253,8 @@ typedef struct Sim {
     int nj;
     int nk;
     Array3Di active_p_ary;
-    Array3Dd fix_ary;
-    Array3Dd heat_ary;
+    Array3Dd *fix_ary;
+    Array3Dd *heat_ary;
     Array3Dp *heat_ipoint_ary;
     Array3Dd lambda_ary;
     Array3Dd u;
