@@ -293,12 +293,15 @@ static void sweep_offset(Sweep *self)
     switch (self->axis) {
     case AXIS_X:
 	self->len -= self->world->dx;
+	obj_offset(self->obj);
 	break;
     case AXIS_Y:
 	self->len -= self->world->dy;
+	obj_offset(self->obj);
 	break;
     case AXIS_Z:
 	self->len -= self->world->dz;
+	obj_offset(self->obj);
 	break;
     default:
 	bug("unknow axis %d", self->axis);
@@ -683,6 +686,32 @@ static iPoint *triangle_each(Triangle *self)
     return each_each(self->each);
 }
 
+static void triangle_offset(Triangle *self)
+{
+    switch (self->axis) {
+    case AXIS_X:
+	self->du2 -= self->world->dy;
+	self->du2 -= self->world->dz;
+	self->du3 -= self->world->dy;
+	self->du3 -= self->world->dz;
+	break;
+    case AXIS_Y:
+	self->du2 -= self->world->dz;
+	self->dv2 -= self->world->dx;
+	self->du3 -= self->world->dz;
+	self->dv3 -= self->world->dx;
+	break;
+    case AXIS_Z:
+	self->du2 -= self->world->dx;
+	self->dv2 -= self->world->dy;
+	self->du3 -= self->world->dx;
+	self->dv3 -= self->world->dy;
+	break;
+    default:
+	bug("unknow axis %d", self->axis);
+    }
+}
+
 /* Ellipse */
 
 Ellipse *ellipse_new(World *world, double x, double y, double z, int axis, double ru, double rv)
@@ -793,6 +822,31 @@ static iPoint *ellipse_each_begin(Ellipse *self)
 static iPoint *ellipse_each(Ellipse *self)
 {
     return each_each(self->each);
+}
+
+static void ellipse_offset(Ellipse *self)
+{
+    switch (self->axis) {
+    case AXIS_X:
+	self->ru -= self->world->dy;
+	self->rv -= self->world->dz;
+	break;
+    case AXIS_Y:
+	self->ru -= self->world->dz;
+	self->rv -= self->world->dx;
+	break;
+    case AXIS_Z:
+	self->ru -= self->world->dx;
+	self->rv -= self->world->dy;
+	break;
+    default:
+	bug("unknow axis %d", self->axis);
+    }
+}
+
+static void circle_offset(Circle *self)
+{
+    ellipse_offset(self->ellipse);
 }
 
 /* Circle */
@@ -930,6 +984,34 @@ static iPoint *polygon_each_begin(Polygon *self)
 static iPoint *polygon_each(Polygon *self)
 {
     return each_each(self->each);
+}
+
+static void polygon_offset(Polygon *self)
+{
+    int index;
+
+    switch (self->axis) {
+    case AXIS_X:
+	for (index = 0; index < self->vector2d_ary->size; ++index) {
+	    self->vector2d_ary->ptr[index].x -= self->world->dy;
+	    self->vector2d_ary->ptr[index].y -= self->world->dz;
+	}
+	break;
+    case AXIS_Y:
+	for (index = 0; index < self->vector2d_ary->size; ++index) {
+	    self->vector2d_ary->ptr[index].x -= self->world->dx;
+	    self->vector2d_ary->ptr[index].y -= self->world->dz;
+	}
+	break;
+    case AXIS_Z:
+	for (index = 0; index < self->vector2d_ary->size; ++index) {
+	    self->vector2d_ary->ptr[index].x -= self->world->dx;
+	    self->vector2d_ary->ptr[index].y -= self->world->dy;
+	}
+	break;
+    default:
+	bug("unknow axis %d", self->axis);
+    }
 }
 
 /* Box */
@@ -1074,26 +1156,21 @@ static int obj_each_size(Obj *self)
 
 void obj_offset(Obj *self)
 {
-    warn("XXX obj_offset");
     switch (self->objtype) {
     case OBJ_RECT:
 	rect_offset(self->uobj.rect);
 	break;
     case OBJ_TRIANGLE:
-        warn_exit("not yet obj_offset for triangle");
-	/* triangle_offset(self->uobj.triangle); */
+	triangle_offset(self->uobj.triangle);
 	break;
     case OBJ_ELLIPSE:
-        warn_exit("not yet obj_offset for ellipse");
-	/* ellipse_offset(self->uobj.ellipse); */
+	ellipse_offset(self->uobj.ellipse);
 	break;
     case OBJ_CIRCLE:
-        warn_exit("not yet obj_offset for circle");
-	/* circle_offset(self->uobj.circle); */
+	circle_offset(self->uobj.circle);
 	break;
     case OBJ_POLYGON:
-        warn_exit("not yet obj_offset for polygon");
-	/* polygon_offset(self->uobj.polygon); */
+	polygon_offset(self->uobj.polygon);
 	break;
     case OBJ_BOX:
 	box_offset(self->uobj.box);
