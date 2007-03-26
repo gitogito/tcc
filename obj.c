@@ -84,7 +84,7 @@ void vector2d_ary_push(Vector2d_ary *self, Vector2d vector2d)
     self->ptr[self->size - 1] = vector2d;
 }
 
-void vector2d_ary_delete_at(Vector2d_ary *self, int index)
+static void vector2d_ary_delete_at(Vector2d_ary *self, int index)
 {
     int i;
 
@@ -93,7 +93,7 @@ void vector2d_ary_delete_at(Vector2d_ary *self, int index)
     --(self->size);
 }
 
-void vector2d_ary_rotate(Vector2d_ary *self, int index)
+static void vector2d_ary_rotate(Vector2d_ary *self, int index)
 {
     Vector2d *ptr;
     int i;
