@@ -54,6 +54,9 @@ World *world_new(double x0, double y0, double z0,
 {
     World *self;
 
+    if (xlen <= 0.0 || ylen <= 0.0 || zlen <= 0.0)
+	warn_exit("length is negative for World");
+
     self = EALLOC(World);
     self->x0 = x0;
     self->y0 = y0;

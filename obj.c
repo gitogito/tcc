@@ -215,6 +215,9 @@ Sweep *sweep_new(World *world, int axis, double len, Obj *obj)
 {
     Sweep *self;
 
+    if (len <= 0.0)
+	warn_exit("length is negative for Sweep");
+
     self = EALLOC(Sweep);
     self->world = world;
     self->axis = axis;
@@ -718,6 +721,9 @@ Ellipse *ellipse_new(World *world, double x, double y, double z, int axis, doubl
 {
     Ellipse *self;
 
+    if (ru <= 0.0 || rv <= 0.0)
+	warn_exit("length is negative for Ellipse");
+
     self = EALLOC(Ellipse);
     self->world = world;
     self->x = x;
@@ -844,16 +850,14 @@ static void ellipse_offset(Ellipse *self)
     }
 }
 
-static void circle_offset(Circle *self)
-{
-    ellipse_offset(self->ellipse);
-}
-
 /* Circle */
 
 Circle *circle_new(World *world, double x, double y, double z, int axis, double r)
 {
     Circle *self;
+
+    if (r <= 0.0)
+	warn_exit("length is negative for Circle");
 
     self = EALLOC(Circle);
     self->ellipse = ellipse_new(world, x, y, z, axis, r, r);
@@ -868,6 +872,11 @@ static iPoint *circle_each_begin(Circle *self)
 static iPoint *circle_each(Circle *self)
 {
     return ellipse_each(self->ellipse);
+}
+
+static void circle_offset(Circle *self)
+{
+    ellipse_offset(self->ellipse);
 }
 
 /* Polygon */
@@ -1022,7 +1031,7 @@ Box *box_new(World *world, double x, double y, double z, double xlen, double yle
     Obj *obj;
 
     if (xlen <= 0.0 || ylen <= 0.0 || zlen <= 0.0)
-	warn_exit("length is negative for Rect");
+	warn_exit("length is negative for Box");
 
     self = EALLOC(Box);
     self->world = world;
