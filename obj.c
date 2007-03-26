@@ -311,6 +311,31 @@ static void sweep_offset(Sweep *self)
     }
 }
 
+/* Edge */
+
+static void obj_edge(Obj *self);
+
+Edge *edge_new(World *world, Obj *obj)
+{
+    Edge *self;
+
+    self = EALLOC(Edge);
+    self->world = world;
+    self->obj = obj;
+    obj_edge(self->obj);
+    return self;
+}
+
+iPoint *edge_each_begin(Edge *self)
+{
+    return obj_each_begin(self->obj);
+}
+
+iPoint *edge_each(Edge *self)
+{
+    return obj_each(self->obj);
+}
+
 /* Rect */
 
 Rect *rect_new(World *world, double x, double y, double z, int axis, double len1, double len2)
@@ -733,32 +758,69 @@ Ellipse *ellipse_new(World *world, double x, double y, double z, int axis, doubl
     self->ru = ru;
     self->rv = rv;
     self->each = NULL;
+    self->edge = 0;
     return self;
 }
 
-static void ellipse_ipoint_ary_add(int *psize, iPoint **pipoint_ary, int axis,
+static void ellipse_ipoint_ary_add(Ellipse *self, int *psize, iPoint **pipoint_ary, int axis,
 	int wc, int u1, int u2, int v)
 {
     int u;
     iPoint ipoint;
 
-    for (u = u1; u <= u2; ++u) {
+    if (self->edge) {
 	++(*psize);
 	*pipoint_ary = erealloc(*pipoint_ary, sizeof(iPoint) * (*psize));
 	switch (axis) {
 	case AXIS_X:
-	    ipoint = get_ipoint(wc, u, v);
+	    ipoint = get_ipoint(wc, u1, v);
 	    break;
 	case AXIS_Y:
-	    ipoint = get_ipoint(u, wc, v);
+	    ipoint = get_ipoint(u1, wc, v);
 	    break;
 	case AXIS_Z:
-	    ipoint = get_ipoint(u, v, wc);
+	    ipoint = get_ipoint(u1, v, wc);
 	    break;
 	default:
 	    bug("unknown axis %d", axis);
 	}
 	(*pipoint_ary)[*psize - 1] = ipoint;
+
+	++(*psize);
+	*pipoint_ary = erealloc(*pipoint_ary, sizeof(iPoint) * (*psize));
+	switch (axis) {
+	case AXIS_X:
+	    ipoint = get_ipoint(wc, u2, v);
+	    break;
+	case AXIS_Y:
+	    ipoint = get_ipoint(u2, wc, v);
+	    break;
+	case AXIS_Z:
+	    ipoint = get_ipoint(u2, v, wc);
+	    break;
+	default:
+	    bug("unknown axis %d", axis);
+	}
+	(*pipoint_ary)[*psize - 1] = ipoint;
+    } else {
+	for (u = u1; u <= u2; ++u) {
+	    ++(*psize);
+	    *pipoint_ary = erealloc(*pipoint_ary, sizeof(iPoint) * (*psize));
+	    switch (axis) {
+	    case AXIS_X:
+		ipoint = get_ipoint(wc, u, v);
+		break;
+	    case AXIS_Y:
+		ipoint = get_ipoint(u, wc, v);
+		break;
+	    case AXIS_Z:
+		ipoint = get_ipoint(u, v, wc);
+		break;
+	    default:
+		bug("unknown axis %d", axis);
+	    }
+	    (*pipoint_ary)[*psize - 1] = ipoint;
+	}
     }
 }
 
@@ -801,10 +863,10 @@ static iPoint *ellipse_each_begin(Ellipse *self)
         while (ui >= vi) {
             u1 = (int)((long)ui * rv / ru);
             v1 = (int)((long)vi * rv / ru);
-	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc - v1);
-	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc + v1);
-	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc - u1);
-	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc + u1);
+	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc - v1);
+	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc + v1);
+	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc - u1);
+	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc + u1);
 	    if ((ri -= (vi++ << 1) + 1) <= 0)
                 ri += (ui-- - 1) << 1;
         }
@@ -813,10 +875,10 @@ static iPoint *ellipse_each_begin(Ellipse *self)
         while (ui >= vi) {
             u1 = (int)((long)ui * ru / rv);
             v1 = (int)((long)vi * ru / rv);
-	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc - vi);
-	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc + vi);
-	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc - ui);
-	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc + ui);
+	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc - vi);
+	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc + vi);
+	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc - ui);
+	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc + ui);
             if ((ri -= (vi++ << 1) - 1) < 0)
                 ri += (ui-- - 1) << 1;
         }
@@ -850,6 +912,11 @@ static void ellipse_offset(Ellipse *self)
     }
 }
 
+static void ellipse_edge(Ellipse *self)
+{
+    self->edge = 1;
+}
+
 /* Circle */
 
 Circle *circle_new(World *world, double x, double y, double z, int axis, double r)
@@ -877,6 +944,11 @@ static iPoint *circle_each(Circle *self)
 static void circle_offset(Circle *self)
 {
     ellipse_offset(self->ellipse);
+}
+
+static void circle_edge(Circle *self)
+{
+    ellipse_edge(self->ellipse);
 }
 
 /* Polygon */
@@ -1093,6 +1165,9 @@ iPoint *obj_each_begin(Obj *self)
     case OBJ_SWEEP:
 	p = sweep_each_begin(self->uobj.sweep);
 	break;
+    case OBJ_EDGE:
+	p = edge_each_begin(self->uobj.edge);
+	break;
     default:
 	bug("unknown obj %d", self->objtype);
     }
@@ -1124,6 +1199,9 @@ iPoint *obj_each(Obj *self)
 	break;
     case OBJ_SWEEP:
 	p = sweep_each(self->uobj.sweep);
+	break;
+    case OBJ_EDGE:
+	p = edge_each(self->uobj.edge);
 	break;
     default:
 	bug("unknown obj %d", self->objtype);
@@ -1157,6 +1235,9 @@ static int obj_each_size(Obj *self)
     case OBJ_SWEEP:
 	size = self->uobj.sweep->each->size;
 	break;
+    case OBJ_EDGE:
+	size = obj_each_size(self->uobj.edge->obj);
+	break;
     default:
 	bug("unknown obj %d", self->objtype);
     }
@@ -1186,6 +1267,42 @@ void obj_offset(Obj *self)
 	break;
     case OBJ_SWEEP:
 	sweep_offset(self->uobj.sweep);
+	break;
+    case OBJ_EDGE:
+	warn_exit("edge_offset is not implemented");
+	break;
+    default:
+	bug("unknown obj %d", self->objtype);
+    }
+}
+
+static void obj_edge(Obj *self)
+{
+    switch (self->objtype) {
+    case OBJ_RECT:
+	warn_exit("rect_edge is not implemented");
+	break;
+    case OBJ_TRIANGLE:
+	warn_exit("triangle_edge is not implemented");
+	break;
+    case OBJ_ELLIPSE:
+	ellipse_edge(self->uobj.ellipse);
+	warn_exit("ellipse_edge is not implemented");
+	break;
+    case OBJ_CIRCLE:
+	circle_edge(self->uobj.circle);
+	break;
+    case OBJ_POLYGON:
+	warn_exit("polygon_edge is not implemented");
+	break;
+    case OBJ_BOX:
+	warn_exit("box_edge is not implemented");
+	break;
+    case OBJ_SWEEP:
+	warn_exit("sweep_edge is not implemented");
+	break;
+    case OBJ_EDGE:
+	warn_exit("edge_edge is not implemented");
 	break;
     default:
 	bug("unknown obj %d", self->objtype);

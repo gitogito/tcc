@@ -75,7 +75,7 @@ static void var_assign(char *varname, double value)
 %token <val> TK_NUMBER
 %token <str> TK_WORD TK_SYMBOL
 
-%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_ELLIPSE TK_FIX TK_HEAT TK_LAMBDA TK_LINE
+%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_ELLIPSE TK_EDGE TK_FIX TK_HEAT TK_LAMBDA TK_LINE
         TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE TK_WORLD
 
 %type <point>		point
@@ -343,6 +343,12 @@ obj:
 	else
 	    yyerror("unknown axis");
 	$$->uobj.sweep = sweep_new(config_parser->world, axis, $4, $6);
+    }
+
+  | TK_EDGE obj
+    {
+	$$ = obj_new(OBJ_EDGE);
+	$$->uobj.edge = edge_new(config_parser->world, $2);
     }
 
 %%

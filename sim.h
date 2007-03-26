@@ -113,6 +113,13 @@ typedef struct Sweep {
 
 Sweep *sweep_new(World *world, int axis, double len, Obj *obj);
 
+typedef struct Edge {
+    World *world;
+    Obj *obj;
+} Edge;
+
+Edge *edge_new(World *world, Obj *obj);
+
 typedef struct Rect {
     World *world;
     double x;
@@ -163,6 +170,7 @@ typedef struct Ellipse {
     double ru;
     double rv;
     Each *each;
+    int edge;
 } Ellipse;
 
 Ellipse *ellipse_new(World *world, double x, double y, double z, int axis, double ru, double rv);
@@ -198,7 +206,8 @@ enum {
     OBJ_CIRCLE,
     OBJ_POLYGON,
     OBJ_BOX,
-    OBJ_SWEEP
+    OBJ_SWEEP,
+    OBJ_EDGE,
 };
 
 union uobj {
@@ -209,6 +218,7 @@ union uobj {
     Polygon *polygon;
     Box *box;
     Sweep *sweep;
+    Edge *edge;
 };
 
 union uval {
