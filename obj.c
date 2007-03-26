@@ -683,24 +683,25 @@ static iPoint *triangle_each(Triangle *self)
     return each_each(self->each);
 }
 
-/* Circle */
+/* Ellipse */
 
-Circle *circle_new(World *world, double x, double y, double z, int axis, double r)
+Ellipse *ellipse_new(World *world, double x, double y, double z, int axis, double ru, double rv)
 {
-    Circle *self;
+    Ellipse *self;
 
-    self = EALLOC(Circle);
+    self = EALLOC(Ellipse);
     self->world = world;
     self->x = x;
     self->y = y;
     self->z = z;
     self->axis = axis;
-    self->r = r;
+    self->ru = ru;
+    self->rv = rv;
     self->each = NULL;
     return self;
 }
 
-static void circle_ipoint_ary_add(int *psize, iPoint **pipoint_ary, int axis,
+static void ellipse_ipoint_ary_add(int *psize, iPoint **pipoint_ary, int axis,
 	int wc, int u1, int u2, int v)
 {
     int u;
@@ -726,7 +727,7 @@ static void circle_ipoint_ary_add(int *psize, iPoint **pipoint_ary, int axis,
     }
 }
 
-iPoint *circle_each_begin(Circle *self)
+static iPoint *ellipse_each_begin(Ellipse *self)
 {
     int uc, vc, wc, ru, rv;
     int ui, vi, ri, u1, v1;
@@ -738,22 +739,22 @@ iPoint *circle_each_begin(Circle *self)
 	uc = iround(self->y / self->world->dy);
 	vc = iround(self->z / self->world->dz);
 	wc = iround(self->x / self->world->dx);
-	ru = iround(self->r / self->world->dy);
-	rv = iround(self->r / self->world->dz);
+	ru = iround(self->ru / self->world->dy);
+	rv = iround(self->rv / self->world->dz);
 	break;
     case AXIS_Y:
 	uc = iround(self->x / self->world->dx);
 	vc = iround(self->z / self->world->dz);
 	wc = iround(self->y / self->world->dy);
-	ru = iround(self->r / self->world->dx);
-	rv = iround(self->r / self->world->dz);
+	ru = iround(self->ru / self->world->dx);
+	rv = iround(self->rv / self->world->dz);
 	break;
     case AXIS_Z:
 	uc = iround(self->x / self->world->dx);
 	vc = iround(self->y / self->world->dy);
 	wc = iround(self->z / self->world->dz);
-	ru = iround(self->r / self->world->dx);
-	rv = iround(self->r / self->world->dy);
+	ru = iround(self->ru / self->world->dx);
+	rv = iround(self->rv / self->world->dy);
 	break;
     default:
 	bug("unknown axis %d", self->axis);
@@ -765,10 +766,10 @@ iPoint *circle_each_begin(Circle *self)
         while (ui >= vi) {
             u1 = (int)((long)ui * rv / ru);
             v1 = (int)((long)vi * rv / ru);
-	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc - v1);
-	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc + v1);
-	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc - u1);
-	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc + u1);
+	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc - v1);
+	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc + v1);
+	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc - u1);
+	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc + u1);
 	    if ((ri -= (vi++ << 1) + 1) <= 0)
                 ri += (ui-- - 1) << 1;
         }
@@ -777,10 +778,10 @@ iPoint *circle_each_begin(Circle *self)
         while (ui >= vi) {
             u1 = (int)((long)ui * ru / rv);
             v1 = (int)((long)vi * ru / rv);
-	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc - vi);
-	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc + vi);
-	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc - ui);
-	    circle_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc + ui);
+	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc - vi);
+	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc + vi);
+	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc - ui);
+	    ellipse_ipoint_ary_add(&size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc + ui);
             if ((ri -= (vi++ << 1) - 1) < 0)
                 ri += (ui-- - 1) << 1;
         }
@@ -789,9 +790,30 @@ iPoint *circle_each_begin(Circle *self)
     return each_each(self->each);
 }
 
-iPoint *circle_each(Circle *self)
+static iPoint *ellipse_each(Ellipse *self)
 {
     return each_each(self->each);
+}
+
+/* Circle */
+
+Circle *circle_new(World *world, double x, double y, double z, int axis, double r)
+{
+    Circle *self;
+
+    self = EALLOC(Circle);
+    self->ellipse = ellipse_new(world, x, y, z, axis, r, r);
+    return self;
+}
+
+static iPoint *circle_each_begin(Circle *self)
+{
+    return ellipse_each_begin(self->ellipse);
+}
+
+static iPoint *circle_each(Circle *self)
+{
+    return ellipse_each(self->ellipse);
 }
 
 /* Polygon */
@@ -965,6 +987,9 @@ iPoint *obj_each_begin(Obj *self)
     case OBJ_TRIANGLE:
 	p = triangle_each_begin(self->uobj.triangle);
 	break;
+    case OBJ_ELLIPSE:
+	p = ellipse_each_begin(self->uobj.ellipse);
+	break;
     case OBJ_CIRCLE:
 	p = circle_each_begin(self->uobj.circle);
 	break;
@@ -993,6 +1018,9 @@ iPoint *obj_each(Obj *self)
 	break;
     case OBJ_TRIANGLE:
 	p = triangle_each(self->uobj.triangle);
+	break;
+    case OBJ_ELLIPSE:
+	p = ellipse_each(self->uobj.ellipse);
 	break;
     case OBJ_CIRCLE:
 	p = circle_each(self->uobj.circle);
@@ -1023,8 +1051,11 @@ static int obj_each_size(Obj *self)
     case OBJ_TRIANGLE:
 	size = self->uobj.triangle->each->size;
 	break;
+    case OBJ_ELLIPSE:
+	size = self->uobj.ellipse->each->size;
+	break;
     case OBJ_CIRCLE:
-	size = self->uobj.circle->each->size;
+	size = self->uobj.circle->ellipse->each->size;
 	break;
     case OBJ_POLYGON:
 	size = self->uobj.polygon->each->size;
@@ -1051,6 +1082,10 @@ void obj_offset(Obj *self)
     case OBJ_TRIANGLE:
         warn_exit("not yet obj_offset for triangle");
 	/* triangle_offset(self->uobj.triangle); */
+	break;
+    case OBJ_ELLIPSE:
+        warn_exit("not yet obj_offset for ellipse");
+	/* ellipse_offset(self->uobj.ellipse); */
 	break;
     case OBJ_CIRCLE:
         warn_exit("not yet obj_offset for circle");

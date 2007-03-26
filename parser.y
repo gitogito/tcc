@@ -76,7 +76,7 @@ static void var_assign(char *varname, double value)
 %token <val> TK_NUMBER
 %token <str> TK_WORD TK_SYMBOL
 
-%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_FIX TK_HEATFLOW TK_LAMBDA TK_LINE
+%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_ELLIPSE TK_FIX TK_HEATFLOW TK_LAMBDA TK_LINE
         TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE TK_WORLD
 
 %type <point>		point
@@ -311,6 +311,22 @@ obj:
 	else
 	    yyerror("unknown axis");
 	$$->uobj.circle = circle_new(config_parser->world, $2.x, $2.y, $2.z, axis, $6);
+    }
+
+  | TK_ELLIPSE point ',' TK_SYMBOL ',' expr ',' expr
+    {
+	int axis;
+
+	$$ = obj_new(OBJ_ELLIPSE);
+	if (strcmp($4, ":X") == 0)
+	    axis = AXIS_X;
+	else if (strcmp($4, ":Y") == 0)
+	    axis = AXIS_Y;
+	else if (strcmp($4, ":Z") == 0)
+	    axis = AXIS_Z;
+	else
+	    yyerror("unknown axis");
+	$$->uobj.ellipse = ellipse_new(config_parser->world, $2.x, $2.y, $2.z, axis, $6, $8);
     }
 
   | TK_POLYGON point ',' TK_SYMBOL ',' vector2d_ary
