@@ -849,23 +849,23 @@ static iPoint *ellipse_each_begin(Ellipse *self)
 
     switch (self->axis) {
     case AXIS_X:
-	uc = iround(self->y / self->world->dy);
-	vc = iround(self->z / self->world->dz);
-	wc = iround(self->x / self->world->dx);
+	uc = iround((self->y - self->world->y0) / self->world->dy);
+	vc = iround((self->z - self->world->z0) / self->world->dz);
+	wc = iround((self->x - self->world->x0) / self->world->dx);
 	ru = iround(self->ru / self->world->dy);
 	rv = iround(self->rv / self->world->dz);
 	break;
     case AXIS_Y:
-	uc = iround(self->x / self->world->dx);
-	vc = iround(self->z / self->world->dz);
-	wc = iround(self->y / self->world->dy);
+	uc = iround((self->x - self->world->x0) / self->world->dx);
+	vc = iround((self->z - self->world->z0) / self->world->dz);
+	wc = iround((self->y - self->world->y0) / self->world->dy);
 	ru = iround(self->ru / self->world->dx);
 	rv = iround(self->rv / self->world->dz);
 	break;
     case AXIS_Z:
-	uc = iround(self->x / self->world->dx);
-	vc = iround(self->y / self->world->dy);
-	wc = iround(self->z / self->world->dz);
+	uc = iround((self->x - self->world->x0) / self->world->dx);
+	vc = iround((self->y - self->world->y0) / self->world->dy);
+	wc = iround((self->z - self->world->z0) / self->world->dz);
 	ru = iround(self->ru / self->world->dx);
 	rv = iround(self->rv / self->world->dy);
 	break;
