@@ -125,8 +125,8 @@ int main(int argc, char **argv)
     dz = sim->world->dz;
 
     printf("# %d\t%g\t%g\n", ni, x0, x0 + sim->world->xlen);
-    printf("# %d\t%g\t%g\n", nj, y0, x0 + sim->world->ylen);
-    printf("# %d\t%g\t%g\n", nk, z0, x0 + sim->world->zlen);
+    printf("# %d\t%g\t%g\n", nj, y0, y0 + sim->world->ylen);
+    printf("# %d\t%g\t%g\n", nk, z0, z0 + sim->world->zlen);
     for (k = 0; k < nk; ++k) {
         z = z0 + dz * k;
         for (j = 0; j < nj; ++j) {
