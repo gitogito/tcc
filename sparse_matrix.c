@@ -2,6 +2,8 @@
 #include "sparse_matrix.h"
 #include "mem.h"
 
+#define NTH	100
+
 DenseVector *dvec_new(int n)
 {
     DenseVector *p;
@@ -56,9 +58,11 @@ SparseMatrix *smat_new(int n)
     p = EALLOC(SparseMatrix);
     p->n = n;
     p->nnz = 0;
-    p->elems = EALLOCN(SpMatElem *, n);
-    for (i = 0; i < n; ++i)
-	p->elems[i] = NULL;
+    p->rows = EALLOCN(SpMatRow, n);
+    for (i = 0; i < n; ++i) {
+	p->rows[i].type = ROW_LIST;
+	p->rows[i].urow.list = NULL;
+    }
 
     return p;
 }
@@ -67,33 +71,41 @@ void smat_set(SparseMatrix *m, int i, int j, double val)
 {
     SpMatElem *pre;
 
-    if (m->elems[i] == NULL) {
+    if (m->rows[i].type == ROW_ARY) {
+	if (val != 0.0) {
+	    m->rows[i].urow.ary[j] = val;
+	    ++(m->nnz);
+	}
+	return;
+    }
+
+    if (m->rows[i].urow.list == NULL) {
 	if (val == 0.0)
 	    return;
-	m->elems[i] = elem_new(val, j, NULL);
+	m->rows[i].urow.list = elem_new(val, j, NULL);
 	++(m->nnz);
 	return;
     }
 
     /* first elem */
-    if (j < m->elems[i]->idx) {
+    if (j < m->rows[i].urow.list->idx) {
 	if (val != 0.0) {
-	    m->elems[i] = elem_new(val, j, m->elems[i]);
+	    m->rows[i].urow.list = elem_new(val, j, m->rows[i].urow.list);
 	    ++(m->nnz);
 	}
 	return;
-    } else if (j == m->elems[i]->idx) {
+    } else if (j == m->rows[i].urow.list->idx) {
 	if (val == 0.0) {
-	    m->elems[i] = m->elems[i]->next;
+	    m->rows[i].urow.list = m->rows[i].urow.list->next;
 	    --(m->nnz);
 	} else {
-	    m->elems[i]->val = val;
+	    m->rows[i].urow.list->val = val;
 	}
 	return;
     }
 
     /* second and later elements */
-    for (pre = m->elems[i]; pre->next != NULL; pre = pre->next) {
+    for (pre = m->rows[i].urow.list; pre->next != NULL; pre = pre->next) {
 	if (j < pre->next->idx) {
 	    if (val != 0.0) {
 		pre->next = elem_new(val, j, pre->next);
@@ -121,10 +133,30 @@ void smat_set(SparseMatrix *m, int i, int j, double val)
 double smat_ref(SparseMatrix *m, int i, int j)
 {
     SpMatElem *elem;
+    int n;
+    double *ary;
+    int jj;
 
-    for (elem = m->elems[i]; elem != NULL; elem = elem->next) {
-	if (j == elem->idx)
-	    return elem->val;
+    if (m->rows[i].type == ROW_ARY) {
+	return m->rows[i].urow.ary[j];
+    }
+
+    n = 0;
+    for (elem = m->rows[i].urow.list; elem != NULL; elem = elem->next) {
+	if (j == elem->idx) {
+	    if (n < NTH) {
+		return elem->val;
+	    }
+	    ary = EALLOCN(double, m->n);
+	    for (jj = 0; jj < m->n; ++jj)
+		ary[jj] = 0.0;
+	    for (elem = m->rows[i].urow.list; elem != NULL; elem = elem->next)
+		ary[elem->idx] = elem->val;
+	    m->rows[i].type = ROW_ARY;
+	    m->rows[i].urow.ary = ary;
+	    return m->rows[i].urow.ary[j];
+	}
+	++n;
     }
     return 0.0;
 }
@@ -149,7 +181,7 @@ void get_crs(SparseMatrix *a0, DenseVector *b0,
     int *ai;
     double *ax;
     double *b;
-    int i, k, n;
+    int i, j, k, n;
     SpMatElem *elem;
 
     *pap = EALLOCN(int, a0->n + 1);
@@ -166,11 +198,22 @@ void get_crs(SparseMatrix *a0, DenseVector *b0,
     n = 0;
     k = 0;
     for (i = 0; i < a0->n; ++i) {
-	for (elem = a0->elems[i]; elem != NULL; elem = elem->next) {
-	    ++n;
-	    ai[k] = elem->idx;
-	    ax[k] = elem->val;
-	    ++k;
+	if (a0->rows[i].type == ROW_ARY) {
+	    for (j = 0; j < a0->n; ++j) {
+		if (a0->rows[i].urow.ary[j] != 0.0) {
+		    ++n;
+		    ai[k] = j;
+		    ax[k] = a0->rows[i].urow.ary[j];
+		    ++k;
+		}
+	    }
+	} else {
+	    for (elem = a0->rows[i].urow.list; elem != NULL; elem = elem->next) {
+		++n;
+		ai[k] = elem->idx;
+		ax[k] = elem->val;
+		++k;
+	    }
 	}
 	ap[i + 1] = n;
 	b[i] = b0->val[i];

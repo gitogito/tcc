@@ -16,10 +16,22 @@ typedef struct SpMatElem {
     struct SpMatElem *next;
 } SpMatElem;
 
+union urow {
+    SpMatElem *list;
+    double *ary;
+};
+
+enum { ROW_LIST, ROW_ARY };
+
+typedef struct SpMatRow {
+    int type;
+    union urow urow;
+} SpMatRow;
+
 typedef struct SparseMatrix {
     int n;
     int nnz;
-    SpMatElem **elems;
+    SpMatRow *rows;
 } SparseMatrix;
 
 DenseVector *dvec_new(int n);
