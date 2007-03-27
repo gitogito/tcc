@@ -30,6 +30,14 @@ static double max_d(double a, double b)
         return b;
 }
 
+static int alloc_size(int size)
+{
+    if (size < 10)
+	return 10;
+    else
+	return (int) (size * 1.2);
+}
+
 /* iPoint_ary */
 
 iPoint_ary * ipoint_ary_new(void)
@@ -46,9 +54,10 @@ iPoint_ary * ipoint_ary_new(void)
 void ipoint_ary_push(iPoint_ary *self, iPoint ipoint)
 {
     ++(self->size);
-    if (self->size > self->alloc_size)
-	self->alloc_size = (int) (self->size * ALLOC_FACTOR);
-    self->ptr = erealloc(self->ptr, sizeof(iPoint) * self->alloc_size);
+    if (self->size > self->alloc_size) {
+	self->alloc_size = alloc_size(self->size);
+	self->ptr = erealloc(self->ptr, sizeof(iPoint) * self->alloc_size);
+    }
     self->ptr[self->size - 1] = ipoint;
 }
 
@@ -103,9 +112,10 @@ Vector2d_ary *vector2d_ary_new(void)
 void vector2d_ary_push(Vector2d_ary *self, Vector2d vector2d)
 {
     ++(self->size);
-    if (self->size > self->alloc_size)
-	self->alloc_size = (int) (self->size * ALLOC_FACTOR);
-    self->ptr = erealloc(self->ptr, sizeof(Vector2d) * self->alloc_size);
+    if (self->size > self->alloc_size) {
+	self->alloc_size = alloc_size(self->size);
+	self->ptr = erealloc(self->ptr, sizeof(Vector2d) * self->alloc_size);
+    }
     self->ptr[self->size - 1] = vector2d;
 }
 
