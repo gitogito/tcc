@@ -92,7 +92,7 @@ static void var_assign(char *varname, double value)
 
 %%
 
-input: 
+input:
     world commands
 
   | var_assigns world commands
