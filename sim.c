@@ -85,24 +85,20 @@ World *world_new(double x0, double y0, double z0,
 
 static iPoint *world_each_begin(World *self)
 {
-    int size;
-    iPoint *ipoint_ary;
-    int n;
+    iPoint_ary *ipoint_ary;
     int i, j, k;
 
     if (self->each != NULL && self->each->index >= 0)
 	bug("world_each_begin");
-    size = self->ni * self->nj * self->nk;
-    ipoint_ary = EALLOCN(iPoint, size);
-    n = 0;
+    ipoint_ary = ipoint_ary_new();
     for (i = 0; i < self->ni; ++i) {
 	for (j = 0; j < self->nj; ++j) {
 	    for (k = 0; k < self->nk; ++k) {
-		ipoint_ary[n++] = get_ipoint(i, j, k);
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, j, k));
 	    }
 	}
     }
-    self->each = each_new(size, ipoint_ary);
+    self->each = each_new(ipoint_ary);
     return each_each(self->each);
 }
 

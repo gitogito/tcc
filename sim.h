@@ -32,6 +32,7 @@ typedef struct Vector2d {
 
 typedef struct Vector2d_ary {
     int size;
+    int alloc_size;
     Vector2d *ptr;
 } Vector2d_ary;
 
@@ -67,14 +68,22 @@ typedef Coefs *** Array3Dc;
 
 typedef struct Obj Obj;
 
-typedef struct Each {
+typedef struct iPoint_ary {
     int size;
-    iPoint *ipoint_ary;
+    int alloc_size;
+    iPoint *ptr;
+} iPoint_ary;
+
+iPoint_ary *ipoint_ary_new(void);
+void ipoint_ary_push(iPoint_ary *self, iPoint ipoint);
+
+typedef struct Each {
+    iPoint_ary *ipoint_ary;
     int index;
     Obj *obj;
 } Each;
 
-Each *each_new(int size, iPoint *ipoint_ary);
+Each *each_new(iPoint_ary *ipoint_ary);
 iPoint *each_each(Each *self);
 
 typedef struct World {

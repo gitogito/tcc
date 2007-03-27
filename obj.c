@@ -30,6 +30,28 @@ static double max_d(double a, double b)
         return b;
 }
 
+/* iPoint_ary */
+
+iPoint_ary * ipoint_ary_new(void)
+{
+    iPoint_ary *self;
+
+    self = EALLOC(iPoint_ary);
+    self->size = 0;
+    self->alloc_size = 0;
+    self->ptr = NULL;
+    return self;
+}
+
+void ipoint_ary_push(iPoint_ary *self, iPoint ipoint)
+{
+    ++(self->size);
+    if (self->size > self->alloc_size)
+	self->alloc_size = (int) (self->size * 1.2);
+    self->ptr = erealloc(self->ptr, sizeof(iPoint) * self->alloc_size);
+    self->ptr[self->size - 1] = ipoint;
+}
+
 /* Vector2d */
 
 static Vector2d vector2d_sub(Vector2d va, Vector2d vb)
@@ -73,6 +95,7 @@ Vector2d_ary *vector2d_ary_new(void)
 
     self = EALLOC(Vector2d_ary);
     self->size = 0;
+    self->alloc_size = 0;
     self->ptr = NULL;
     return self;
 }
@@ -80,7 +103,9 @@ Vector2d_ary *vector2d_ary_new(void)
 void vector2d_ary_push(Vector2d_ary *self, Vector2d vector2d)
 {
     ++(self->size);
-    self->ptr = erealloc(self->ptr, sizeof(Vector2d) * self->size);
+    if (self->size > self->alloc_size)
+	self->alloc_size = (int) (self->size * 1.2);
+    self->ptr = erealloc(self->ptr, sizeof(Vector2d) * self->alloc_size);
     self->ptr[self->size - 1] = vector2d;
 }
 
@@ -186,12 +211,11 @@ iPoint *ipoint_new(int i, int j, int k)
 
 /* Each */
 
-Each *each_new(int size, iPoint *ipoint_ary)
+Each *each_new(iPoint_ary *ipoint_ary)
 {
     Each *self;
 
     self = EALLOC(Each);
-    self->size = size;
     self->ipoint_ary = ipoint_ary;
     self->index = 0;
     return self;
@@ -201,8 +225,8 @@ iPoint *each_each(Each *self)
 {
     if (self == NULL)
 	bug("each_each");
-    if (self->index < self->size) {
-	return &self->ipoint_ary[self->index++];
+    if (self->index < self->ipoint_ary->size) {
+	return &(self->ipoint_ary->ptr[self->index++]);
     } else {
 	self->index = -1;
 	return NULL;
@@ -227,53 +251,45 @@ Sweep *sweep_new(World *world, int axis, double len, Obj *obj)
     return self;
 }
 
+/*
 static int obj_each_size(Obj *obj);
+*/
 
 static iPoint *sweep_each_begin(Sweep *self)
 {
     iPoint *p;
     int leni;
-    int size;
-    iPoint *ipoint_ary;
-    int n;
+    iPoint_ary *ipoint_ary;
     int i, j, k;
 
     if (self->each != NULL && self->each->index >= 0)
 	bug("sweep_each_begin");
     p = obj_each_begin(self->obj);
+    ipoint_ary = ipoint_ary_new();
     switch (self->axis) {
     case AXIS_X:
 	leni = iround(self->len / self->world->dx) + 1;
-	size = obj_each_size(self->obj) * leni;
-	ipoint_ary = EALLOCN(iPoint, size);
-	n = 0;
 	do {
 	    for (i = p->i; i < p->i + leni; ++i) {
-		ipoint_ary[n++] = get_ipoint(i, p->j, p->k);
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, p->j, p->k));
 	    }
 	    p = obj_each(self->obj);
 	} while (p != NULL);
 	break;
     case AXIS_Y:
 	leni = iround(self->len / self->world->dy) + 1;
-	size = obj_each_size(self->obj) * leni;
-	ipoint_ary = EALLOCN(iPoint, size);
-	n = 0;
 	do {
 	    for (j = p->j; j < p->j + leni; ++j) {
-		ipoint_ary[n++] = get_ipoint(p->i, j, p->k);
+		ipoint_ary_push(ipoint_ary, get_ipoint(p->i, j, p->k));
 	    }
 	    p = obj_each(self->obj);
 	} while (p != NULL);
 	break;
     case AXIS_Z:
 	leni = iround(self->len / self->world->dz) + 1;
-	size = obj_each_size(self->obj) * leni;
-	ipoint_ary = EALLOCN(iPoint, size);
-	n = 0;
 	do {
 	    for (k = p->k; k < p->k + leni; ++k) {
-		ipoint_ary[n++] = get_ipoint(p->i, p->j, k);
+		ipoint_ary_push(ipoint_ary, get_ipoint(p->i, p->j, k));
 	    }
 	    p = obj_each(self->obj);
 	} while (p != NULL);
@@ -281,8 +297,7 @@ static iPoint *sweep_each_begin(Sweep *self)
     default:
 	bug("unknow axis %d", self->axis);
     }
-    assert(n == size);
-    self->each = each_new(size, ipoint_ary);
+    self->each = each_new(ipoint_ary);
     return each_each(self->each);
 }
 
@@ -371,9 +386,8 @@ Rect *rect_new(World *world, double x, double y, double z, int axis, double len1
 static iPoint *rect_each_begin(Rect *self)
 {
     int xi, yi, zi;
-    int size;
     int len1, len2;
-    iPoint *ipoint_ary;
+    iPoint_ary *ipoint_ary;
     int i, j, k;
 
     if (self->each != NULL && self->each->index >= 0)
@@ -382,35 +396,32 @@ static iPoint *rect_each_begin(Rect *self)
     xi = iround((self->x - self->world->x0) / self->world->dx);
     yi = iround((self->y - self->world->y0) / self->world->dy);
     zi = iround((self->z - self->world->z0) / self->world->dz);
-    size = 0;
+    ipoint_ary = ipoint_ary_new();
     switch (self->axis) {
     case AXIS_X:
 	len1 = iround(self->len1 / self->world->dy) + 1;
 	len2 = iround(self->len2 / self->world->dz) + 1;
-	ipoint_ary = EALLOCN(iPoint, len1 * len2);
 	for (j = yi; j < yi + len1; ++j) {
 	    for (k = zi; k < zi + len2; ++k) {
-		ipoint_ary[size++] = get_ipoint(xi, j, k);
+		ipoint_ary_push(ipoint_ary, get_ipoint(xi, j, k));
 	    }
 	}
 	break;
     case AXIS_Y:
 	len1 = iround(self->len1 / self->world->dx) + 1;
 	len2 = iround(self->len2 / self->world->dz) + 1;
-	ipoint_ary = EALLOCN(iPoint, len1 * len2);
 	for (i = xi; i < xi + len1; ++i) {
 	    for (k = zi; k < zi + len2; ++k) {
-		ipoint_ary[size++] = get_ipoint(i, yi, k);
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi, k));
 	    }
 	}
 	break;
     case AXIS_Z:
 	len1 = iround(self->len1 / self->world->dx) + 1;
 	len2 = iround(self->len2 / self->world->dy) + 1;
-	ipoint_ary = EALLOCN(iPoint, len1 * len2);
 	for (i = xi; i < xi + len1; ++i) {
 	    for (j = yi; j < yi + len2; ++j) {
-		ipoint_ary[size++] = get_ipoint(i, j, zi);
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, j, zi));
 	    }
 	}
 	break;
@@ -418,9 +429,7 @@ static iPoint *rect_each_begin(Rect *self)
 	bug("unknow axis %d for rect_each_begin", self->axis);
     }
 
-    assert(size == len1 * len2);
-
-    self->each = each_new(size, ipoint_ary);
+    self->each = each_new(ipoint_ary);
     return each_each(self->each);
 }
 
@@ -479,10 +488,9 @@ static iPoint *triangle_z_each_begin(Triangle_z *self)
 {
     int i1, j1, i2, j2, ix, jx;
     double a12, b12, ax2, bx2;
-    int size;
-    int i, j, i12, ix2, n;
+    int i, j, i12, ix2;
     int istart, iend, jstart, jend;
-    iPoint *ipoint_ary;
+    iPoint_ary *ipoint_ary;
 
     if (self->each != NULL && self->each->index >= 0)
 	bug("triangle_z_each_begin");
@@ -507,7 +515,7 @@ static iPoint *triangle_z_each_begin(Triangle_z *self)
         jend = j1;
     }
 
-    size = 0;
+    ipoint_ary = ipoint_ary_new();
     for (j = jstart; j <= jend; ++j) {
         i12 = iround(a12 * j + b12);
         ix2 = iround(ax2 * j + bx2);
@@ -519,26 +527,9 @@ static iPoint *triangle_z_each_begin(Triangle_z *self)
             iend = i12;
         }
         for (i = istart; i <= iend; ++i)
-            ++size;
+            ipoint_ary_push(ipoint_ary, get_ipoint(i, j, 0));
     }
-
-    ipoint_ary = EALLOCN(iPoint, size);
-    n = 0;
-    for (j = jstart; j <= jend; ++j) {
-        i12 = iround(a12 * j + b12);
-        ix2 = iround(ax2 * j + bx2);
-        if (i12 < ix2) {
-            istart = i12;
-            iend = ix2;
-        } else {
-            istart = ix2;
-            iend = i12;
-        }
-        for (i = istart; i <= iend; ++i)
-            ipoint_ary[n++] = get_ipoint(i, j, 0);
-    }
-    assert(size == n);
-    self->each = each_new(size, ipoint_ary);
+    self->each = each_new(ipoint_ary);
 
     return each_each(self->each);
 }
@@ -622,8 +613,7 @@ static iPoint *triangle_each_begin(Triangle *self)
     double ub, vb;
     double a, b, dx;
     iPoint *p1, *p2;
-    iPoint *ipoint_ary;
-    int size, n;
+    iPoint_ary *ipoint_ary;
 
     if (self->each != NULL && self->each->index >= 0)
 	bug("triangle_each_begin");
@@ -688,23 +678,17 @@ static iPoint *triangle_each_begin(Triangle *self)
     assert(self->tr1 != NULL);
 
     p1 = triangle_z_each_begin(self->tr1);
-    if (self->tr2 == NULL) {
-        size = self->tr1->each->size;
-    } else {
+    if (self->tr2 != NULL) {
         p2 = triangle_z_each_begin(self->tr2);
-        size = self->tr1->each->size + self->tr2->each->size;
     }
-    ipoint_ary = EALLOCN(iPoint, size);
-    n = 0;
+    ipoint_ary = ipoint_ary_new();
     for (; p1 != NULL; p1 = triangle_z_each(self->tr1))
-        ipoint_ary[n++] = *triangle_each2(self, p1);
+        ipoint_ary_push(ipoint_ary, *triangle_each2(self, p1));
     if (self->tr2 != NULL) {
         for (; p2 != NULL; p2 = triangle_z_each(self->tr2))
-            ipoint_ary[n++] = *triangle_each2(self, p2);
+            ipoint_ary_push(ipoint_ary, *triangle_each2(self, p2));
     }
-    assert(size == n);
-
-    self->each = each_new(size, ipoint_ary);
+    self->each = each_new(ipoint_ary);
 
     return each_each(self->each);
 }
@@ -762,15 +746,13 @@ Ellipse *ellipse_new(World *world, double x, double y, double z, int axis, doubl
     return self;
 }
 
-static void ellipse_ipoint_ary_add(Ellipse *self, int *psize, iPoint **pipoint_ary, int axis,
+static void ellipse_ipoint_ary_add(Ellipse *self, iPoint_ary *ipoint_ary, int axis,
 	int wc, int u1, int u2, int v)
 {
     int u;
     iPoint ipoint;
 
     if (self->edge) {
-	++(*psize);
-	*pipoint_ary = erealloc(*pipoint_ary, sizeof(iPoint) * (*psize));
 	switch (axis) {
 	case AXIS_X:
 	    ipoint = get_ipoint(wc, u1, v);
@@ -784,10 +766,8 @@ static void ellipse_ipoint_ary_add(Ellipse *self, int *psize, iPoint **pipoint_a
 	default:
 	    bug("unknown axis %d", axis);
 	}
-	(*pipoint_ary)[*psize - 1] = ipoint;
+	ipoint_ary_push(ipoint_ary, ipoint);
 
-	++(*psize);
-	*pipoint_ary = erealloc(*pipoint_ary, sizeof(iPoint) * (*psize));
 	switch (axis) {
 	case AXIS_X:
 	    ipoint = get_ipoint(wc, u2, v);
@@ -801,11 +781,9 @@ static void ellipse_ipoint_ary_add(Ellipse *self, int *psize, iPoint **pipoint_a
 	default:
 	    bug("unknown axis %d", axis);
 	}
-	(*pipoint_ary)[*psize - 1] = ipoint;
+	ipoint_ary_push(ipoint_ary, ipoint);
     } else {
 	for (u = u1; u <= u2; ++u) {
-	    ++(*psize);
-	    *pipoint_ary = erealloc(*pipoint_ary, sizeof(iPoint) * (*psize));
 	    switch (axis) {
 	    case AXIS_X:
 		ipoint = get_ipoint(wc, u, v);
@@ -819,7 +797,7 @@ static void ellipse_ipoint_ary_add(Ellipse *self, int *psize, iPoint **pipoint_a
 	    default:
 		bug("unknown axis %d", axis);
 	    }
-	    (*pipoint_ary)[*psize - 1] = ipoint;
+	    ipoint_ary_push(ipoint_ary, ipoint);
 	}
     }
 }
@@ -829,7 +807,7 @@ static iPoint *ellipse_each_begin(Ellipse *self)
     int uc, vc, wc, ru, rv;
     int ui, vi, ri, u1, v1;
     int size;
-    iPoint *ipoint_ary;
+    iPoint_ary *ipoint_ary;
 
     switch (self->axis) {
     case AXIS_X:
@@ -857,16 +835,16 @@ static iPoint *ellipse_each_begin(Ellipse *self)
 	bug("unknown axis %d", self->axis);
     }
     size = 0;
-    ipoint_ary = NULL;
+    ipoint_ary = ipoint_ary_new();
     if (ru > rv) {
         ui = ri = ru;  vi = 0;
         while (ui >= vi) {
             u1 = (int)((long)ui * rv / ru);
             v1 = (int)((long)vi * rv / ru);
-	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc - v1);
-	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc + v1);
-	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc - u1);
-	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc + u1);
+	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc - v1);
+	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc + v1);
+	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc - u1);
+	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc + u1);
 	    if ((ri -= (vi++ << 1) + 1) <= 0)
                 ri += (ui-- - 1) << 1;
         }
@@ -875,15 +853,15 @@ static iPoint *ellipse_each_begin(Ellipse *self)
         while (ui >= vi) {
             u1 = (int)((long)ui * ru / rv);
             v1 = (int)((long)vi * ru / rv);
-	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc - vi);
-	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc + vi);
-	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc - ui);
-	    ellipse_ipoint_ary_add(self, &size, &ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc + ui);
+	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc - vi);
+	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc + vi);
+	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc - ui);
+	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc + ui);
             if ((ri -= (vi++ << 1) - 1) < 0)
                 ri += (ui-- - 1) << 1;
         }
     }
-    self->each = each_new(size, ipoint_ary);
+    self->each = each_new(ipoint_ary);
     return each_each(self->each);
 }
 
@@ -998,7 +976,7 @@ static iPoint *polygon_each_begin(Polygon *self)
     Vector2d_ary *ary;
     int index;
     int size;
-    iPoint *ipoint_ary;
+    iPoint_ary *ipoint_ary;
     Vector2d va, vb, vc;
     int ok;
     double x1, y1, z1;
@@ -1011,7 +989,7 @@ static iPoint *polygon_each_begin(Polygon *self)
     }
 
     size = 0;
-    ipoint_ary = NULL;
+    ipoint_ary = ipoint_ary_new();
     while (ary->size >= 3) {
 	for (index = 0; index < ary->size; ++index) {
 	}
@@ -1050,15 +1028,14 @@ static iPoint *polygon_each_begin(Polygon *self)
 			vb.x - x1, vb.y - y1, vc.x - x1, vc.y - y1);
 		for (p = triangle_each_begin(tr); p != NULL; p = triangle_each(tr)) {
 		    ++size;
-		    ipoint_ary = erealloc(ipoint_ary, sizeof(iPoint) * size);
-		    ipoint_ary[size - 1] = *p;
+		    ipoint_ary_push(ipoint_ary, *p);
 		}
 		vector2d_ary_delete_at(ary, 1);
 	    }
 	}
 	vector2d_ary_rotate(ary, 1);
     }
-    self->each = each_new(size, ipoint_ary);
+    self->each = each_new(ipoint_ary);
     return each_each(self->each);
 }
 
@@ -1209,6 +1186,7 @@ iPoint *obj_each(Obj *self)
     return p;
 }
 
+/*
 static int obj_each_size(Obj *self)
 {
     int size;
@@ -1243,6 +1221,7 @@ static int obj_each_size(Obj *self)
     }
     return size;
 }
+*/
 
 void obj_offset(Obj *self)
 {
