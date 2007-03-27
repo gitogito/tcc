@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include <stdlib.h>
 #include <stdarg.h>
+#include <float.h>
 #include "sim.h"
 #include "solvele.h"
 
@@ -61,6 +62,7 @@ int main(int argc, char **argv)
     int i, j, k;
     double x, y, z;
     double val;
+    double min, max;
     int act;
 
     prgname = argv[0];
@@ -124,6 +126,25 @@ int main(int argc, char **argv)
     dy = sim->world->dy;
     dz = sim->world->dz;
 
+    max = DBL_MIN;
+    min = DBL_MAX;
+    for (k = 0; k < nk; ++k) {
+        z = z0 + dz * k;
+        for (j = 0; j < nj; ++j) {
+            y = y0 + dy * j;
+            for (i = 0; i < ni; ++i) {
+                x = x0 + dx * i;
+                if (sim_active_p(sim, get_ipoint(i, j, k))) {
+                    val = ary[i][j][k];
+		    if (val > max)
+			max = val;
+		    if (val < min)
+			min = val;
+                }
+            }
+        }
+    }
+
     printf("# %d\t%g\t%g\n", ni, x0, x0 + sim->world->xlen);
     printf("# %d\t%g\t%g\n", nj, y0, y0 + sim->world->ylen);
     printf("# %d\t%g\t%g\n", nk, z0, z0 + sim->world->zlen);
@@ -137,7 +158,7 @@ int main(int argc, char **argv)
                     val = ary[i][j][k];
                     act = 1;
                 } else {
-                    val = 0.0;
+                    val = min - 0.2 * (max - min);
                     act = 0;
                 }
                 printf("%g\t%g\t%g\t%g\t%d\n", x, y, z, val, act);

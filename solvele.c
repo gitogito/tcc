@@ -5,6 +5,7 @@
 #endif
 #include <stdio.h>
 #include <math.h>
+#include <float.h>
 #include "solvele.h"
 #include "sparse_matrix.h"
 #include "mem.h"
@@ -14,7 +15,6 @@
 #define M_PI	3.14159265358979323846
 #endif
 
-#define DBL_EPS	1.0e-15
 #define EPS	1.0e-6
 
 double eps_sor;
@@ -121,7 +121,7 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
                 new_val = v / c0;
                 old_val = u[i];
                 u[i] += omega * (new_val - old_val);
-                if (ok && fabs(new_val) > DBL_EPS &&
+                if (ok && fabs(new_val) > DBL_EPSILON &&
                         fabs(new_val - old_val) > eps * fabs(new_val))
                 {
                     ok = 0;
