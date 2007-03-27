@@ -83,13 +83,14 @@ World *world_new(double x0, double y0, double z0,
     return self;
 }
 
-static iPoint *world_each_begin(World *self)
+static iPoint *world_each(World *self)
 {
     iPoint_ary *ipoint_ary;
     int i, j, k;
 
     if (self->each != NULL && self->each->index >= 0)
-	bug("world_each_begin");
+	return each_each(self->each);
+
     ipoint_ary = ipoint_ary_new();
     for (i = 0; i < self->ni; ++i) {
 	for (j = 0; j < self->nj; ++j) {
@@ -99,11 +100,6 @@ static iPoint *world_each_begin(World *self)
 	}
     }
     self->each = each_new(ipoint_ary);
-    return each_each(self->each);
-}
-
-static iPoint *world_each(World *self)
-{
     return each_each(self->each);
 }
 
@@ -169,7 +165,7 @@ static void sim_set_region_active(Sim *self)
     active_obj_ary = self->config->active_obj_ary;
     for (index = 0; index < active_obj_ary->size; ++index) {
 	obj = active_obj_ary->ptr[index];
-	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
+	for (p = obj_each(obj); p != NULL; p = obj_each(obj)) {
 	    if (!world_inside_p(self->world, *p))
 		continue;
 	    (self->active_p_ary)[p->i][p->j][p->k] = obj->uval.i;
@@ -188,7 +184,7 @@ static void sim_set_region_fix(Sim *self)
     obj_ary = self->config->fix_obj_ary;
     for (i = 0; i < obj_ary->size; ++i) {
 	obj = obj_ary->ptr[i];
-	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
+	for (p = obj_each(obj); p != NULL; p = obj_each(obj)) {
 	    if (!world_inside_p(self->world, *p))
 		continue;
 	    self->fix_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
@@ -211,7 +207,7 @@ static void sim_set_region_heat(Sim *self)
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
 	first = 1;
-	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
+	for (p = obj_each(obj); p != NULL; p = obj_each(obj)) {
 	    if (!world_inside_p(self->world, *p))
 		continue;
 	    if (first) {
@@ -235,7 +231,7 @@ static void sim_set_region_lambda(Sim *self)
     obj_ary = self->config->lambda_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
-	for (p = obj_each_begin(obj); p != NULL; p = obj_each(obj)) {
+	for (p = obj_each(obj); p != NULL; p = obj_each(obj)) {
 	    if (!world_inside_p(self->world, *p))
 		continue;
 	    self->lambda_ary[p->i][p->j][p->k] = obj->uval.d;
@@ -405,13 +401,13 @@ static void sim_set_matrix(Sim *self)
     double dx, dy, dz;
 
     ALLOCATE_3D2(self->u, double, self->ni, self->nj, self->nk, 0.0);
-    for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
+    for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
 	if (self->fix_ary[p->i][p->j][p->k] != NULL)
 	    self->u[p->i][p->j][p->k] = *(self->fix_ary[p->i][p->j][p->k]);
     }
 
     ALLOCATE_3D(self->coefs, Coefs *, self->ni, self->nj, self->nk);
-    for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
+    for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
 	self->coefs[p->i][p->j][p->k] = coefs_new();
     }
 
@@ -419,7 +415,7 @@ static void sim_set_matrix(Sim *self)
     dy = self->world->dy;
     dz = self->world->dz;
 
-    for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
+    for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
 	if (self->fix_ary[p->i][p->j][p->k] != NULL)
 	    continue;
 
@@ -468,7 +464,7 @@ Array3Dd sim_calc(Sim *self)
 
     nindex = self->ni * self->nj * self->nk;
     solver = solvele_new(nindex);
-    for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
+    for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
 	if (self->fix_ary[p->i][p->j][p->k] != NULL || !self->active_p_ary[p->i][p->j][p->k]) {
 	    index = world_to_index(self->world, *p);
 	    solvele_set_matrix(solver, index, index, 1.0);
@@ -505,7 +501,7 @@ Array3Dd sim_calc(Sim *self)
     sol = solvele_solve(solver, self->ni, self->nj, self->nk);
 
     ALLOCATE_3D(ary, double, self->ni, self->nj, self->nk);
-    for (p = world_each_begin(self->world); p != NULL; p = world_each(self->world)) {
+    for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
 	ary[p->i][p->j][p->k] = sol[world_to_index(self->world, *p)];
     }
 

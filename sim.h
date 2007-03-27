@@ -244,7 +244,6 @@ struct Obj {
 };
 
 Obj *obj_new(int objtype);
-iPoint *obj_each_begin(Obj *self);
 iPoint *obj_each(Obj *self);
 void obj_offset(Obj *self);
 

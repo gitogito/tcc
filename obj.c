@@ -251,11 +251,7 @@ Sweep *sweep_new(World *world, int axis, double len, Obj *obj)
     return self;
 }
 
-/*
-static int obj_each_size(Obj *obj);
-*/
-
-static iPoint *sweep_each_begin(Sweep *self)
+static iPoint *sweep_each(Sweep *self)
 {
     iPoint *p;
     int leni;
@@ -263,8 +259,9 @@ static iPoint *sweep_each_begin(Sweep *self)
     int i, j, k;
 
     if (self->each != NULL && self->each->index >= 0)
-	bug("sweep_each_begin");
-    p = obj_each_begin(self->obj);
+	return each_each(self->each);
+
+    p = obj_each(self->obj);
     ipoint_ary = ipoint_ary_new();
     switch (self->axis) {
     case AXIS_X:
@@ -301,11 +298,6 @@ static iPoint *sweep_each_begin(Sweep *self)
     return each_each(self->each);
 }
 
-static iPoint *sweep_each(Sweep *self)
-{
-    return each_each(self->each);
-}
-
 static void sweep_offset(Sweep *self)
 {
     switch (self->axis) {
@@ -339,11 +331,6 @@ Edge *edge_new(World *world, Obj *obj)
     self->obj = obj;
     obj_edge(self->obj);
     return self;
-}
-
-iPoint *edge_each_begin(Edge *self)
-{
-    return obj_each_begin(self->obj);
 }
 
 iPoint *edge_each(Edge *self)
@@ -384,7 +371,7 @@ Rect *rect_new(World *world, double x, double y, double z, int axis, double len1
     return self;
 }
 
-static iPoint *rect_each_begin(Rect *self)
+static iPoint *rect_each(Rect *self)
 {
     int xi, yi, zi;
     int len1, len2;
@@ -392,7 +379,7 @@ static iPoint *rect_each_begin(Rect *self)
     int i, j, k;
 
     if (self->each != NULL && self->each->index >= 0)
-	bug("rect_each_begin");
+	return each_each(self->each);
 
     xi = iround((self->x - self->world->x0) / self->world->dx);
     yi = iround((self->y - self->world->y0) / self->world->dy);
@@ -460,15 +447,10 @@ static iPoint *rect_each_begin(Rect *self)
 	}
 	break;
     default:
-	bug("unknow axis %d for rect_each_begin", self->axis);
+	bug("unknow axis %d for rect_each", self->axis);
     }
 
     self->each = each_new(ipoint_ary);
-    return each_each(self->each);
-}
-
-static iPoint *rect_each(Rect *self)
-{
     return each_each(self->each);
 }
 
@@ -523,7 +505,7 @@ static Triangle_z *triangle_z_new(World *world, double x1, double y1, double dx,
     return self;
 }
 
-static iPoint *triangle_z_each_begin(Triangle_z *self)
+static iPoint *triangle_z_each(Triangle_z *self)
 {
     int i1, j1, i2, j2, ix, jx;
     double a12, b12, ax2, bx2;
@@ -532,7 +514,7 @@ static iPoint *triangle_z_each_begin(Triangle_z *self)
     iPoint_ary *ipoint_ary;
 
     if (self->each != NULL && self->each->index >= 0)
-	bug("triangle_z_each_begin");
+	return each_each(self->each);
 
     i1 = iround((self->x1 - self->world->x0) / self->world->dx);
     j1 = iround((self->y1 - self->world->y0) / self->world->dy);
@@ -570,11 +552,6 @@ static iPoint *triangle_z_each_begin(Triangle_z *self)
     }
     self->each = each_new(ipoint_ary);
 
-    return each_each(self->each);
-}
-
-static iPoint *triangle_z_each(Triangle_z *self)
-{
     return each_each(self->each);
 }
 
@@ -644,7 +621,7 @@ static iPoint *triangle_each2(Triangle *self, iPoint *p)
     return ipoint_new(i2, j2, k2);
 }
 
-static iPoint *triangle_each_begin(Triangle *self)
+static iPoint *triangle_each(Triangle *self)
 {
     double u1, v1, u2, v2, u3, v3;
     double ua, va;
@@ -655,7 +632,7 @@ static iPoint *triangle_each_begin(Triangle *self)
     iPoint_ary *ipoint_ary;
 
     if (self->each != NULL && self->each->index >= 0)
-	bug("triangle_each_begin");
+	return each_each(self->each);
 
     u1 = self->u1;
     v1 = self->v1;
@@ -716,9 +693,9 @@ static iPoint *triangle_each_begin(Triangle *self)
     }
     assert(self->tr1 != NULL);
 
-    p1 = triangle_z_each_begin(self->tr1);
+    p1 = triangle_z_each(self->tr1);
     if (self->tr2 != NULL) {
-        p2 = triangle_z_each_begin(self->tr2);
+        p2 = triangle_z_each(self->tr2);
     }
     ipoint_ary = ipoint_ary_new();
     for (; p1 != NULL; p1 = triangle_z_each(self->tr1))
@@ -729,11 +706,6 @@ static iPoint *triangle_each_begin(Triangle *self)
     }
     self->each = each_new(ipoint_ary);
 
-    return each_each(self->each);
-}
-
-static iPoint *triangle_each(Triangle *self)
-{
     return each_each(self->each);
 }
 
@@ -841,11 +813,14 @@ static void ellipse_ipoint_ary_add(Ellipse *self, iPoint_ary *ipoint_ary, int ax
     }
 }
 
-static iPoint *ellipse_each_begin(Ellipse *self)
+static iPoint *ellipse_each(Ellipse *self)
 {
     int uc, vc, wc, ru, rv;
     int ui, vi, ri, u1, v1;
     iPoint_ary *ipoint_ary;
+
+    if (self->each != NULL && self->each->index >= 0)
+	return each_each(self->each);
 
     switch (self->axis) {
     case AXIS_X:
@@ -902,11 +877,6 @@ static iPoint *ellipse_each_begin(Ellipse *self)
     return each_each(self->each);
 }
 
-static iPoint *ellipse_each(Ellipse *self)
-{
-    return each_each(self->each);
-}
-
 static void ellipse_offset(Ellipse *self)
 {
     switch (self->axis) {
@@ -944,11 +914,6 @@ Circle *circle_new(World *world, double x, double y, double z, int axis, double 
     self = EALLOC(Circle);
     self->ellipse = ellipse_new(world, x, y, z, axis, r, r);
     return self;
-}
-
-static iPoint *circle_each_begin(Circle *self)
-{
-    return ellipse_each_begin(self->ellipse);
 }
 
 static iPoint *circle_each(Circle *self)
@@ -1008,7 +973,7 @@ Polygon *polygon_new(World *world, double x1, double y1, double z1,
     return self;
 }
 
-static iPoint *polygon_each_begin(Polygon *self)
+static iPoint *polygon_each(Polygon *self)
 {
     Vector2d_ary *ary;
     int index;
@@ -1018,6 +983,9 @@ static iPoint *polygon_each_begin(Polygon *self)
     double x1, y1, z1;
     Triangle *tr;
     iPoint *p;
+
+    if (self->each != NULL && self->each->index >= 0)
+	return each_each(self->each);
 
     ary = vector2d_ary_new();
     for (index = 0; index < self->vector2d_ary->size; ++index) {
@@ -1061,7 +1029,7 @@ static iPoint *polygon_each_begin(Polygon *self)
 		}
 		tr = triangle_new(self->world, x1, y1, z1, self->axis,
 			vb.x - x1, vb.y - y1, vc.x - x1, vc.y - y1);
-		for (p = triangle_each_begin(tr); p != NULL; p = triangle_each(tr)) {
+		for (p = triangle_each(tr); p != NULL; p = triangle_each(tr)) {
 		    ipoint_ary_push(ipoint_ary, *p);
 		}
 		vector2d_ary_delete_at(ary, 1);
@@ -1070,11 +1038,6 @@ static iPoint *polygon_each_begin(Polygon *self)
 	vector2d_ary_rotate(ary, 1);
     }
     self->each = each_new(ipoint_ary);
-    return each_each(self->each);
-}
-
-static iPoint *polygon_each(Polygon *self)
-{
     return each_each(self->each);
 }
 
@@ -1124,11 +1087,6 @@ Box *box_new(World *world, double x, double y, double z, double xlen, double yle
     return self;
 }
 
-static iPoint *box_each_begin(Box *self)
-{
-    return sweep_each_begin(self->sweep);
-}
-
 static iPoint *box_each(Box *self)
 {
     return sweep_each(self->sweep);
@@ -1148,41 +1106,6 @@ Obj *obj_new(int objtype)
     self = EALLOC(Obj);
     self->objtype = objtype;
     return self;
-}
-
-iPoint *obj_each_begin(Obj *self)
-{
-    iPoint *p;
-
-    switch (self->objtype) {
-    case OBJ_RECT:
-	p = rect_each_begin(self->uobj.rect);
-	break;
-    case OBJ_TRIANGLE:
-	p = triangle_each_begin(self->uobj.triangle);
-	break;
-    case OBJ_ELLIPSE:
-	p = ellipse_each_begin(self->uobj.ellipse);
-	break;
-    case OBJ_CIRCLE:
-	p = circle_each_begin(self->uobj.circle);
-	break;
-    case OBJ_POLYGON:
-	p = polygon_each_begin(self->uobj.polygon);
-	break;
-    case OBJ_BOX:
-	p = box_each_begin(self->uobj.box);
-	break;
-    case OBJ_SWEEP:
-	p = sweep_each_begin(self->uobj.sweep);
-	break;
-    case OBJ_EDGE:
-	p = edge_each_begin(self->uobj.edge);
-	break;
-    default:
-	bug("unknown obj %d", self->objtype);
-    }
-    return p;
 }
 
 iPoint *obj_each(Obj *self)
