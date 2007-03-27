@@ -137,7 +137,7 @@ int main(int argc, char **argv)
                     val = ary[i][j][k];
                     act = 1;
                 } else {
-                    val = -1.0;
+                    val = 0.0;
                     act = 0;
                 }
                 printf("%g\t%g\t%g\t%g\t%d\n", x, y, z, val, act);
