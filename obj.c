@@ -380,6 +380,7 @@ Rect *rect_new(World *world, double x, double y, double z, int axis, double len1
     self->len1 = len1;
     self->len2 = len2;
     self->each = NULL;
+    self->edge = 0;
     return self;
 }
 
@@ -401,27 +402,60 @@ static iPoint *rect_each_begin(Rect *self)
     case AXIS_X:
 	len1 = iround(self->len1 / self->world->dy) + 1;
 	len2 = iround(self->len2 / self->world->dz) + 1;
-	for (j = yi; j < yi + len1; ++j) {
-	    for (k = zi; k < zi + len2; ++k) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(xi, j, k));
+	if (self->edge) {
+	    for (j = yi; j < yi + len1; ++j) {
+		ipoint_ary_push(ipoint_ary, get_ipoint(xi, j, zi           ));
+		ipoint_ary_push(ipoint_ary, get_ipoint(xi, j, zi + len2 - 1));
+	    }
+	    for (k = zi + 1; k < zi + len2 - 1; ++k) {
+		ipoint_ary_push(ipoint_ary, get_ipoint(xi, yi           , k));
+		ipoint_ary_push(ipoint_ary, get_ipoint(xi, yi + len1 - 1, k));
+	    }
+	} else {
+	    for (j = yi; j < yi + len1; ++j) {
+		for (k = zi; k < zi + len2; ++k) {
+		    ipoint_ary_push(ipoint_ary, get_ipoint(xi, j, k));
+		}
 	    }
 	}
 	break;
     case AXIS_Y:
 	len1 = iround(self->len1 / self->world->dx) + 1;
 	len2 = iround(self->len2 / self->world->dz) + 1;
-	for (i = xi; i < xi + len1; ++i) {
-	    for (k = zi; k < zi + len2; ++k) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi, k));
+	if (self->edge) {
+	    for (i = xi; i < xi + len1; ++i) {
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi, zi           ));
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi, zi + len2 - 1));
+	    }
+	    for (k = zi + 1; k < zi + len2 - 1; ++k) {
+		ipoint_ary_push(ipoint_ary, get_ipoint(xi           , yi, k));
+		ipoint_ary_push(ipoint_ary, get_ipoint(xi + len1 - 1, yi, k));
+	    }
+	} else {
+	    for (i = xi; i < xi + len1; ++i) {
+		for (k = zi; k < zi + len2; ++k) {
+		    ipoint_ary_push(ipoint_ary, get_ipoint(i, yi, k));
+		}
 	    }
 	}
 	break;
     case AXIS_Z:
 	len1 = iround(self->len1 / self->world->dx) + 1;
 	len2 = iround(self->len2 / self->world->dy) + 1;
-	for (i = xi; i < xi + len1; ++i) {
-	    for (j = yi; j < yi + len2; ++j) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(i, j, zi));
+	if (self->edge) {
+	    for (i = xi; i < xi + len1; ++i) {
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi           , zi));
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi + len2 - 1, zi));
+	    }
+	    for (j = yi + 1; j < yi + len2 - 1; ++j) {
+		ipoint_ary_push(ipoint_ary, get_ipoint(xi           , j, zi));
+		ipoint_ary_push(ipoint_ary, get_ipoint(xi + len1 - 1, j, zi));
+	    }
+	} else {
+	    for (i = xi; i < xi + len1; ++i) {
+		for (j = yi; j < yi + len2; ++j) {
+		    ipoint_ary_push(ipoint_ary, get_ipoint(i, j, zi));
+		}
 	    }
 	}
 	break;
@@ -456,6 +490,11 @@ static void rect_offset(Rect *self)
     default:
 	bug("unknow axis %d", self->axis);
     }
+}
+
+static void rect_edge(Rect *self)
+{
+    self->edge = 1;
 }
 
 /* Triangle_z */
@@ -1259,7 +1298,7 @@ static void obj_edge(Obj *self)
 {
     switch (self->objtype) {
     case OBJ_RECT:
-	warn_exit("rect_edge is not implemented");
+	rect_edge(self->uobj.rect);
 	break;
     case OBJ_TRIANGLE:
 	warn_exit("triangle_edge is not implemented");

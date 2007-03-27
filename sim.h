@@ -138,6 +138,7 @@ typedef struct Rect {
     double len1;
     double len2;
     Each *each;
+    int edge;
 } Rect;
 
 Rect *rect_new(World *world, double x, double y, double z, int axis, double len1, double len2);
