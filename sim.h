@@ -1,7 +1,8 @@
 #ifndef _SIM_H_
 #define _SIM_H_
 
-#define NDIRS   (2 * 3) /* 2 * (number of dimensions) */
+#define ALLOC_FACTOR	1.2
+#define NDIRS   	(2 * 3) /* 2 * (number of dimensions) */
 
 #define NELEMS(ary)	(sizeof(ary) / sizeof((ary)[0]))
 

@@ -47,7 +47,7 @@ void ipoint_ary_push(iPoint_ary *self, iPoint ipoint)
 {
     ++(self->size);
     if (self->size > self->alloc_size)
-	self->alloc_size = (int) (self->size * 1.2);
+	self->alloc_size = (int) (self->size * ALLOC_FACTOR);
     self->ptr = erealloc(self->ptr, sizeof(iPoint) * self->alloc_size);
     self->ptr[self->size - 1] = ipoint;
 }
@@ -104,7 +104,7 @@ void vector2d_ary_push(Vector2d_ary *self, Vector2d vector2d)
 {
     ++(self->size);
     if (self->size > self->alloc_size)
-	self->alloc_size = (int) (self->size * 1.2);
+	self->alloc_size = (int) (self->size * ALLOC_FACTOR);
     self->ptr = erealloc(self->ptr, sizeof(Vector2d) * self->alloc_size);
     self->ptr[self->size - 1] = vector2d;
 }
@@ -845,7 +845,6 @@ static iPoint *ellipse_each_begin(Ellipse *self)
 {
     int uc, vc, wc, ru, rv;
     int ui, vi, ri, u1, v1;
-    int size;
     iPoint_ary *ipoint_ary;
 
     switch (self->axis) {
@@ -873,7 +872,6 @@ static iPoint *ellipse_each_begin(Ellipse *self)
     default:
 	bug("unknown axis %d", self->axis);
     }
-    size = 0;
     ipoint_ary = ipoint_ary_new();
     if (ru > rv) {
         ui = ri = ru;  vi = 0;
@@ -1014,7 +1012,6 @@ static iPoint *polygon_each_begin(Polygon *self)
 {
     Vector2d_ary *ary;
     int index;
-    int size;
     iPoint_ary *ipoint_ary;
     Vector2d va, vb, vc;
     int ok;
@@ -1027,7 +1024,6 @@ static iPoint *polygon_each_begin(Polygon *self)
 	vector2d_ary_push(ary, self->vector2d_ary->ptr[index]);
     }
 
-    size = 0;
     ipoint_ary = ipoint_ary_new();
     while (ary->size >= 3) {
 	for (index = 0; index < ary->size; ++index) {
@@ -1066,7 +1062,6 @@ static iPoint *polygon_each_begin(Polygon *self)
 		tr = triangle_new(self->world, x1, y1, z1, self->axis,
 			vb.x - x1, vb.y - y1, vc.x - x1, vc.y - y1);
 		for (p = triangle_each_begin(tr); p != NULL; p = triangle_each(tr)) {
-		    ++size;
 		    ipoint_ary_push(ipoint_ary, *p);
 		}
 		vector2d_ary_delete_at(ary, 1);
@@ -1224,43 +1219,6 @@ iPoint *obj_each(Obj *self)
     }
     return p;
 }
-
-/*
-static int obj_each_size(Obj *self)
-{
-    int size;
-
-    switch (self->objtype) {
-    case OBJ_RECT:
-	size = self->uobj.rect->each->size;
-	break;
-    case OBJ_TRIANGLE:
-	size = self->uobj.triangle->each->size;
-	break;
-    case OBJ_ELLIPSE:
-	size = self->uobj.ellipse->each->size;
-	break;
-    case OBJ_CIRCLE:
-	size = self->uobj.circle->ellipse->each->size;
-	break;
-    case OBJ_POLYGON:
-	size = self->uobj.polygon->each->size;
-	break;
-    case OBJ_BOX:
-	size = self->uobj.box->sweep->each->size;
-	break;
-    case OBJ_SWEEP:
-	size = self->uobj.sweep->each->size;
-	break;
-    case OBJ_EDGE:
-	size = obj_each_size(self->uobj.edge->obj);
-	break;
-    default:
-	bug("unknown obj %d", self->objtype);
-    }
-    return size;
-}
-*/
 
 void obj_offset(Obj *self)
 {
