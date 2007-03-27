@@ -19,6 +19,7 @@ enum {
     ST_START,
     ST_WORLD,
     ST_ACTIVE,
+    ST_NOACTIVE,
     ST_FIX,
     ST_HEAT,
     ST_LAMBDA,
@@ -76,7 +77,7 @@ static void var_assign(char *varname, double value)
 %token <str> TK_WORD TK_SYMBOL
 
 %token	TK_ACTIVE TK_BOX TK_CIRCLE TK_ELLIPSE TK_EDGE TK_FIX TK_HEAT TK_LAMBDA TK_LINE
-        TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE TK_WORLD
+        TK_NOACTIVE TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE TK_WORLD
 
 %type <point>		point
 %type <point>		vector
@@ -129,6 +130,11 @@ command:
 	state = ST_ACTIVE;
     }
 
+  | TK_LINE TK_NOACTIVE
+    {
+	state = ST_NOACTIVE;
+    }
+
   | TK_LINE TK_FIX expr
     {
 	state = ST_FIX;
@@ -156,6 +162,10 @@ command:
 	switch (state) {
 	case ST_ACTIVE:
 	    obj->uval.i = 1;
+	    aryobj_push(config_parser->active_obj_ary, obj);
+	    break;
+	case ST_NOACTIVE:
+	    obj->uval.i = 0;
 	    aryobj_push(config_parser->active_obj_ary, obj);
 	    break;
 	case ST_FIX:

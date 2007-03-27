@@ -41,6 +41,7 @@ ellipse	        return TK_ELLIPSE;
 fix		return TK_FIX;
 heat		return TK_HEAT;
 lambda  	return TK_LAMBDA;
+noactive	return TK_NOACTIVE;
 polygon  	return TK_POLYGON;
 rect      	return TK_RECT;
 triangle      	return TK_TRIANGLE;
