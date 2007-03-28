@@ -1,5 +1,5 @@
-#ifndef _TC_H
-#define _TC_H
+#ifndef _TC_H_
+#define _TC_H_
 
 extern char *prgname;
 extern int opt_e;	/* specify SOR epsilon */
