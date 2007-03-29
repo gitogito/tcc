@@ -330,6 +330,8 @@ static void sweep_offset(Sweep *self)
     default:
 	bug("unknow axis %d", self->axis);
     }
+    if (self->len <= 0.0)
+	warn_exit("length of sweep becomes negative");
 }
 
 /* Edge */
@@ -491,6 +493,8 @@ static void rect_offset(Rect *self)
     default:
 	bug("unknow axis %d", self->axis);
     }
+    if (self->len1 <= 0.0 || self->len2 <= 0.0)
+	warn_exit("length of rect becomes negative");
 }
 
 static void rect_edge(Rect *self)
@@ -918,6 +922,8 @@ static void ellipse_offset(Ellipse *self)
     default:
 	bug("unknow axis %d", self->axis);
     }
+    if (self->ru <= 0.0 || self->rv <= 0.0)
+	warn_exit("length of ellipse becomes negative");
 }
 
 static void ellipse_edge(Ellipse *self)
