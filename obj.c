@@ -276,6 +276,8 @@ static iPoint *sweep_each(Sweep *self)
 	return each_each(self->each);
 
     p = obj_each(self->obj);
+    if (p == NULL)
+	return NULL;
     ipoint_ary = ipoint_ary_new();
     switch (self->axis) {
     case AXIS_X:
