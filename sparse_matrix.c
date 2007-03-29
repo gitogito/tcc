@@ -18,6 +18,14 @@ DenseVector *dvec_new(int n)
     return p;
 }
 
+void dvec_free(DenseVector *v)
+{
+    if (v == NULL)
+	return;
+    FREE(v->val);
+    FREE(v);
+}
+
 void dvec_set(DenseVector *v, int i, double val)
 {
     v->val[i] = val;
@@ -67,9 +75,32 @@ SparseMatrix *smat_new(int n)
     return p;
 }
 
+void smat_free(SparseMatrix *m)
+{
+    int i;
+    SpMatElem *p, *p2;
+
+    if (m == NULL)
+	return;
+    for (i = 0; i < m->n; ++i) {
+	if (m->rows[i].type == ROW_ARY) {
+	    p = m->rows[i].urow.list;
+	    while (p != NULL) {
+		p2 = p;
+		p = p->next;
+		FREE(p2);
+	    }
+	} else {
+	    FREE(m->rows[i].urow.ary);
+	}
+    }
+    FREE(m->rows);
+    FREE(m);
+}
+
 void smat_set(SparseMatrix *m, int i, int j, double val)
 {
-    SpMatElem *pre;
+    SpMatElem *pre, *p;
 
     if (m->rows[i].type == ROW_ARY) {
 	if (val != 0.0) {
@@ -96,7 +127,9 @@ void smat_set(SparseMatrix *m, int i, int j, double val)
 	return;
     } else if (j == m->rows[i].urow.list->idx) {
 	if (val == 0.0) {
+	    p = m->rows[i].urow.list;
 	    m->rows[i].urow.list = m->rows[i].urow.list->next;
+	    FREE(p);
 	    --(m->nnz);
 	} else {
 	    m->rows[i].urow.list->val = val;
@@ -114,7 +147,9 @@ void smat_set(SparseMatrix *m, int i, int j, double val)
 	    return;
 	} else if (j == pre->next->idx) {
 	    if (val == 0.0) {
+		p = pre->next;
 		pre->next = pre->next->next;
+		FREE(p);
 		--(m->nnz);
 	    } else {
 		pre->next->val = val;
