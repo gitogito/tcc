@@ -32,21 +32,21 @@ number	{num1}|{num2}
     /* ignore comment */
 }
 
----+            return TK_LINE;
+---+		return TK_LINE;
 active		return TK_ACTIVE;
-box	        return TK_BOX;
-circle	        return TK_CIRCLE;
-edge	        return TK_EDGE;
-ellipse	        return TK_ELLIPSE;
+box		return TK_BOX;
+circle		return TK_CIRCLE;
+edge		return TK_EDGE;
+ellipse		return TK_ELLIPSE;
 fix		return TK_FIX;
 heat		return TK_HEAT;
-lambda  	return TK_LAMBDA;
+lambda		return TK_LAMBDA;
 noactive	return TK_NOACTIVE;
-polygon  	return TK_POLYGON;
-rect      	return TK_RECT;
-triangle      	return TK_TRIANGLE;
-sweep      	return TK_SWEEP;
-world      	return TK_WORLD;
+polygon		return TK_POLYGON;
+rect		return TK_RECT;
+triangle	return TK_TRIANGLE;
+sweep		return TK_SWEEP;
+world		return TK_WORLD;
 
 {number} {
     yylval.val = atof(yytext);

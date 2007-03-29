@@ -32,7 +32,6 @@ static Coef *coef_new(void)
     return self;
 }
 
-
 /* Coefs */
 
 static Coefs *coefs_new(void)

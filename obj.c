@@ -17,17 +17,17 @@ int iround(double x)
 static double min_d(double a, double b)
 {
     if (a < b)
-        return a;
+	return a;
     else
-        return b;
+	return b;
 }
 
 static double max_d(double a, double b)
 {
     if (a > b)
-        return a;
+	return a;
     else
-        return b;
+	return b;
 }
 
 static int alloc_size(int size)
@@ -539,26 +539,26 @@ static iPoint *triangle_z_each(Triangle_z *self)
     bx2 = (double) (i2*jx - ix*j2) / (jx - j2);
 
     if (j1 < j2) {
-        jstart = j1;
-        jend = j2;
+	jstart = j1;
+	jend = j2;
     } else {
-        jstart = j2;
-        jend = j1;
+	jstart = j2;
+	jend = j1;
     }
 
     ipoint_ary = ipoint_ary_new();
     for (j = jstart; j <= jend; ++j) {
-        i12 = iround(a12 * j + b12);
-        ix2 = iround(ax2 * j + bx2);
-        if (i12 < ix2) {
-            istart = i12;
-            iend = ix2;
-        } else {
-            istart = ix2;
-            iend = i12;
-        }
-        for (i = istart; i <= iend; ++i)
-            ipoint_ary_push(ipoint_ary, get_ipoint(i, j, 0));
+	i12 = iround(a12 * j + b12);
+	ix2 = iround(ax2 * j + bx2);
+	if (i12 < ix2) {
+	    istart = i12;
+	    iend = ix2;
+	} else {
+	    istart = ix2;
+	    iend = i12;
+	}
+	for (i = istart; i <= iend; ++i)
+	    ipoint_ary_push(ipoint_ary, get_ipoint(i, j, 0));
     }
     self->each = each_new(ipoint_ary);
 
@@ -577,22 +577,22 @@ Triangle *triangle_new(World *world, double x1, double y1, double z1,
     self->axis = axis;
     switch (self->axis) {
     case AXIS_X:
-        self->u1 = y1;
-        self->v1 = z1;
-        self->wi = iround((x1 - self->world->x0) / self->world->dx);
-        break;
+	self->u1 = y1;
+	self->v1 = z1;
+	self->wi = iround((x1 - self->world->x0) / self->world->dx);
+	break;
     case AXIS_Y:
-        self->u1 = x1;
-        self->v1 = z1;
-        self->wi = iround((y1 - self->world->y0) / self->world->dy);
-        break;
+	self->u1 = x1;
+	self->v1 = z1;
+	self->wi = iround((y1 - self->world->y0) / self->world->dy);
+	break;
     case AXIS_Z:
-        self->u1 = x1;
-        self->v1 = y1;
-        self->wi = iround((z1 - self->world->z0) / self->world->dz);
-        break;
+	self->u1 = x1;
+	self->v1 = y1;
+	self->wi = iround((z1 - self->world->z0) / self->world->dz);
+	break;
     default:
-        bug("unknow axis %d", self->axis);
+	bug("unknow axis %d", self->axis);
     }
     self->du2 = du2;
     self->dv2 = dv2;
@@ -611,22 +611,22 @@ static iPoint *triangle_each2(Triangle *self, iPoint *p)
     assert(p->k == 0);
     switch (self->axis) {
     case AXIS_X:
-        i2 = self->wi;
-        j2 = p->i;
-        k2 = p->j;
-        break;
+	i2 = self->wi;
+	j2 = p->i;
+	k2 = p->j;
+	break;
     case AXIS_Y:
-        i2 = p->j;
-        j2 = self->wi;
-        k2 = p->i;
-        break;
+	i2 = p->j;
+	j2 = self->wi;
+	k2 = p->i;
+	break;
     case AXIS_Z:
-        i2 = p->i;
-        j2 = p->j;
-        k2 = self->wi;
-        break;
+	i2 = p->i;
+	j2 = p->j;
+	k2 = self->wi;
+	break;
     default:
-        bug("unknow axis %d", self->axis);
+	bug("unknow axis %d", self->axis);
     }
     return ipoint_new(i2, j2, k2);
 }
@@ -652,67 +652,67 @@ static iPoint *triangle_each(Triangle *self)
     v3 = self->v1 + self->dv3;
 
     if (v1 == v2) {
-        self->tr1 = triangle_z_new(self->world, u1, v1, u2 - u1, u3 - u1, v3 - v1);
+	self->tr1 = triangle_z_new(self->world, u1, v1, u2 - u1, u3 - u1, v3 - v1);
     } else if (v2 == v3) {
-        self->tr1 = triangle_z_new(self->world, u2, v2, u3 - u2, u1 - u2, v1 - v2);
+	self->tr1 = triangle_z_new(self->world, u2, v2, u3 - u2, u1 - u2, v1 - v2);
     } else if (v3 == v1) {
-        self->tr1 = triangle_z_new(self->world, u3, v3, u1 - u3, u2 - u3, v2 - v3);
+	self->tr1 = triangle_z_new(self->world, u3, v3, u1 - u3, u2 - u3, v2 - v3);
     } else {
-        /*
-         *           * pa
-         *          * *
-         *         *   *
-         *        *     *
-         *       *  dx   *
-         *      *<------->* px
-         *     *      ****
-         *    *   ****
-         *   *****
-         *  *
-         *  pb
-         */
-        if (v1 < max_d(v2, v3) && v1 > min_d(v2, v3)) {
-            ua = u2;
-            va = v2;
-            ux = u1;
-            vx = v1;
-            ub = u3;
-            vb = v3;
-        } else if (v2 < max_d(v3, v1) && v2 > min_d(v3, v1)) {
-            ua = u3;
-            va = v3;
-            ux = u2;
-            vx = v2;
-            ub = u1;
-            vb = v1;
-        } else if (v3 < max_d(v1, v2) && v3 > min_d(v1, v2)) {
-            ua = u1;
-            va = v1;
-            ux = u3;
-            vx = v3;
-            ub = u2;
-            vb = v2;
-        } else {
-            bug("not reached");
-        }
-        a = (ua - ub) / (va - vb);
-        b = (ub*va - ua*vb) / (va - vb);
-        dx = a * vx + b - ux;
-        self->tr1 = triangle_z_new(self->world, ux, vx, dx, ua - ux, va - vx);
-        self->tr2 = triangle_z_new(self->world, ux, vx, dx, ub - ux, vb - vx);
+	/*
+	 *           * pa
+	 *          * *
+	 *         *   *
+	 *        *     *
+	 *       *  dx   *
+	 *      *<------->* px
+	 *     *      ****
+	 *    *   ****
+	 *   *****
+	 *  *
+	 *  pb
+	 */
+	if (v1 < max_d(v2, v3) && v1 > min_d(v2, v3)) {
+	    ua = u2;
+	    va = v2;
+	    ux = u1;
+	    vx = v1;
+	    ub = u3;
+	    vb = v3;
+	} else if (v2 < max_d(v3, v1) && v2 > min_d(v3, v1)) {
+	    ua = u3;
+	    va = v3;
+	    ux = u2;
+	    vx = v2;
+	    ub = u1;
+	    vb = v1;
+	} else if (v3 < max_d(v1, v2) && v3 > min_d(v1, v2)) {
+	    ua = u1;
+	    va = v1;
+	    ux = u3;
+	    vx = v3;
+	    ub = u2;
+	    vb = v2;
+	} else {
+	    bug("not reached");
+	}
+	a = (ua - ub) / (va - vb);
+	b = (ub*va - ua*vb) / (va - vb);
+	dx = a * vx + b - ux;
+	self->tr1 = triangle_z_new(self->world, ux, vx, dx, ua - ux, va - vx);
+	self->tr2 = triangle_z_new(self->world, ux, vx, dx, ub - ux, vb - vx);
     }
     assert(self->tr1 != NULL);
 
     p1 = triangle_z_each(self->tr1);
     if (self->tr2 != NULL) {
-        p2 = triangle_z_each(self->tr2);
+	p2 = triangle_z_each(self->tr2);
     }
     ipoint_ary = ipoint_ary_new();
     for (; p1 != NULL; p1 = triangle_z_each(self->tr1))
-        ipoint_ary_push(ipoint_ary, *triangle_each2(self, p1));
+	ipoint_ary_push(ipoint_ary, *triangle_each2(self, p1));
     if (self->tr2 != NULL) {
-        for (; p2 != NULL; p2 = triangle_z_each(self->tr2))
-            ipoint_ary_push(ipoint_ary, *triangle_each2(self, p2));
+	for (; p2 != NULL; p2 = triangle_z_each(self->tr2))
+	    ipoint_ary_push(ipoint_ary, *triangle_each2(self, p2));
     }
     self->each = each_new(ipoint_ary);
 
@@ -859,29 +859,29 @@ static iPoint *ellipse_each(Ellipse *self)
     }
     ipoint_ary = ipoint_ary_new();
     if (ru > rv) {
-        ui = ri = ru;  vi = 0;
-        while (ui >= vi) {
-            u1 = (int)((long)ui * rv / ru);
-            v1 = (int)((long)vi * rv / ru);
+	ui = ri = ru;  vi = 0;
+	while (ui >= vi) {
+	    u1 = (int)((long)ui * rv / ru);
+	    v1 = (int)((long)vi * rv / ru);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc - v1);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc + v1);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc - u1);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc + u1);
 	    if ((ri -= (vi++ << 1) + 1) <= 0)
-                ri += (ui-- - 1) << 1;
-        }
+		ri += (ui-- - 1) << 1;
+	}
     } else {
-        ui = ri = rv;  vi = 0;
-        while (ui >= vi) {
-            u1 = (int)((long)ui * ru / rv);
-            v1 = (int)((long)vi * ru / rv);
+	ui = ri = rv;  vi = 0;
+	while (ui >= vi) {
+	    u1 = (int)((long)ui * ru / rv);
+	    v1 = (int)((long)vi * ru / rv);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc - vi);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc + vi);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc - ui);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc + ui);
-            if ((ri -= (vi++ << 1) - 1) < 0)
-                ri += (ui-- - 1) << 1;
-        }
+	    if ((ri -= (vi++ << 1) - 1) < 0)
+		ri += (ui-- - 1) << 1;
+	}
     }
     self->each = each_new(ipoint_ary);
     return each_each(self->each);

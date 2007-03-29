@@ -80,21 +80,21 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 #ifdef HAVE_UMFPACK_H
 	if (opt_v)
 	    warn("solving using UMFPACK ...");
-        umfpack_di_symbolic(self->size, self->size, ap, ai, ax, &Symbolic, NULL, NULL);
-        umfpack_di_numeric(ap, ai, ax, Symbolic, &Numeric, NULL, NULL);
-        umfpack_di_free_symbolic(&Symbolic);
-        umfpack_di_solve(UMFPACK_At, ap, ai, ax, u, pb, Numeric, NULL, NULL);
-        umfpack_di_free_numeric (&Numeric);
+	umfpack_di_symbolic(self->size, self->size, ap, ai, ax, &Symbolic, NULL, NULL);
+	umfpack_di_numeric(ap, ai, ax, Symbolic, &Numeric, NULL, NULL);
+	umfpack_di_free_symbolic(&Symbolic);
+	umfpack_di_solve(UMFPACK_At, ap, ai, ax, u, pb, Numeric, NULL, NULL);
+	umfpack_di_free_numeric (&Numeric);
 #else
-        warn_exit("solver with UMFPACK is not implemented in solvele_solve");
+	warn_exit("solver with UMFPACK is not implemented in solvele_solve");
 #endif
     } else {
 	if (opt_v)
 	    warn("solving using SOR method ...");
-        size = self->size;
-        for (i = 0; i < size; ++i) {
-            u[i] = 0.0;
-        }
+	size = self->size;
+	for (i = 0; i < size; ++i) {
+	    u[i] = 0.0;
+	}
 	if (opt_e)
 	    eps = eps_sor;
 	else
@@ -107,29 +107,29 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 	    warn("SOR epsilon is %g", eps);
 	    warn("SOR relaxation factor is %g", omega);
 	}
-        for (;;) {
-            ok = 1;
-            for (i = 0; i < size; ++i) {
-                v = pb[i];
-                for (pi = ap[i]; pi < ap[i + 1]; ++pi) {
-                    j = ai[pi];
-                    if (i == j)
-                        c0 = ax[pi];
-                    else
-                        v -= ax[pi] * u[j];
-                }
-                new_val = v / c0;
-                old_val = u[i];
-                u[i] += omega * (new_val - old_val);
-                if (ok && fabs(new_val) > DBL_EPSILON &&
-                        fabs(new_val - old_val) > eps * fabs(new_val))
-                {
-                    ok = 0;
-                }
-            }
-            if (ok)
-                break;
-        }
+	for (;;) {
+	    ok = 1;
+	    for (i = 0; i < size; ++i) {
+		v = pb[i];
+		for (pi = ap[i]; pi < ap[i + 1]; ++pi) {
+		    j = ai[pi];
+		    if (i == j)
+			c0 = ax[pi];
+		    else
+			v -= ax[pi] * u[j];
+		}
+		new_val = v / c0;
+		old_val = u[i];
+		u[i] += omega * (new_val - old_val);
+		if (ok && fabs(new_val) > DBL_EPSILON &&
+			fabs(new_val - old_val) > eps * fabs(new_val))
+		{
+		    ok = 0;
+		}
+	    }
+	    if (ok)
+		break;
+	}
     }
 
     return u;

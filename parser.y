@@ -77,7 +77,7 @@ static void var_assign(char *varname, double value)
 %token <str> TK_WORD TK_SYMBOL
 
 %token	TK_ACTIVE TK_BOX TK_CIRCLE TK_ELLIPSE TK_EDGE TK_FIX TK_HEAT TK_LAMBDA TK_LINE
-        TK_NOACTIVE TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE TK_WORLD
+	TK_NOACTIVE TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE TK_WORLD
 
 %type <point>		point
 %type <point>		vector
@@ -115,7 +115,7 @@ world:
     {
 	if (config_parser->world != NULL)
 	    warn_exit("world is already defined at line %ld", lineno);
-        config_parser->world = world_new($3.x, $3.y, $3.z, $5.x, $5.y, $5.z, $7, $9, $11);
+	config_parser->world = world_new($3.x, $3.y, $3.z, $5.x, $5.y, $5.z, $7, $9, $11);
 	state = ST_WORLD;
     }
 
@@ -288,7 +288,7 @@ obj:
 	else
 	    yyerror("unknown axis");
 	$$->uobj.triangle = triangle_new(config_parser->world, $2.x, $2.y, $2.z,
-            axis, $6.x, $6.y, $8.x, $8.y);
+	    axis, $6.x, $6.y, $8.x, $8.y);
     }
 
   | TK_CIRCLE point ',' TK_SYMBOL ',' expr
