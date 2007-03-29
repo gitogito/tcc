@@ -245,12 +245,16 @@ iPoint *each_each(Each *self)
 
 /* Sweep */
 
+static int obj_dim(Obj *obj);
+
 Sweep *sweep_new(World *world, int axis, double len, Obj *obj)
 {
     Sweep *self;
 
     if (len <= 0.0)
 	warn_exit("length is negative for Sweep");
+    if (obj_dim(obj) != 2)
+	warn_exit("sweep can't take a %dD object", obj_dim(obj));
 
     self = EALLOC(Sweep);
     self->world = world;
@@ -346,6 +350,11 @@ Edge *edge_new(World *world, Obj *obj)
 iPoint *edge_each(Edge *self)
 {
     return obj_each(self->obj);
+}
+
+static int edge_dim(Edge *self)
+{
+    return obj_dim(self->obj);
 }
 
 /* Rect */
@@ -1196,7 +1205,6 @@ static void obj_edge(Obj *self)
 	break;
     case OBJ_ELLIPSE:
 	ellipse_edge(self->uobj.ellipse);
-	warn_exit("ellipse_edge is not implemented");
 	break;
     case OBJ_CIRCLE:
 	circle_edge(self->uobj.circle);
@@ -1216,6 +1224,40 @@ static void obj_edge(Obj *self)
     default:
 	bug("unknown obj %d", self->objtype);
     }
+}
+
+static int obj_dim(Obj *self)
+{
+    switch (self->objtype) {
+    case OBJ_RECT:
+	return 2;
+	break;
+    case OBJ_TRIANGLE:
+	return 2;
+	break;
+    case OBJ_ELLIPSE:
+	return 2;
+	break;
+    case OBJ_CIRCLE:
+	return 2;
+	break;
+    case OBJ_POLYGON:
+	return 2;
+	break;
+    case OBJ_BOX:
+	return 3;
+	break;
+    case OBJ_SWEEP:
+	return 3;
+	break;
+    case OBJ_EDGE:
+	return edge_dim(self->uobj.edge);
+	break;
+    default:
+	bug("unknown obj %d", self->objtype);
+    }
+    /* NOTREACHED */
+    return -1;
 }
 
 /* AryObj */
