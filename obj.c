@@ -866,6 +866,10 @@ static iPoint *ellipse_each(Ellipse *self)
     default:
 	bug("unknown axis %d", self->axis);
     }
+
+    if (ru == 0 && rv == 0)
+	return NULL;
+
     ipoint_ary = ipoint_ary_new();
     if (ru > rv) {
 	ui = ri = ru;  vi = 0;
