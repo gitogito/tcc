@@ -8,8 +8,6 @@
 
 #define YYDEBUG 1
 
-#define MAX_NVARS 100
-
 int yyerror(const char *s);
 int yylex();
 
@@ -28,38 +26,39 @@ enum {
 typedef struct var_t {
     char *name;
     double val;
+    struct var_t *next;
 } var_t;
 
 static int state = ST_START;
 static double value;
 
-static var_t vars[MAX_NVARS];
-static int nvars = 0;
+static var_t *varlist = NULL;
 
-static int get_var_index(char *varname, int create_p)
+static var_t *get_var(char *varname, int create_p)
 {
-    int i;
+    var_t *v;
 
-    for (i = 0; i < nvars; ++i) {
-	if (strcmp(vars[i].name, varname) == 0) {
-	    return i;
+    for (v = varlist; v != NULL; v = v->next) {
+	if (strcmp(v->name, varname) == 0) {
+	    return v;
 	}
     }
     if (!create_p) {
-	return -1;
+	return NULL;
     }
-    if (i == MAX_NVARS)
-	warn_exit("can't have variable more at line %ld", lineno);
-    vars[nvars++].name = varname;
-    return nvars - 1;
+    v = varlist;
+    varlist = EALLOC(var_t);
+    varlist->name = varname;
+    varlist->next = v;
+    return varlist;
 }
 
 static void var_assign(char *varname, double value)
 {
-    int index;
+    var_t *v;
 
-    index = get_var_index(varname, 1);
-    vars[index].val = value;
+    v = get_var(varname, 1);
+    v->val = value;
 }
 
 %}
@@ -241,12 +240,12 @@ expr:
 
   | TK_WORD
     {
-	int index;
+	var_t *v;
 
-	index = get_var_index($1, 0);
-	if (index < 0)
+	v = get_var($1, 0);
+	if (v == NULL)
 	    warn_exit("can't find variable: '%s' at line %ld", $1, lineno);
-	$$ = vars[index].val;
+	$$ = v->val;
     }
 
   | var_assign { $$ = $1; }
