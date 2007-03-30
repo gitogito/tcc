@@ -1,3 +1,4 @@
+#include <stdio.h>
 #include <assert.h>
 #include "sim.h"
 #include "mem.h"
@@ -112,18 +113,20 @@ static int world_inside_p(World *self, iPoint ipoint)
 
 /* Config */
 
-static void config_parse(Config *self)
+static void config_parse(Config *self, FILE *f)
 {
     extern int yyparse();
     extern int yydebug;
+    extern int yyin;
 
     yydebug = opt_y;
 
     config_parser = self;
+    yyin = f;
     yyparse();
 }
 
-static Config *config_new(void)
+static Config *config_new(FILE *f)
 {
     Config *self;
 
@@ -134,7 +137,7 @@ static Config *config_new(void)
     self->heat_obj_ary = aryobj_new();
     self->lambda_obj_ary = aryobj_new();
 
-    config_parse(self);
+    config_parse(self, f);
 
     return self;
 }
@@ -412,14 +415,14 @@ static void sim_set_matrix(Sim *self)
     }
 }
 
-Sim *sim_new(void)
+Sim *sim_new(FILE *f)
 {
     Sim *self;
 
     self = EALLOC(Sim);
     if (opt_v)
 	warn("configuring ...");
-    self->config = config_new();
+    self->config = config_new(f);
     self->dir_to_ipoint[DIR_LEFT]  = get_ipoint(-1,  0,  0);
     self->dir_to_ipoint[DIR_RIGHT] = get_ipoint( 1,  0,  0);
     self->dir_to_ipoint[DIR_FRONT] = get_ipoint( 0, -1,  0);

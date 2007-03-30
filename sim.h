@@ -1,6 +1,8 @@
 #ifndef _SIM_H_
 #define _SIM_H_
 
+#include <stdio.h>
+
 #define NDIRS   	(2 * 3) /* 2 * (number of dimensions) */
 
 #define NELEMS(ary)	(sizeof(ary) / sizeof((ary)[0]))
@@ -277,7 +279,7 @@ typedef struct Sim {
 } Sim;
 
 int sim_active_p(Sim *self, iPoint ipoint);
-Sim *sim_new(void);
+Sim *sim_new(FILE *f);
 Array3Dd sim_calc(Sim *sim);
 
 #endif

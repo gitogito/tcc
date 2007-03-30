@@ -54,6 +54,7 @@ void warn_exit(char *fmt, ...)
 int main(int argc, char **argv)
 {
     char *s;
+    FILE *f;
     Sim *sim;
     Array3Dd ary;
     int ni, nj, nk;
@@ -83,8 +84,8 @@ int main(int argc, char **argv)
 		opt_e = 1;
 		if (*(s + 1) != '\0')
 		    warn_exit("option 'e' must have an argument");
-		argc--;
-		argv++;
+		--argc;
+		++argv;
 		eps_sor = atof(argv[0]);
 		if (eps_sor <= 0.0)
 		    warn_exit("invalid eps %g", eps_sor);
@@ -93,8 +94,8 @@ int main(int argc, char **argv)
 		opt_o = 1;
 		if (*(s + 1) != '\0')
 		    warn_exit("option 'o' must have an argument");
-		argc--;
-		argv++;
+		--argc;
+		++argv;
 		omega_sor = atof(argv[0]);
 		if (omega_sor <= 0.0 || omega_sor >= 2.0)
 		    warn_exit("invalid omega %g", omega_sor);
@@ -109,11 +110,21 @@ int main(int argc, char **argv)
 		warn_exit("invalid option: %c", *s);
 	    }
 	}
-	argc--;
-	argv++;
+	--argc;
+	++argv;
     }
 
-    sim = sim_new();
+    if (argc > 0) {
+	f = fopen(*argv, "r");
+	if (f == NULL)
+	    warn_exit("can't open '%s'", *argv);
+	--argc;
+	++argv;
+    } else {
+	f = stdin;
+    }
+
+    sim = sim_new(f);
     ary = sim_calc(sim);
 
     ni = sim->world->ni;
