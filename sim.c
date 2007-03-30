@@ -143,9 +143,9 @@ static Config *config_new(void)
 
 int sim_active_p(Sim *self, iPoint ipoint)
 {
-    if (ipoint.i < 0 || ipoint.i >= self->ni ||
-	    ipoint.j < 0 || ipoint.j >= self->nj ||
-	    ipoint.k < 0 || ipoint.k >= self->nk)
+    if (ipoint.i < 0 || ipoint.i >= self->world->ni ||
+	    ipoint.j < 0 || ipoint.j >= self->world->nj ||
+	    ipoint.k < 0 || ipoint.k >= self->world->nk)
 	return 0;
     else
 	return self->active_p_ary[ipoint.i][ipoint.j][ipoint.k];
@@ -158,7 +158,7 @@ static void sim_set_region_active(Sim *self)
     Obj *obj;
     int index;
 
-    ALLOCATE_3D2(self->active_p_ary, int, self->ni, self->nj, self->nk, 0);
+    ALLOCATE_3D2(self->active_p_ary, int, self->world->ni, self->world->nj, self->world->nk, 0);
     active_obj_ary = self->config->active_obj_ary;
     for (index = 0; index < active_obj_ary->size; ++index) {
 	obj = active_obj_ary->ptr[index];
@@ -177,7 +177,7 @@ static void sim_set_region_fix(Sim *self)
     Obj *obj;
     int i;
 
-    ALLOCATE_3D2(self->fix_ary, double *, self->ni, self->nj, self->nk, NULL);
+    ALLOCATE_3D2(self->fix_ary, double *, self->world->ni, self->world->nj, self->world->nk, NULL);
     obj_ary = self->config->fix_obj_ary;
     for (i = 0; i < obj_ary->size; ++i) {
 	obj = obj_ary->ptr[i];
@@ -198,8 +198,8 @@ static void sim_set_region_heat(Sim *self)
     int first;
     iPoint ipoint0;
 
-    ALLOCATE_3D2(self->heat_ary, double *, self->ni, self->nj, self->nk, NULL);
-    ALLOCATE_3D2(self->heat_ipoint_ary, iPoint *, self->ni, self->nj, self->nk, NULL);
+    ALLOCATE_3D2(self->heat_ary, double *, self->world->ni, self->world->nj, self->world->nk, NULL);
+    ALLOCATE_3D2(self->heat_ipoint_ary, iPoint *, self->world->ni, self->world->nj, self->world->nk, NULL);
     obj_ary = self->config->heat_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
@@ -224,7 +224,7 @@ static void sim_set_region_lambda(Sim *self)
     Obj *obj;
     iPoint *p;
 
-    ALLOCATE_3D2(self->lambda_ary, double, self->ni, self->nj, self->nk, 1.0);
+    ALLOCATE_3D2(self->lambda_ary, double, self->world->ni, self->world->nj, self->world->nk, 1.0);
     obj_ary = self->config->lambda_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
@@ -239,10 +239,6 @@ static void sim_set_region_lambda(Sim *self)
 static void sim_set_region(Sim *self)
 {
     self->world = self->config->world;
-    self->ni = self->world->ni;
-    self->nj = self->world->nj;
-    self->nk = self->world->nk;
-
     sim_set_region_active(self);
     sim_set_region_fix(self);
     sim_set_region_heat(self);
@@ -397,13 +393,7 @@ static void sim_set_matrix(Sim *self)
     iPoint *p;
     double dx, dy, dz;
 
-    ALLOCATE_3D2(self->u, double, self->ni, self->nj, self->nk, 0.0);
-    for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
-	if (self->fix_ary[p->i][p->j][p->k] != NULL)
-	    self->u[p->i][p->j][p->k] = *(self->fix_ary[p->i][p->j][p->k]);
-    }
-
-    ALLOCATE_3D(self->coefs, Coefs, self->ni, self->nj, self->nk);
+    ALLOCATE_3D(self->coefs, Coefs, self->world->ni, self->world->nj, self->world->nk);
     for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
 	self->coefs[p->i][p->j][p->k] = get_coefs();
     }
@@ -459,13 +449,13 @@ Array3Dd sim_calc(Sim *self)
     double *sol;
     Array3Dd ary;
 
-    nindex = self->ni * self->nj * self->nk;
+    nindex = self->world->ni * self->world->nj * self->world->nk;
     solver = solvele_new(nindex);
     for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
 	if (self->fix_ary[p->i][p->j][p->k] != NULL || !self->active_p_ary[p->i][p->j][p->k]) {
 	    index = world_to_index(self->world, *p);
 	    solvele_set_matrix(solver, index, index, 1.0);
-	    solvele_set_vector(solver, index, self->u[p->i][p->j][p->k]);
+	    solvele_set_vector(solver, index, *(self->fix_ary[p->i][p->j][p->k]));
 	    continue;
 	}
 	hfp = self->heat_ipoint_ary[p->i][p->j][p->k];
@@ -495,9 +485,9 @@ Array3Dd sim_calc(Sim *self)
 
     if (opt_v)
 	warn("solving equations ...");
-    sol = solvele_solve(solver, self->ni, self->nj, self->nk);
+    sol = solvele_solve(solver, self->world->ni, self->world->nj, self->world->nk);
 
-    ALLOCATE_3D(ary, double, self->ni, self->nj, self->nk);
+    ALLOCATE_3D(ary, double, self->world->ni, self->world->nj, self->world->nk);
     for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
 	ary[p->i][p->j][p->k] = sol[world_to_index(self->world, *p)];
     }
