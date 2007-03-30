@@ -22,31 +22,29 @@ static double *double_new(double v)
 
 /* Coef */
 
-static Coef *coef_new(void)
+static Coef get_coef(void)
 {
-    Coef *self;
+    Coef coef;
 
-    self = EALLOC(Coef);
-    self->index = -1;
-    self->value = 0.0;
-    return self;
+    coef.index = -1;
+    coef.value = 0.0;
+    return coef;
 }
 
 /* Coefs */
 
-static Coefs *coefs_new(void)
+static Coefs get_coefs(void)
 {
-    Coefs *self;
+    Coefs coefs;
     int idir, dir;
 
-    self = EALLOC(Coefs);
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
-	self->coef[dir] = coef_new();
+	coefs.coef[dir] = get_coef();
     }
-    self->coef0 = 0.0;
-    self->cnst = 0.0;
-    return self;
+    coefs.coef0 = 0.0;
+    coefs.cnst = 0.0;
+    return coefs;
 }
 
 /* World */
@@ -255,7 +253,7 @@ static void sim_set_matrix_const(Sim *self, int i, int j, int k)
 {
     if (self->heat_ary[i][j][k] != NULL &&
 	    ipoint_eq(*(self->heat_ipoint_ary[i][j][k]), get_ipoint(i, j, k)))
-	self->coefs[i][j][k]->cnst = *(self->heat_ary[i][j][k]);
+	self->coefs[i][j][k].cnst = *(self->heat_ary[i][j][k]);
 }
 
 static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, double dy, double dz)
@@ -281,7 +279,7 @@ static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, doub
 		    if (sim_active_p(self, pp)) {
 			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dir, diry, dirz);
 			l = self->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
-			self->coefs[i][j][k]->coef0 += -l/dx*(dy/2)*(dz/2);
+			self->coefs[i][j][k].coef0 += -l/dx*(dy/2)*(dz/2);
 		    }
 		}
 	    }
@@ -296,7 +294,7 @@ static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, doub
 		    if (sim_active_p(self, pp)) {
 			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dirx, dir, dirz);
 			l = self->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
-			self->coefs[i][j][k]->coef0 += -l/dy*(dz/2)*(dx/2);
+			self->coefs[i][j][k].coef0 += -l/dy*(dz/2)*(dx/2);
 		    }
 		}
 	    }
@@ -311,7 +309,7 @@ static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, doub
 		    if (sim_active_p(self, pp)) {
 			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dirx, diry, dir);
 			l = self->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
-			self->coefs[i][j][k]->coef0 += -l/dz*(dx/2)*(dy/2);
+			self->coefs[i][j][k].coef0 += -l/dz*(dx/2)*(dy/2);
 		    }
 		}
 	    }
@@ -334,11 +332,11 @@ static void sim_set_matrix_coef(Sim *self, int i, int j, int k, double dx, doubl
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
 	if (!sim_active_p(self, ipoint_add(get_ipoint(i, j, k), self->dir_to_ipoint[dir]))) {
-	    self->coefs[i][j][k]->coef[dir]->index = -1;
+	    self->coefs[i][j][k].coef[dir].index = -1;
 	    continue;
 	}
 
-	self->coefs[i][j][k]->coef[dir]->index =
+	self->coefs[i][j][k].coef[dir].index =
 	    world_to_index(self->world, ipoint_add(get_ipoint(i, j, k), self->dir_to_ipoint[dir]));
 	value = 0.0;
 	switch (dir) {
@@ -390,7 +388,7 @@ static void sim_set_matrix_coef(Sim *self, int i, int j, int k, double dx, doubl
 	default:
 	    bug("sim_set_matrix_coef");
 	}
-	self->coefs[i][j][k]->coef[dir]->value = value;
+	self->coefs[i][j][k].coef[dir].value = value;
     }
 }
 
@@ -405,9 +403,9 @@ static void sim_set_matrix(Sim *self)
 	    self->u[p->i][p->j][p->k] = *(self->fix_ary[p->i][p->j][p->k]);
     }
 
-    ALLOCATE_3D(self->coefs, Coefs *, self->ni, self->nj, self->nk);
+    ALLOCATE_3D(self->coefs, Coefs, self->ni, self->nj, self->nk);
     for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
-	self->coefs[p->i][p->j][p->k] = coefs_new();
+	self->coefs[p->i][p->j][p->k] = get_coefs();
     }
 
     dx = self->world->dx;
@@ -485,14 +483,14 @@ Array3Dd sim_calc(Sim *self)
 	index = world_to_index(self->world, ipoint);
 	for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	    dir = dir_array[idir];
-	    index2 = self->coefs[p->i][p->j][p->k]->coef[dir]->index;
+	    index2 = self->coefs[p->i][p->j][p->k].coef[dir].index;
 	    if (index2 < 0)
 		continue;
-	    c = self->coefs[p->i][p->j][p->k]->coef[dir]->value;
+	    c = self->coefs[p->i][p->j][p->k].coef[dir].value;
 	    solvele_add_matrix(solver, index, index2, c);
 	}
-	solvele_add_matrix(solver, index, index, self->coefs[p->i][p->j][p->k]->coef0);
-	solvele_add_vector(solver, index, -self->coefs[p->i][p->j][p->k]->cnst);
+	solvele_add_matrix(solver, index, index, self->coefs[p->i][p->j][p->k].coef0);
+	solvele_add_vector(solver, index, -self->coefs[p->i][p->j][p->k].cnst);
     }
 
     if (opt_v)

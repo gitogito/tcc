@@ -23,7 +23,7 @@ double omega_sor;
 void solvele_set_matrix(Solvele *self, int i, int j, double val)
 {
     if (i < 0 || j < 0)
-	warn_exit("negative index in solvele_set_matrix");
+	warn("negative index in solvele_set_matrix");
     if (i >= self->size || j >= self->size)
 	warn_exit("too large index in solvele_set_matrix");
     smat_set(self->mat, i, j, val);

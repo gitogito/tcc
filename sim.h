@@ -59,7 +59,7 @@ typedef struct Coef {
 } Coef;
 
 typedef struct Coefs {
-    Coef *coef[NDIRS];
+    Coef coef[NDIRS];
     double coef0;
     double cnst;
 } Coefs;
@@ -277,7 +277,7 @@ typedef struct Sim {
     Array3Dp *heat_ipoint_ary;
     Array3Dd lambda_ary;
     Array3Dd u;
-    Array3Dc *coefs;
+    Array3Dc coefs;
 } Sim;
 
 int sim_active_p(Sim *self, iPoint ipoint);
