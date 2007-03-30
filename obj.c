@@ -4,8 +4,6 @@
 #include "mem.h"
 #include "tc.h"
 
-static int axis_array[] = { AXIS_X, AXIS_Y, AXIS_Z };
-
 int iround(double x)
 {
     if (x < 0.0)
@@ -365,6 +363,8 @@ static int edge_dim(Edge *self)
 
 Rect *rect_new(World *world, double x, double y, double z, int axis, double len1, double len2)
 {
+    static int axis_array[] = { AXIS_X, AXIS_Y, AXIS_Z };
+
     Rect *self;
     int ok, iaxis;
 
