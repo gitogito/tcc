@@ -452,10 +452,15 @@ Array3Dd sim_calc(Sim *self)
     nindex = self->world->ni * self->world->nj * self->world->nk;
     solver = solvele_new(nindex);
     for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
-	if (self->fix_ary[p->i][p->j][p->k] != NULL || !self->active_p_ary[p->i][p->j][p->k]) {
+	if (self->fix_ary[p->i][p->j][p->k] != NULL) {
 	    index = world_to_index(self->world, *p);
 	    solvele_set_matrix(solver, index, index, 1.0);
 	    solvele_set_vector(solver, index, *(self->fix_ary[p->i][p->j][p->k]));
+	    continue;
+	} else if (!self->active_p_ary[p->i][p->j][p->k]) {
+	    index = world_to_index(self->world, *p);
+	    solvele_set_matrix(solver, index, index, 1.0);
+	    solvele_set_vector(solver, index, 0.0);
 	    continue;
 	}
 	hfp = self->heat_ipoint_ary[p->i][p->j][p->k];
