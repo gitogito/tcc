@@ -117,7 +117,7 @@ static void config_parse(Config *self, FILE *f)
 {
     extern int yyparse();
     extern int yydebug;
-    extern int yyin;
+    extern FILE *yyin;
 
     yydebug = opt_y;
 
