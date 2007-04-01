@@ -54,7 +54,7 @@ void ipoint_ary_push(iPoint_ary *self, iPoint ipoint)
     ++(self->size);
     if (self->size > self->alloc_size) {
 	self->alloc_size = alloc_size(self->size);
-	self->ptr = erealloc(self->ptr, sizeof(iPoint) * self->alloc_size);
+	self->ptr = (iPoint *) erealloc(self->ptr, sizeof(iPoint) * self->alloc_size);
     }
     self->ptr[self->size - 1] = ipoint;
 }
@@ -112,7 +112,7 @@ void vector2d_ary_push(Vector2d_ary *self, Vector2d vector2d)
     ++(self->size);
     if (self->size > self->alloc_size) {
 	self->alloc_size = alloc_size(self->size);
-	self->ptr = erealloc(self->ptr, sizeof(Vector2d) * self->alloc_size);
+	self->ptr = (Vector2d *) erealloc(self->ptr, sizeof(Vector2d) * self->alloc_size);
     }
     self->ptr[self->size - 1] = vector2d;
 }
@@ -1287,6 +1287,6 @@ AryObj *aryobj_new(void)
 void aryobj_push(AryObj *self, Obj *obj)
 {
     ++self->size;
-    self->ptr = erealloc(self->ptr, sizeof(Obj *) * self->size);
+    self->ptr = (Obj **) erealloc(self->ptr, sizeof(Obj *) * self->size);
     self->ptr[self->size - 1] = obj;
 }
