@@ -365,4 +365,5 @@ obj:
 int yyerror(const char *s)
 {
     warn_exit("%s at line %ld", s, lineno);
+    return 0;	/* NOTREACHED */
 }

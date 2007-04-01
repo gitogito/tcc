@@ -123,6 +123,8 @@ int main(int argc, char **argv)
     } else {
 	f = stdin;
     }
+    if (argc > 0)
+	warn_exit("too many args");
 
     sim = sim_new(f);
     ary = sim_calc(sim);
