@@ -16,6 +16,7 @@
 #endif
 
 #define EPS	1.0e-6
+#define N	20
 
 double eps_sor;
 double omega_sor;
@@ -71,6 +72,7 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
     double eps, omega;
     int size, ok, pi, i, j;
     double v, old_val, new_val, c0;
+    int index;
 
     get_crs(self->mat, self->vec, &ap, &ai, &ax, &pb);
 
@@ -108,6 +110,22 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 	    warn("SOR relaxation factor is %g", omega);
 	}
 	for (;;) {
+	    for (index = 0; index < N; ++index) {
+		for (i = 0; i < size; ++i) {
+		    v = pb[i];
+		    for (pi = ap[i]; pi < ap[i + 1]; ++pi) {
+			j = ai[pi];
+			if (i == j)
+			    c0 = ax[pi];
+			else
+			    v -= ax[pi] * u[j];
+		    }
+		    new_val = v / c0;
+		    old_val = u[i];
+		    u[i] += omega * (new_val - old_val);
+		}
+	    }
+
 	    ok = 1;
 	    for (i = 0; i < size; ++i) {
 		v = pb[i];
@@ -122,7 +140,7 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 		old_val = u[i];
 		u[i] += omega * (new_val - old_val);
 		if (ok && fabs(new_val) > DBL_EPSILON &&
-			fabs(new_val - old_val) > eps * fabs(new_val))
+			fabs(new_val - old_val) > (N + 1) * eps * fabs(new_val))
 		{
 		    ok = 0;
 		}
