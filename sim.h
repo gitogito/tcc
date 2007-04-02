@@ -279,7 +279,7 @@ typedef struct Sim {
 } Sim;
 
 int sim_active_p(Sim *self, iPoint ipoint);
-Sim *sim_new(FILE *f);
+Sim *sim_new(char *fname);
 Array3Dd sim_calc(Sim *sim);
 
 #endif

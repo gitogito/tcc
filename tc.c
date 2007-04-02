@@ -54,7 +54,7 @@ void warn_exit(char *fmt, ...)
 int main(int argc, char **argv)
 {
     char *s;
-    FILE *f;
+    char *fname;
     Sim *sim;
     Array3Dd ary;
     int ni, nj, nk;
@@ -115,18 +115,16 @@ int main(int argc, char **argv)
     }
 
     if (argc > 0) {
-	f = fopen(*argv, "r");
-	if (f == NULL)
-	    warn_exit("can't open '%s'", *argv);
+	fname = *argv;
 	--argc;
 	++argv;
     } else {
-	f = stdin;
+	fname = NULL;
     }
     if (argc > 0)
 	warn_exit("too many args");
 
-    sim = sim_new(f);
+    sim = sim_new(fname);
     ary = sim_calc(sim);
 
     ni = sim->world->ni;

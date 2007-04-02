@@ -113,7 +113,7 @@ static int world_inside_p(World *self, iPoint ipoint)
 
 /* Config */
 
-static void config_parse(Config *self, FILE *f)
+static void config_parse(Config *self, char *fname)
 {
     extern int yyparse();
     extern int yydebug;
@@ -122,11 +122,19 @@ static void config_parse(Config *self, FILE *f)
     yydebug = opt_y;
 
     config_parser = self;
-    yyin = f;
+    if (fname == NULL) {
+	yyin = stdin;
+    } else {
+	yyin = fopen(fname, "r");
+	if (yyin == NULL)
+	    warn_exit("can't open '%s'", fname);
+    }
     yyparse();
+    if (yyin != stdin)
+	fclose(yyin);
 }
 
-static Config *config_new(FILE *f)
+static Config *config_new(char *fname)
 {
     Config *self;
 
@@ -137,7 +145,7 @@ static Config *config_new(FILE *f)
     self->heat_obj_ary = aryobj_new();
     self->lambda_obj_ary = aryobj_new();
 
-    config_parse(self, f);
+    config_parse(self, fname);
 
     return self;
 }
@@ -415,14 +423,14 @@ static void sim_set_matrix(Sim *self)
     }
 }
 
-Sim *sim_new(FILE *f)
+Sim *sim_new(char *fname)
 {
     Sim *self;
 
     self = EALLOC(Sim);
     if (opt_v)
 	warn("configuring ...");
-    self->config = config_new(f);
+    self->config = config_new(fname);
     self->dir_to_ipoint[DIR_LEFT]  = get_ipoint(-1,  0,  0);
     self->dir_to_ipoint[DIR_RIGHT] = get_ipoint( 1,  0,  0);
     self->dir_to_ipoint[DIR_FRONT] = get_ipoint( 0, -1,  0);
