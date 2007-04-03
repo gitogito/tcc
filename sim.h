@@ -245,6 +245,7 @@ void obj_offset(Obj *self);
 
 typedef struct AryObj {
     Obj **ptr;
+    int alloc_size;
     int size;
 } AryObj;
 

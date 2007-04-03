@@ -1287,13 +1287,17 @@ AryObj *aryobj_new(void)
 
     self = EALLOC(AryObj);
     self->ptr = NULL;
+    self->alloc_size = 0;
     self->size = 0;
     return self;
 }
 
 void aryobj_push(AryObj *self, Obj *obj)
 {
-    ++self->size;
-    self->ptr = (Obj **) erealloc(self->ptr, sizeof(Obj *) * self->size);
+    ++(self->size);
+    if (self->size > self->alloc_size) {
+	self->alloc_size = alloc_size(self->size);
+	self->ptr = (Obj **) erealloc(self->ptr, sizeof(Obj *) * self->alloc_size);
+    }
     self->ptr[self->size - 1] = obj;
 }
