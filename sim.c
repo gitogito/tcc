@@ -5,7 +5,7 @@
 #include "tc.h"
 #include "solvele.h"
 
-Config *config_parser;
+Sim *sim;
 
 static int dir_array[NDIRS] = { DIR_LEFT, DIR_RIGHT, DIR_FRONT, DIR_BACK, DIR_BELOW, DIR_ABOVE };
 static int dir_x[] = { DIR_LEFT, DIR_RIGHT };
@@ -50,62 +50,60 @@ static Coefs get_coefs(void)
 
 /* World */
 
-static int world_to_index(World *self, iPoint ipoint)
+static int world_to_index(iPoint ipoint)
 {
-    return ipoint.i + self->ni * (ipoint.j + self->nj * ipoint.k);
+    return ipoint.i + sim->world->ni * (ipoint.j + sim->world->nj * ipoint.k);
 }
 
 World *world_new(double x0, double y0, double z0,
 	double xlen, double ylen, double zlen,
 	double dx, double dy, double dz)
 {
-    World *self;
-
     if (xlen <= 0.0 || ylen <= 0.0 || zlen <= 0.0)
 	warn_exit("length is negative for World");
 
-    self = EALLOC(World);
-    self->x0 = x0;
-    self->y0 = y0;
-    self->z0 = z0;
-    self->xlen = xlen;
-    self->ylen = ylen;
-    self->zlen = zlen;
-    self->dx = dx;
-    self->dy = dy;
-    self->dz = dz;
-    self->ni = iround(xlen / dx) + 1;
-    self->nj = iround(ylen / dy) + 1;
-    self->nk = iround(zlen / dz) + 1;
-    self->each = NULL;
-    return self;
+    sim->world = EALLOC(World);
+    sim->world->x0 = x0;
+    sim->world->y0 = y0;
+    sim->world->z0 = z0;
+    sim->world->xlen = xlen;
+    sim->world->ylen = ylen;
+    sim->world->zlen = zlen;
+    sim->world->dx = dx;
+    sim->world->dy = dy;
+    sim->world->dz = dz;
+    sim->world->ni = iround(xlen / dx) + 1;
+    sim->world->nj = iround(ylen / dy) + 1;
+    sim->world->nk = iround(zlen / dz) + 1;
+    sim->world->each = NULL;
+    return sim->world;
 }
 
-static iPoint *world_each(World *self)
+static int world_each(iPoint **pp)
 {
     iPoint_ary *ipoint_ary;
     int i, j, k;
 
-    if (self->each != NULL && self->each->index >= 0)
-	return each_each(self->each);
+    if (sim->world->each != NULL && sim->world->each->index >= 0)
+	return each_each(sim->world->each, pp);
 
     ipoint_ary = ipoint_ary_new();
-    for (i = 0; i < self->ni; ++i) {
-	for (j = 0; j < self->nj; ++j) {
-	    for (k = 0; k < self->nk; ++k) {
+    for (i = 0; i < sim->world->ni; ++i) {
+	for (j = 0; j < sim->world->nj; ++j) {
+	    for (k = 0; k < sim->world->nk; ++k) {
 		ipoint_ary_push(ipoint_ary, get_ipoint(i, j, k));
 	    }
 	}
     }
-    self->each = each_new(ipoint_ary);
-    return each_each(self->each);
+    sim->world->each = each_new(ipoint_ary);
+    return each_each(sim->world->each, pp);
 }
 
-static int world_inside_p(World *self, iPoint ipoint)
+int world_inside_p(iPoint ipoint)
 {
-    if (ipoint.i < 0 || ipoint.i >= self->ni ||
-	    ipoint.j < 0 || ipoint.j >= self->nj ||
-	    ipoint.k < 0 || ipoint.k >= self->nk)
+    if (ipoint.i < 0 || ipoint.i >= sim->world->ni ||
+	    ipoint.j < 0 || ipoint.j >= sim->world->nj ||
+	    ipoint.k < 0 || ipoint.k >= sim->world->nk)
 	return 0;
     else
 	return 1;
@@ -121,7 +119,6 @@ static void config_parse(Config *self, char *fname)
 
     yydebug = opt_y;
 
-    config_parser = self;
     if (fname == NULL) {
 	yyin = stdin;
     } else {
@@ -139,68 +136,68 @@ static Config *config_new(char *fname)
     Config *self;
 
     self = EALLOC(Config);
-    self->world = NULL;
     self->active_obj_ary = aryobj_new();
     self->fix_obj_ary = aryobj_new();
     self->heat_obj_ary = aryobj_new();
     self->lambda_obj_ary = aryobj_new();
-
-    config_parse(self, fname);
-
     return self;
 }
 
 /* Sim */
 
-int sim_active_p(Sim *self, iPoint ipoint)
+int sim_active_p(iPoint ipoint)
 {
-    if (ipoint.i < 0 || ipoint.i >= self->world->ni ||
-	    ipoint.j < 0 || ipoint.j >= self->world->nj ||
-	    ipoint.k < 0 || ipoint.k >= self->world->nk)
+    if (ipoint.i < 0 || ipoint.i >= sim->world->ni ||
+	    ipoint.j < 0 || ipoint.j >= sim->world->nj ||
+	    ipoint.k < 0 || ipoint.k >= sim->world->nk)
 	return 0;
     else
-	return self->active_p_ary[ipoint.i][ipoint.j][ipoint.k];
+	return sim->active_p_ary[ipoint.i][ipoint.j][ipoint.k];
 }
 
-static void sim_set_region_active(Sim *self)
+static void sim_set_region_active(void)
 {
     iPoint *p;
     AryObj *active_obj_ary;
     Obj *obj;
     int index;
 
-    ALLOCATE_3D2(self->active_p_ary, int, self->world->ni, self->world->nj, self->world->nk, 0);
-    active_obj_ary = self->config->active_obj_ary;
+    ALLOCATE_3D2(sim->active_p_ary, int, sim->world->ni, sim->world->nj, sim->world->nk, 0);
+    active_obj_ary = sim->config->active_obj_ary;
     for (index = 0; index < active_obj_ary->size; ++index) {
 	obj = active_obj_ary->ptr[index];
-	for (p = obj_each(obj); p != NULL; p = obj_each(obj)) {
-	    if (!world_inside_p(self->world, *p))
+	while (obj_each(obj, &p)) {
+	    if (p == NULL)
 		continue;
-	    (self->active_p_ary)[p->i][p->j][p->k] = obj->uval.i;
+	    if (!world_inside_p(*p))
+		continue;
+	    (sim->active_p_ary)[p->i][p->j][p->k] = obj->uval.i;
 	}
     }
 }
 
-static void sim_set_region_fix(Sim *self)
+static void sim_set_region_fix(void)
 {
     iPoint *p;
     AryObj *obj_ary;
     Obj *obj;
     int i;
 
-    ALLOCATE_3D2(self->fix_ary, double *, self->world->ni, self->world->nj, self->world->nk, NULL);
-    obj_ary = self->config->fix_obj_ary;
+    ALLOCATE_3D2(sim->fix_ary, double *, sim->world->ni, sim->world->nj, sim->world->nk, NULL);
+    obj_ary = sim->config->fix_obj_ary;
     for (i = 0; i < obj_ary->size; ++i) {
 	obj = obj_ary->ptr[i];
-	for (p = obj_each(obj); p != NULL; p = obj_each(obj)) {
-	    if (!world_inside_p(self->world, *p))
+	while (obj_each(obj, &p)) {
+	    if (p == NULL)
 		continue;
-	    self->fix_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	    if (!world_inside_p(*p))
+		continue;
+	    sim->fix_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
 	}
     }
 }
 
-static void sim_set_region_heat(Sim *self)
+static void sim_set_region_heat(void)
 {
     iPoint *p;
     AryObj *obj_ary;
@@ -209,61 +206,64 @@ static void sim_set_region_heat(Sim *self)
     int first;
     iPoint ipoint0;
 
-    ALLOCATE_3D2(self->heat_ary, double *, self->world->ni, self->world->nj, self->world->nk, NULL);
-    ALLOCATE_3D2(self->heat_ipoint_ary, iPoint *, self->world->ni, self->world->nj, self->world->nk, NULL);
-    obj_ary = self->config->heat_obj_ary;
+    ALLOCATE_3D2(sim->heat_ary, double *, sim->world->ni, sim->world->nj, sim->world->nk, NULL);
+    ALLOCATE_3D2(sim->heat_ipoint_ary, iPoint *, sim->world->ni, sim->world->nj, sim->world->nk, NULL);
+    obj_ary = sim->config->heat_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
 	first = 1;
-	for (p = obj_each(obj); p != NULL; p = obj_each(obj)) {
-	    if (!world_inside_p(self->world, *p))
+	while (obj_each(obj, &p)) {
+	    if (p == NULL)
+		continue;
+	    if (!world_inside_p(*p))
 		continue;
 	    if (first) {
 		first = 0;
 		ipoint0 = *p;
 	    }
-	    self->heat_ipoint_ary[p->i][p->j][p->k] = ipoint_new(ipoint0.i, ipoint0.j, ipoint0.k);
-	    self->heat_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	    sim->heat_ipoint_ary[p->i][p->j][p->k] = ipoint_new(ipoint0.i, ipoint0.j, ipoint0.k);
+	    sim->heat_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
 	}
     }
 }
 
-static void sim_set_region_lambda(Sim *self)
+static void sim_set_region_lambda(void)
 {
     int index;
     AryObj *obj_ary;
     Obj *obj;
     iPoint *p;
 
-    ALLOCATE_3D2(self->lambda_ary, double, self->world->ni, self->world->nj, self->world->nk, 1.0);
-    obj_ary = self->config->lambda_obj_ary;
+    ALLOCATE_3D2(sim->lambda_ary, double, sim->world->ni, sim->world->nj, sim->world->nk, 1.0);
+    obj_ary = sim->config->lambda_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
-	for (p = obj_each(obj); p != NULL; p = obj_each(obj)) {
-	    if (!world_inside_p(self->world, *p))
+	while (obj_each(obj, &p)) {
+	    if (p == NULL)
 		continue;
-	    self->lambda_ary[p->i][p->j][p->k] = obj->uval.d;
+	    if (!world_inside_p(*p))
+		continue;
+	    sim->lambda_ary[p->i][p->j][p->k] = obj->uval.d;
 	}
     }
 }
 
-static void sim_set_region(Sim *self)
+static void sim_set_region(void)
 {
-    self->world = self->config->world;
-    sim_set_region_active(self);
-    sim_set_region_fix(self);
-    sim_set_region_heat(self);
-    sim_set_region_lambda(self);
+    sim_set_region_active();
+    sim_set_region_fix();
+    sim_set_region_heat();
+    sim_set_region_lambda();
 }
 
-static void sim_set_matrix_const(Sim *self, int i, int j, int k)
+static void sim_set_matrix_const(int i, int j, int k)
 {
-    if (self->heat_ary[i][j][k] != NULL &&
-	    ipoint_eq(*(self->heat_ipoint_ary[i][j][k]), get_ipoint(i, j, k)))
-	self->coefs[i][j][k].cnst = *(self->heat_ary[i][j][k]);
+    if (sim->heat_ary[i][j][k] != NULL &&
+	    ipoint_eq(*(sim->heat_ipoint_ary[i][j][k]), get_ipoint(i, j, k)))
+	sim->coefs[i][j][k].cnst = *(sim->heat_ary[i][j][k]);
 }
 
-static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, double dy, double dz)
+static void sim_set_matrix_coef0(int i, int j, int k, double dx, double dy, double dz)
 {
     int idir, dir;
     int ix, iy, iz;
@@ -273,7 +273,7 @@ static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, doub
 
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
-	if (!sim_active_p(self, ipoint_add(get_ipoint(i, j, k), self->dir_to_ipoint[dir])))
+	if (!sim_active_p(ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dir])))
 	    continue;
 	switch (dir) {
 	case DIR_LEFT: case DIR_RIGHT:
@@ -281,12 +281,12 @@ static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, doub
 		diry = dir_y[iy];
 		for (iz = 0; iz < NELEMS(dir_z); ++iz) {
 		    dirz = dir_z[iz];
-		    pp = ipoint_add(get_ipoint(i, j, k), self->dir_to_ipoint[diry]);
-		    pp = ipoint_add(pp, self->dir_to_ipoint[dirz]);
-		    if (sim_active_p(self, pp)) {
+		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[diry]);
+		    pp = ipoint_add(pp, sim->dir_to_ipoint[dirz]);
+		    if (sim_active_p(pp)) {
 			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dir, diry, dirz);
-			l = self->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
-			self->coefs[i][j][k].coef0 += -l/dx*(dy/2)*(dz/2);
+			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
+			sim->coefs[i][j][k].coef0 += -l/dx*(dy/2)*(dz/2);
 		    }
 		}
 	    }
@@ -296,12 +296,12 @@ static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, doub
 		dirz = dir_z[iz];
 		for (ix = 0; ix < NELEMS(dir_x); ++ix) {
 		    dirx = dir_x[ix];
-		    pp = ipoint_add(get_ipoint(i, j, k), self->dir_to_ipoint[dirz]);
-		    pp = ipoint_add(pp, self->dir_to_ipoint[dirx]);
-		    if (sim_active_p(self, pp)) {
+		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dirz]);
+		    pp = ipoint_add(pp, sim->dir_to_ipoint[dirx]);
+		    if (sim_active_p(pp)) {
 			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dirx, dir, dirz);
-			l = self->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
-			self->coefs[i][j][k].coef0 += -l/dy*(dz/2)*(dx/2);
+			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
+			sim->coefs[i][j][k].coef0 += -l/dy*(dz/2)*(dx/2);
 		    }
 		}
 	    }
@@ -311,12 +311,12 @@ static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, doub
 		dirx = dir_x[ix];
 		for (iy = 0; iy < NELEMS(dir_y); ++iy) {
 		    diry = dir_y[iy];
-		    pp = ipoint_add(get_ipoint(i, j, k), self->dir_to_ipoint[dirx]);
-		    pp = ipoint_add(pp, self->dir_to_ipoint[diry]);
-		    if (sim_active_p(self, pp)) {
+		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dirx]);
+		    pp = ipoint_add(pp, sim->dir_to_ipoint[diry]);
+		    if (sim_active_p(pp)) {
 			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dirx, diry, dir);
-			l = self->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
-			self->coefs[i][j][k].coef0 += -l/dz*(dx/2)*(dy/2);
+			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
+			sim->coefs[i][j][k].coef0 += -l/dz*(dx/2)*(dy/2);
 		    }
 		}
 	    }
@@ -327,7 +327,7 @@ static void sim_set_matrix_coef0(Sim *self, int i, int j, int k, double dx, doub
     }
 }
 
-static void sim_set_matrix_coef(Sim *self, int i, int j, int k, double dx, double dy, double dz)
+static void sim_set_matrix_coef(int i, int j, int k, double dx, double dy, double dz)
 {
     int idir, dir;
     int dirx, diry, dirz;
@@ -338,13 +338,13 @@ static void sim_set_matrix_coef(Sim *self, int i, int j, int k, double dx, doubl
 
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
-	if (!sim_active_p(self, ipoint_add(get_ipoint(i, j, k), self->dir_to_ipoint[dir]))) {
-	    self->coefs[i][j][k].coef[dir].index = -1;
+	if (!sim_active_p(ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dir]))) {
+	    sim->coefs[i][j][k].coef[dir].index = -1;
 	    continue;
 	}
 
-	self->coefs[i][j][k].coef[dir].index =
-	    world_to_index(self->world, ipoint_add(get_ipoint(i, j, k), self->dir_to_ipoint[dir]));
+	sim->coefs[i][j][k].coef[dir].index =
+	    world_to_index(ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dir]));
 	value = 0.0;
 	switch (dir) {
 	case DIR_LEFT: case DIR_RIGHT:
@@ -352,11 +352,11 @@ static void sim_set_matrix_coef(Sim *self, int i, int j, int k, double dx, doubl
 		diry = dir_y[iy];
 		for (iz = 0; iz < NELEMS(dir_z); ++iz) {
 		    dirz = dir_z[iz];
-		    pp = ipoint_add(get_ipoint(i, j, k), self->dir_to_ipoint[diry]);
-		    pp = ipoint_add(pp, self->dir_to_ipoint[dirz]);
-		    if (sim_active_p(self, pp)) {
+		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[diry]);
+		    pp = ipoint_add(pp, sim->dir_to_ipoint[dirz]);
+		    if (sim_active_p(pp)) {
 			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dir, diry, dirz);
-			l = self->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
+			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
 			value += l/dx*(dy/2)*(dz/2);
 		    }
 		}
@@ -367,11 +367,11 @@ static void sim_set_matrix_coef(Sim *self, int i, int j, int k, double dx, doubl
 		dirz = dir_z[iz];
 		for (ix = 0; ix < NELEMS(dir_x); ++ix) {
 		    dirx = dir_x[ix];
-		    pp = ipoint_add(get_ipoint(i, j, k), self->dir_to_ipoint[dirz]);
-		    pp = ipoint_add(pp, self->dir_to_ipoint[dirx]);
-		    if (sim_active_p(self, pp)) {
+		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dirz]);
+		    pp = ipoint_add(pp, sim->dir_to_ipoint[dirx]);
+		    if (sim_active_p(pp)) {
 			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dirx, dir, dirz);
-			l = self->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
+			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
 			value += l/dy*(dz/2)*(dx/2);
 		    }
 		}
@@ -382,11 +382,11 @@ static void sim_set_matrix_coef(Sim *self, int i, int j, int k, double dx, doubl
 		dirx = dir_x[ix];
 		for (iy = 0; iy < NELEMS(dir_y); ++iy) {
 		    diry = dir_y[iy];
-		    pp = ipoint_add(get_ipoint(i, j, k), self->dir_to_ipoint[dirx]);
-		    pp = ipoint_add(pp, self->dir_to_ipoint[diry]);
-		    if (sim_active_p(self, pp)) {
+		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dirx]);
+		    pp = ipoint_add(pp, sim->dir_to_ipoint[diry]);
+		    if (sim_active_p(pp)) {
 			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dirx, diry, dir);
-			l = self->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
+			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
 			value += l/dz*(dx/2)*(dy/2);
 		    }
 		}
@@ -395,60 +395,67 @@ static void sim_set_matrix_coef(Sim *self, int i, int j, int k, double dx, doubl
 	default:
 	    bug("sim_set_matrix_coef");
 	}
-	self->coefs[i][j][k].coef[dir].value = value;
+	sim->coefs[i][j][k].coef[dir].value = value;
     }
 }
 
-static void sim_set_matrix(Sim *self)
+static void sim_set_matrix(void)
 {
     iPoint *p;
     double dx, dy, dz;
 
-    ALLOCATE_3D(self->coefs, Coefs, self->world->ni, self->world->nj, self->world->nk);
-    for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
-	self->coefs[p->i][p->j][p->k] = get_coefs();
+    ALLOCATE_3D(sim->coefs, Coefs, sim->world->ni, sim->world->nj, sim->world->nk);
+    while (world_each(&p)) {
+	if (p == NULL)
+	    continue;
+	sim->coefs[p->i][p->j][p->k] = get_coefs();
     }
 
-    dx = self->world->dx;
-    dy = self->world->dy;
-    dz = self->world->dz;
+    dx = sim->world->dx;
+    dy = sim->world->dy;
+    dz = sim->world->dz;
 
-    for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
-	if (self->fix_ary[p->i][p->j][p->k] != NULL)
+    while (world_each(&p)) {
+	if (p == NULL)
+	    continue;
+	if (sim->fix_ary[p->i][p->j][p->k] != NULL)
 	    continue;
 
-	sim_set_matrix_const(self, p->i, p->j, p->k);
-	sim_set_matrix_coef0(self, p->i, p->j, p->k, dx, dy, dz);
-	sim_set_matrix_coef(self, p->i, p->j, p->k, dx, dy, dz);
+	sim_set_matrix_const(p->i, p->j, p->k);
+	sim_set_matrix_coef0(p->i, p->j, p->k, dx, dy, dz);
+	sim_set_matrix_coef(p->i, p->j, p->k, dx, dy, dz);
     }
 }
 
 Sim *sim_new(char *fname)
 {
-    Sim *self;
+    sim = EALLOC(Sim);
+    sim->world = NULL;
 
-    self = EALLOC(Sim);
+    sim->dir_to_ipoint[DIR_LEFT]  = get_ipoint(-1,  0,  0);
+    sim->dir_to_ipoint[DIR_RIGHT] = get_ipoint( 1,  0,  0);
+    sim->dir_to_ipoint[DIR_FRONT] = get_ipoint( 0, -1,  0);
+    sim->dir_to_ipoint[DIR_BACK]  = get_ipoint( 0,  1,  0);
+    sim->dir_to_ipoint[DIR_BELOW] = get_ipoint( 0,  0, -1);
+    sim->dir_to_ipoint[DIR_ABOVE] = get_ipoint( 0,  0,  1);
+
     if (opt_v)
 	warn("configuring ...");
-    self->config = config_new(fname);
-    self->dir_to_ipoint[DIR_LEFT]  = get_ipoint(-1,  0,  0);
-    self->dir_to_ipoint[DIR_RIGHT] = get_ipoint( 1,  0,  0);
-    self->dir_to_ipoint[DIR_FRONT] = get_ipoint( 0, -1,  0);
-    self->dir_to_ipoint[DIR_BACK]  = get_ipoint( 0,  1,  0);
-    self->dir_to_ipoint[DIR_BELOW] = get_ipoint( 0,  0, -1);
-    self->dir_to_ipoint[DIR_ABOVE] = get_ipoint( 0,  0,  1);
+    sim->config = config_new(fname);
+    config_parse(sim->config, fname);
 
     if (opt_v)
 	warn("setting region ...");
-    sim_set_region(self);
+    sim_set_region();
+
     if (opt_v)
 	warn("setting matrix ...");
-    sim_set_matrix(self);
+    sim_set_matrix();
 
-    return self;
+    return sim;
 }
 
-Array3Dd sim_calc(Sim *self)
+Array3Dd sim_calc()
 {
     int nindex;
     Solvele *solver;
@@ -460,52 +467,56 @@ Array3Dd sim_calc(Sim *self)
     double *sol;
     Array3Dd ary;
 
-    nindex = self->world->ni * self->world->nj * self->world->nk;
+    nindex = sim->world->ni * sim->world->nj * sim->world->nk;
     solver = solvele_new(nindex);
-    for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
-	if (self->fix_ary[p->i][p->j][p->k] != NULL) {
-	    index = world_to_index(self->world, *p);
-	    solvele_set_matrix(solver, index, index, 1.0);
-	    solvele_set_vector(solver, index, *(self->fix_ary[p->i][p->j][p->k]));
+    while (world_each(&p)) {
+	if (p == NULL)
 	    continue;
-	} else if (!self->active_p_ary[p->i][p->j][p->k]) {
-	    index = world_to_index(self->world, *p);
+	if (sim->fix_ary[p->i][p->j][p->k] != NULL) {
+	    index = world_to_index(*p);
+	    solvele_set_matrix(solver, index, index, 1.0);
+	    solvele_set_vector(solver, index, *(sim->fix_ary[p->i][p->j][p->k]));
+	    continue;
+	} else if (!sim->active_p_ary[p->i][p->j][p->k]) {
+	    index = world_to_index(*p);
 	    solvele_set_matrix(solver, index, index, 1.0);
 	    solvele_set_vector(solver, index, 0.0);
 	    continue;
 	}
-	hfp = self->heat_ipoint_ary[p->i][p->j][p->k];
+	hfp = sim->heat_ipoint_ary[p->i][p->j][p->k];
 	if (hfp != NULL) {
 	    if (!ipoint_eq(*p, *hfp)) {
-		index = world_to_index(self->world, *p);
+		index = world_to_index(*p);
 		solvele_set_matrix(solver, index, index, 1.0);
-		solvele_set_matrix(solver, index, world_to_index(self->world, *hfp), -1.0);
+		solvele_set_matrix(solver, index, world_to_index(*hfp), -1.0);
 		solvele_set_vector(solver, index, 0.0);
 	    }
 	    ipoint = *hfp;
 	} else {
 	    ipoint = *p;
 	}
-	index = world_to_index(self->world, ipoint);
+	index = world_to_index(ipoint);
 	for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	    dir = dir_array[idir];
-	    index2 = self->coefs[p->i][p->j][p->k].coef[dir].index;
+	    index2 = sim->coefs[p->i][p->j][p->k].coef[dir].index;
 	    if (index2 < 0)
 		continue;
-	    c = self->coefs[p->i][p->j][p->k].coef[dir].value;
+	    c = sim->coefs[p->i][p->j][p->k].coef[dir].value;
 	    solvele_add_matrix(solver, index, index2, c);
 	}
-	solvele_add_matrix(solver, index, index, self->coefs[p->i][p->j][p->k].coef0);
-	solvele_add_vector(solver, index, -self->coefs[p->i][p->j][p->k].cnst);
+	solvele_add_matrix(solver, index, index, sim->coefs[p->i][p->j][p->k].coef0);
+	solvele_add_vector(solver, index, -sim->coefs[p->i][p->j][p->k].cnst);
     }
 
     if (opt_v)
 	warn("solving equations ...");
-    sol = solvele_solve(solver, self->world->ni, self->world->nj, self->world->nk);
+    sol = solvele_solve(solver, sim->world->ni, sim->world->nj, sim->world->nk);
 
-    ALLOCATE_3D(ary, double, self->world->ni, self->world->nj, self->world->nk);
-    for (p = world_each(self->world); p != NULL; p = world_each(self->world)) {
-	ary[p->i][p->j][p->k] = sol[world_to_index(self->world, *p)];
+    ALLOCATE_3D(ary, double, sim->world->ni, sim->world->nj, sim->world->nk);
+    while (world_each(&p)) {
+	if (p == NULL)
+	    continue;
+	ary[p->i][p->j][p->k] = sol[world_to_index(*p)];
     }
 
     return ary;

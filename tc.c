@@ -125,7 +125,7 @@ int main(int argc, char **argv)
 	warn_exit("too many args");
 
     sim = sim_new(fname);
-    ary = sim_calc(sim);
+    ary = sim_calc();
 
     ni = sim->world->ni;
     nj = sim->world->nj;
@@ -145,7 +145,7 @@ int main(int argc, char **argv)
 	    y = y0 + dy * j;
 	    for (i = 0; i < ni; ++i) {
 		x = x0 + dx * i;
-		if (sim_active_p(sim, get_ipoint(i, j, k))) {
+		if (sim_active_p(get_ipoint(i, j, k))) {
 		    val = ary[i][j][k];
 		    if (val > max)
 			max = val;
@@ -165,7 +165,7 @@ int main(int argc, char **argv)
 	    y = y0 + dy * j;
 	    for (i = 0; i < ni; ++i) {
 		x = x0 + dx * i;
-		if (sim_active_p(sim, get_ipoint(i, j, k))) {
+		if (sim_active_p(get_ipoint(i, j, k))) {
 		    val = ary[i][j][k];
 		    act = 1;
 		} else {

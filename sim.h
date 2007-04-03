@@ -76,6 +76,8 @@ typedef struct iPoint_ary {
     iPoint *ptr;
 } iPoint_ary;
 
+typedef struct World World;
+
 iPoint_ary *ipoint_ary_new(void);
 void ipoint_ary_push(iPoint_ary *self, iPoint ipoint);
 
@@ -86,9 +88,9 @@ typedef struct Each {
 } Each;
 
 Each *each_new(iPoint_ary *ipoint_ary);
-iPoint *each_each(Each *self);
+int each_each(Each *self, iPoint **pp);
 
-typedef struct World {
+struct World {
     double x0;
     double y0;
     double z0;
@@ -102,11 +104,12 @@ typedef struct World {
     int nj;
     int nk;
     Each *each;
-} World;
+};
 
 World *world_new(double x, double y, double z,
 	double xlen, double ylen, double zlen,
 	double dx, double dy, double dz);
+int world_inside_p(iPoint ipoint);
 
 enum {
     AXIS_X,
@@ -115,24 +118,21 @@ enum {
 };
 
 typedef struct Sweep {
-    World *world;
     int axis;
     double len;
     Obj *obj;
     Each *each;
 } Sweep;
 
-Sweep *sweep_new(World *world, int axis, double len, Obj *obj);
+Sweep *sweep_new(int axis, double len, Obj *obj);
 
 typedef struct Edge {
-    World *world;
     Obj *obj;
 } Edge;
 
-Edge *edge_new(World *world, Obj *obj);
+Edge *edge_new(Obj *obj);
 
 typedef struct Rect {
-    World *world;
     double x;
     double y;
     double z;
@@ -143,10 +143,9 @@ typedef struct Rect {
     int edge;
 } Rect;
 
-Rect *rect_new(World *world, double x, double y, double z, int axis, double len1, double len2);
+Rect *rect_new(double x, double y, double z, int axis, double len1, double len2);
 
 typedef struct Triangle_z {
-    World *world;
     double x1;
     double y1;
     double dx;
@@ -156,7 +155,6 @@ typedef struct Triangle_z {
 } Triangle_z;
 
 typedef struct Triangle {
-    World *world;
     int axis;
     double u1;
     double v1;
@@ -170,11 +168,10 @@ typedef struct Triangle {
     Each *each;
 } Triangle;
 
-Triangle *triangle_new(World *world, double x1, double y1, double z1,
+Triangle *triangle_new(double x1, double y1, double z1,
 	int axis, double du2, double dv2, double du3, double dv3);
 
 typedef struct Ellipse {
-    World *world;
     double x;
     double y;
     double z;
@@ -185,31 +182,29 @@ typedef struct Ellipse {
     int edge;
 } Ellipse;
 
-Ellipse *ellipse_new(World *world, double x, double y, double z, int axis, double ru, double rv);
+Ellipse *ellipse_new(double x, double y, double z, int axis, double ru, double rv);
 
 typedef struct Circle {
     Ellipse *ellipse;
 } Circle;
 
-Circle *circle_new(World *world, double x, double y, double z, int axis, double r);
+Circle *circle_new(double x, double y, double z, int axis, double r);
 
 typedef struct Polygon {
-    World *world;
     int axis;
     double w;
     Vector2d_ary *vector2d_ary;
     Each *each;
 } Polygon;
 
-Polygon *polygon_new(World *world, double x1, double y1, double z1,
+Polygon *polygon_new(double x1, double y1, double z1,
 	int axis, Vector2d_ary *dudv_ary);
 
 typedef struct Box {
-    World *world;
     Sweep *sweep;
 } Box;
 
-Box *box_new(World *world, double x, double y, double z, double xlen, double ylen, double zlen);
+Box *box_new(double x, double y, double z, double xlen, double ylen, double zlen);
 
 enum {
     OBJ_RECT,
@@ -245,7 +240,7 @@ struct Obj {
 };
 
 Obj *obj_new(int objtype);
-iPoint *obj_each(Obj *self);
+int obj_each(Obj *self, iPoint **pp);
 void obj_offset(Obj *self);
 
 typedef struct AryObj {
@@ -257,14 +252,11 @@ AryObj *aryobj_new(void);
 void aryobj_push(AryObj *self, Obj *obj);
 
 typedef struct Config {
-    World *world;
     AryObj *active_obj_ary;
     AryObj *fix_obj_ary;
     AryObj *heat_obj_ary;
     AryObj *lambda_obj_ary;
 } Config;
-
-extern Config *config_parser;
 
 typedef struct Sim {
     Config *config;
@@ -278,8 +270,10 @@ typedef struct Sim {
     Array3Dc coefs;
 } Sim;
 
-int sim_active_p(Sim *self, iPoint ipoint);
+extern Sim *sim;
+
+int sim_active_p(iPoint ipoint);
 Sim *sim_new(char *fname);
-Array3Dd sim_calc(Sim *sim);
+Array3Dd sim_calc(void);
 
 #endif

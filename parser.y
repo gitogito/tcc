@@ -112,9 +112,9 @@ var_assign:
 world:
     TK_LINE TK_WORLD point ',' vector ',' expr ',' expr ',' expr
     {
-	if (config_parser->world != NULL)
+	if (sim->world != NULL)
 	    warn_exit("world is already defined at line %ld", lineno);
-	config_parser->world = world_new($3.x, $3.y, $3.z, $5.x, $5.y, $5.z, $7, $9, $11);
+	sim->world = world_new($3.x, $3.y, $3.z, $5.x, $5.y, $5.z, $7, $9, $11);
 	state = ST_WORLD;
     }
 
@@ -161,24 +161,24 @@ command:
 	switch (state) {
 	case ST_ACTIVE:
 	    obj->uval.i = 1;
-	    aryobj_push(config_parser->active_obj_ary, obj);
+	    aryobj_push(sim->config->active_obj_ary, obj);
 	    break;
 	case ST_NOACTIVE:
 	    obj->uval.i = 0;
-	    aryobj_push(config_parser->active_obj_ary, obj);
+	    aryobj_push(sim->config->active_obj_ary, obj);
 	    break;
 	case ST_FIX:
 	    obj->uval.d = value;
-	    aryobj_push(config_parser->fix_obj_ary, obj);
+	    aryobj_push(sim->config->fix_obj_ary, obj);
 	    break;
 	case ST_HEAT:
 	    obj->uval.d = value;
-	    aryobj_push(config_parser->heat_obj_ary, obj);
+	    aryobj_push(sim->config->heat_obj_ary, obj);
 	    break;
 	case ST_LAMBDA:
 	    obj->uval.d = value;
 	    obj_offset(obj);
-	    aryobj_push(config_parser->lambda_obj_ary, obj);
+	    aryobj_push(sim->config->lambda_obj_ary, obj);
 	    break;
 	default:
 	    warn_exit("object must not be here at line %ld", lineno);
@@ -254,7 +254,7 @@ obj:
     TK_BOX point ',' vector
     {
 	$$ = obj_new(OBJ_BOX);
-	$$->uobj.box = box_new(config_parser->world, $2.x, $2.y, $2.z, $4.x, $4.y, $4.z);
+	$$->uobj.box = box_new($2.x, $2.y, $2.z, $4.x, $4.y, $4.z);
     }
 
   | TK_RECT point ',' TK_SYMBOL ',' vector2d
@@ -270,7 +270,7 @@ obj:
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.rect = rect_new(config_parser->world, $2.x, $2.y, $2.z, axis, $6.x, $6.y);
+	$$->uobj.rect = rect_new($2.x, $2.y, $2.z, axis, $6.x, $6.y);
     }
 
   | TK_TRIANGLE point ',' TK_SYMBOL ',' vector2d ',' vector2d
@@ -286,7 +286,7 @@ obj:
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.triangle = triangle_new(config_parser->world, $2.x, $2.y, $2.z,
+	$$->uobj.triangle = triangle_new($2.x, $2.y, $2.z,
 	    axis, $6.x, $6.y, $8.x, $8.y);
     }
 
@@ -303,7 +303,7 @@ obj:
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.circle = circle_new(config_parser->world, $2.x, $2.y, $2.z, axis, $6);
+	$$->uobj.circle = circle_new($2.x, $2.y, $2.z, axis, $6);
     }
 
   | TK_ELLIPSE point ',' TK_SYMBOL ',' expr ',' expr
@@ -319,7 +319,7 @@ obj:
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.ellipse = ellipse_new(config_parser->world, $2.x, $2.y, $2.z, axis, $6, $8);
+	$$->uobj.ellipse = ellipse_new($2.x, $2.y, $2.z, axis, $6, $8);
     }
 
   | TK_POLYGON point ',' TK_SYMBOL ',' vector2d_ary
@@ -335,7 +335,7 @@ obj:
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.polygon = polygon_new(config_parser->world, $2.x, $2.y, $2.z, axis, $6);
+	$$->uobj.polygon = polygon_new($2.x, $2.y, $2.z, axis, $6);
     }
 
   | TK_SWEEP TK_SYMBOL ',' expr ',' obj
@@ -351,13 +351,13 @@ obj:
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.sweep = sweep_new(config_parser->world, axis, $4, $6);
+	$$->uobj.sweep = sweep_new(axis, $4, $6);
     }
 
   | TK_EDGE obj
     {
 	$$ = obj_new(OBJ_EDGE);
-	$$->uobj.edge = edge_new(config_parser->world, $2);
+	$$->uobj.edge = edge_new($2);
     }
 
 %%

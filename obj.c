@@ -229,15 +229,16 @@ Each *each_new(iPoint_ary *ipoint_ary)
     return self;
 }
 
-iPoint *each_each(Each *self)
+int each_each(Each *self, iPoint **pp)
 {
     if (self == NULL)
 	bug("each_each");
     if (self->index < self->ipoint_ary->size) {
-	return &(self->ipoint_ary->ptr[self->index++]);
+	*pp = &(self->ipoint_ary->ptr[self->index++]);
+	return 1;
     } else {
 	self->index = -1;
-	return NULL;
+	return 0;
     }
 }
 
@@ -245,7 +246,7 @@ iPoint *each_each(Each *self)
 
 static int obj_dim(Obj *obj);
 
-Sweep *sweep_new(World *world, int axis, double len, Obj *obj)
+Sweep *sweep_new(int axis, double len, Obj *obj)
 {
     Sweep *self;
 
@@ -255,7 +256,6 @@ Sweep *sweep_new(World *world, int axis, double len, Obj *obj)
 	warn_exit("sweep can't take a %dD object", obj_dim(obj));
 
     self = EALLOC(Sweep);
-    self->world = world;
     self->axis = axis;
     self->len = len;
     self->obj = obj;
@@ -263,68 +263,75 @@ Sweep *sweep_new(World *world, int axis, double len, Obj *obj)
     return self;
 }
 
-static iPoint *sweep_each(Sweep *self)
+static int sweep_each(Sweep *self, iPoint **pp)
 {
     iPoint *p;
     int leni;
     iPoint_ary *ipoint_ary;
     int i, j, k;
+    int ret;
 
     if (self->each != NULL && self->each->index >= 0)
-	return each_each(self->each);
+	return each_each(self->each, pp);
 
-    p = obj_each(self->obj);
-    if (p == NULL)
-	return NULL;
+    ret = obj_each(self->obj, &p);
+    if (!ret)
+	return ret;
     ipoint_ary = ipoint_ary_new();
     switch (self->axis) {
     case AXIS_X:
-	leni = iround(self->len / self->world->dx) + 1;
+	leni = iround(self->len / sim->world->dx) + 1;
 	do {
-	    for (i = p->i; i < p->i + leni; ++i) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(i, p->j, p->k));
+	    if (p != NULL) {
+		for (i = p->i; i < p->i + leni; ++i) {
+		    ipoint_ary_push(ipoint_ary, get_ipoint(i, p->j, p->k));
+		}
 	    }
-	    p = obj_each(self->obj);
-	} while (p != NULL);
+	    ret = obj_each(self->obj, &p);
+	} while (ret);
 	break;
     case AXIS_Y:
-	leni = iround(self->len / self->world->dy) + 1;
+	leni = iround(self->len / sim->world->dy) + 1;
 	do {
-	    for (j = p->j; j < p->j + leni; ++j) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(p->i, j, p->k));
+	    if (p != NULL) {
+		for (j = p->j; j < p->j + leni; ++j) {
+		    ipoint_ary_push(ipoint_ary, get_ipoint(p->i, j, p->k));
+		}
 	    }
-	    p = obj_each(self->obj);
-	} while (p != NULL);
+	    ret = obj_each(self->obj, &p);
+	} while (ret);
 	break;
     case AXIS_Z:
-	leni = iround(self->len / self->world->dz) + 1;
+	leni = iround(self->len / sim->world->dz) + 1;
 	do {
-	    for (k = p->k; k < p->k + leni; ++k) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(p->i, p->j, k));
+	    if (p != NULL) {
+		for (k = p->k; k < p->k + leni; ++k) {
+		    ipoint_ary_push(ipoint_ary, get_ipoint(p->i, p->j, k));
+		}
 	    }
-	    p = obj_each(self->obj);
-	} while (p != NULL);
+	    ret = obj_each(self->obj, &p);
+	} while (ret);
 	break;
     default:
 	bug("unknow axis %d", self->axis);
     }
     self->each = each_new(ipoint_ary);
-    return each_each(self->each);
+    return each_each(self->each, pp);
 }
 
 static void sweep_offset(Sweep *self)
 {
     switch (self->axis) {
     case AXIS_X:
-	self->len -= self->world->dx;
+	self->len -= sim->world->dx;
 	obj_offset(self->obj);
 	break;
     case AXIS_Y:
-	self->len -= self->world->dy;
+	self->len -= sim->world->dy;
 	obj_offset(self->obj);
 	break;
     case AXIS_Z:
-	self->len -= self->world->dz;
+	self->len -= sim->world->dz;
 	obj_offset(self->obj);
 	break;
     default:
@@ -338,20 +345,19 @@ static void sweep_offset(Sweep *self)
 
 static void obj_edge(Obj *self);
 
-Edge *edge_new(World *world, Obj *obj)
+Edge *edge_new(Obj *obj)
 {
     Edge *self;
 
     self = EALLOC(Edge);
-    self->world = world;
     self->obj = obj;
     obj_edge(self->obj);
     return self;
 }
 
-iPoint *edge_each(Edge *self)
+int edge_each(Edge *self, iPoint **pp)
 {
-    return obj_each(self->obj);
+    return obj_each(self->obj, pp);
 }
 
 static int edge_dim(Edge *self)
@@ -361,7 +367,7 @@ static int edge_dim(Edge *self)
 
 /* Rect */
 
-Rect *rect_new(World *world, double x, double y, double z, int axis, double len1, double len2)
+Rect *rect_new(double x, double y, double z, int axis, double len1, double len2)
 {
     static int axis_array[] = { AXIS_X, AXIS_Y, AXIS_Z };
 
@@ -382,7 +388,6 @@ Rect *rect_new(World *world, double x, double y, double z, int axis, double len1
 	warn_exit("length is negative for Rect");
 
     self = EALLOC(Rect);
-    self->world = world;
     self->x = x;
     self->y = y;
     self->z = z;
@@ -394,7 +399,7 @@ Rect *rect_new(World *world, double x, double y, double z, int axis, double len1
     return self;
 }
 
-static iPoint *rect_each(Rect *self)
+static int rect_each(Rect *self, iPoint **pp)
 {
     int xi, yi, zi;
     int len1, len2;
@@ -402,16 +407,16 @@ static iPoint *rect_each(Rect *self)
     int i, j, k;
 
     if (self->each != NULL && self->each->index >= 0)
-	return each_each(self->each);
+	return each_each(self->each, pp);
 
-    xi = iround((self->x - self->world->x0) / self->world->dx);
-    yi = iround((self->y - self->world->y0) / self->world->dy);
-    zi = iround((self->z - self->world->z0) / self->world->dz);
+    xi = iround((self->x - sim->world->x0) / sim->world->dx);
+    yi = iround((self->y - sim->world->y0) / sim->world->dy);
+    zi = iround((self->z - sim->world->z0) / sim->world->dz);
     ipoint_ary = ipoint_ary_new();
     switch (self->axis) {
     case AXIS_X:
-	len1 = iround(self->len1 / self->world->dy) + 1;
-	len2 = iround(self->len2 / self->world->dz) + 1;
+	len1 = iround(self->len1 / sim->world->dy) + 1;
+	len2 = iround(self->len2 / sim->world->dz) + 1;
 	if (self->edge) {
 	    for (j = yi; j < yi + len1; ++j) {
 		ipoint_ary_push(ipoint_ary, get_ipoint(xi, j, zi           ));
@@ -430,8 +435,8 @@ static iPoint *rect_each(Rect *self)
 	}
 	break;
     case AXIS_Y:
-	len1 = iround(self->len1 / self->world->dx) + 1;
-	len2 = iround(self->len2 / self->world->dz) + 1;
+	len1 = iround(self->len1 / sim->world->dx) + 1;
+	len2 = iround(self->len2 / sim->world->dz) + 1;
 	if (self->edge) {
 	    for (i = xi; i < xi + len1; ++i) {
 		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi, zi           ));
@@ -450,8 +455,8 @@ static iPoint *rect_each(Rect *self)
 	}
 	break;
     case AXIS_Z:
-	len1 = iround(self->len1 / self->world->dx) + 1;
-	len2 = iround(self->len2 / self->world->dy) + 1;
+	len1 = iround(self->len1 / sim->world->dx) + 1;
+	len2 = iround(self->len2 / sim->world->dy) + 1;
 	if (self->edge) {
 	    for (i = xi; i < xi + len1; ++i) {
 		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi           , zi));
@@ -474,23 +479,23 @@ static iPoint *rect_each(Rect *self)
     }
 
     self->each = each_new(ipoint_ary);
-    return each_each(self->each);
+    return each_each(self->each, pp);
 }
 
 static void rect_offset(Rect *self)
 {
     switch (self->axis) {
     case AXIS_X:
-	self->len1 -= self->world->dy;
-	self->len2 -= self->world->dz;
+	self->len1 -= sim->world->dy;
+	self->len2 -= sim->world->dz;
 	break;
     case AXIS_Y:
-	self->len1 -= self->world->dz;
-	self->len2 -= self->world->dx;
+	self->len1 -= sim->world->dz;
+	self->len2 -= sim->world->dx;
 	break;
     case AXIS_Z:
-	self->len1 -= self->world->dx;
-	self->len2 -= self->world->dy;
+	self->len1 -= sim->world->dx;
+	self->len2 -= sim->world->dy;
 	break;
     default:
 	bug("unknow axis %d", self->axis);
@@ -515,12 +520,11 @@ static void rect_edge(Rect *self)
  *   <---------------> dx
  * (x1, y1)
  */
-static Triangle_z *triangle_z_new(World *world, double x1, double y1, double dx, double dx2, double dy2)
+static Triangle_z *triangle_z_new(double x1, double y1, double dx, double dx2, double dy2)
 {
     Triangle_z *self;
 
     self = EALLOC(Triangle_z);
-    self->world = world;
     self->x1 = x1;
     self->y1 = y1;
     self->dx = dx;
@@ -530,7 +534,7 @@ static Triangle_z *triangle_z_new(World *world, double x1, double y1, double dx,
     return self;
 }
 
-static iPoint *triangle_z_each(Triangle_z *self)
+static int triangle_z_each(Triangle_z *self, iPoint **pp)
 {
     int i1, j1, i2, j2, ix, jx;
     double a12, b12, ax2, bx2;
@@ -539,13 +543,13 @@ static iPoint *triangle_z_each(Triangle_z *self)
     iPoint_ary *ipoint_ary;
 
     if (self->each != NULL && self->each->index >= 0)
-	return each_each(self->each);
+	return each_each(self->each, pp);
 
-    i1 = iround((self->x1 - self->world->x0) / self->world->dx);
-    j1 = iround((self->y1 - self->world->y0) / self->world->dy);
-    i2 = iround((self->x1 + self->dx2 - self->world->x0) / self->world->dx);
-    j2 = iround((self->y1 + self->dy2 - self->world->y0) / self->world->dy);
-    ix = iround(((self->x1+self->dx) - self->world->x0) / self->world->dx);
+    i1 = iround((self->x1 - sim->world->x0) / sim->world->dx);
+    j1 = iround((self->y1 - sim->world->y0) / sim->world->dy);
+    i2 = iround((self->x1 + self->dx2 - sim->world->x0) / sim->world->dx);
+    j2 = iround((self->y1 + self->dy2 - sim->world->y0) / sim->world->dy);
+    ix = iround(((self->x1+self->dx) - sim->world->x0) / sim->world->dx);
     jx = j1;
 
     a12 = (double) (i1 - i2) / (j1 - j2);
@@ -577,34 +581,33 @@ static iPoint *triangle_z_each(Triangle_z *self)
     }
     self->each = each_new(ipoint_ary);
 
-    return each_each(self->each);
+    return each_each(self->each, pp);
 }
 
 /* Triangle */
 
-Triangle *triangle_new(World *world, double x1, double y1, double z1,
+Triangle *triangle_new(double x1, double y1, double z1,
 	int axis, double du2, double dv2, double du3, double dv3)
 {
     Triangle *self;
 
     self = EALLOC(Triangle);
-    self->world = world;
     self->axis = axis;
     switch (self->axis) {
     case AXIS_X:
 	self->u1 = y1;
 	self->v1 = z1;
-	self->wi = iround((x1 - self->world->x0) / self->world->dx);
+	self->wi = iround((x1 - sim->world->x0) / sim->world->dx);
 	break;
     case AXIS_Y:
 	self->u1 = x1;
 	self->v1 = z1;
-	self->wi = iround((y1 - self->world->y0) / self->world->dy);
+	self->wi = iround((y1 - sim->world->y0) / sim->world->dy);
 	break;
     case AXIS_Z:
 	self->u1 = x1;
 	self->v1 = y1;
-	self->wi = iround((z1 - self->world->z0) / self->world->dz);
+	self->wi = iround((z1 - sim->world->z0) / sim->world->dz);
 	break;
     default:
 	bug("unknow axis %d", self->axis);
@@ -646,7 +649,7 @@ static iPoint *triangle_each2(Triangle *self, iPoint *p)
     return ipoint_new(i2, j2, k2);
 }
 
-static iPoint *triangle_each(Triangle *self)
+static int triangle_each(Triangle *self, iPoint **pp)
 {
     double u1, v1, u2, v2, u3, v3;
     double ua, va;
@@ -655,9 +658,10 @@ static iPoint *triangle_each(Triangle *self)
     double a, b, dx;
     iPoint *p1, *p2;
     iPoint_ary *ipoint_ary;
+    int ret1, ret2;
 
     if (self->each != NULL && self->each->index >= 0)
-	return each_each(self->each);
+	return each_each(self->each, pp);
 
     u1 = self->u1;
     v1 = self->v1;
@@ -667,11 +671,11 @@ static iPoint *triangle_each(Triangle *self)
     v3 = self->v1 + self->dv3;
 
     if (v1 == v2) {
-	self->tr1 = triangle_z_new(self->world, u1, v1, u2 - u1, u3 - u1, v3 - v1);
+	self->tr1 = triangle_z_new(u1, v1, u2 - u1, u3 - u1, v3 - v1);
     } else if (v2 == v3) {
-	self->tr1 = triangle_z_new(self->world, u2, v2, u3 - u2, u1 - u2, v1 - v2);
+	self->tr1 = triangle_z_new(u2, v2, u3 - u2, u1 - u2, v1 - v2);
     } else if (v3 == v1) {
-	self->tr1 = triangle_z_new(self->world, u3, v3, u1 - u3, u2 - u3, v2 - v3);
+	self->tr1 = triangle_z_new(u3, v3, u1 - u3, u2 - u3, v2 - v3);
     } else {
 	/*
 	 *           * pa
@@ -713,47 +717,53 @@ static iPoint *triangle_each(Triangle *self)
 	a = (ua - ub) / (va - vb);
 	b = (ub*va - ua*vb) / (va - vb);
 	dx = a * vx + b - ux;
-	self->tr1 = triangle_z_new(self->world, ux, vx, dx, ua - ux, va - vx);
-	self->tr2 = triangle_z_new(self->world, ux, vx, dx, ub - ux, vb - vx);
+	self->tr1 = triangle_z_new(ux, vx, dx, ua - ux, va - vx);
+	self->tr2 = triangle_z_new(ux, vx, dx, ub - ux, vb - vx);
     }
     assert(self->tr1 != NULL);
 
-    p1 = triangle_z_each(self->tr1);
+    ret1 = triangle_z_each(self->tr1, &p1);
     if (self->tr2 != NULL) {
-	p2 = triangle_z_each(self->tr2);
+	ret2 = triangle_z_each(self->tr2, &p2);
     }
     ipoint_ary = ipoint_ary_new();
-    for (; p1 != NULL; p1 = triangle_z_each(self->tr1))
+    for (; ret1; ret1 = triangle_z_each(self->tr1, &p1)) {
+	if (p1 == NULL)
+	    continue;
 	ipoint_ary_push(ipoint_ary, *triangle_each2(self, p1));
+    }
     if (self->tr2 != NULL) {
-	for (; p2 != NULL; p2 = triangle_z_each(self->tr2))
+	for (; ret2; ret2 = triangle_z_each(self->tr2, &p2)) {
+	    if (p1 == NULL)
+		continue;
 	    ipoint_ary_push(ipoint_ary, *triangle_each2(self, p2));
+	}
     }
     self->each = each_new(ipoint_ary);
 
-    return each_each(self->each);
+    return each_each(self->each, pp);
 }
 
 static void triangle_offset(Triangle *self)
 {
     switch (self->axis) {
     case AXIS_X:
-	self->du2 -= self->world->dy;
-	self->du2 -= self->world->dz;
-	self->du3 -= self->world->dy;
-	self->du3 -= self->world->dz;
+	self->du2 -= sim->world->dy;
+	self->du2 -= sim->world->dz;
+	self->du3 -= sim->world->dy;
+	self->du3 -= sim->world->dz;
 	break;
     case AXIS_Y:
-	self->du2 -= self->world->dz;
-	self->dv2 -= self->world->dx;
-	self->du3 -= self->world->dz;
-	self->dv3 -= self->world->dx;
+	self->du2 -= sim->world->dz;
+	self->dv2 -= sim->world->dx;
+	self->du3 -= sim->world->dz;
+	self->dv3 -= sim->world->dx;
 	break;
     case AXIS_Z:
-	self->du2 -= self->world->dx;
-	self->dv2 -= self->world->dy;
-	self->du3 -= self->world->dx;
-	self->dv3 -= self->world->dy;
+	self->du2 -= sim->world->dx;
+	self->dv2 -= sim->world->dy;
+	self->du3 -= sim->world->dx;
+	self->dv3 -= sim->world->dy;
 	break;
     default:
 	bug("unknow axis %d", self->axis);
@@ -762,7 +772,7 @@ static void triangle_offset(Triangle *self)
 
 /* Ellipse */
 
-Ellipse *ellipse_new(World *world, double x, double y, double z, int axis, double ru, double rv)
+Ellipse *ellipse_new(double x, double y, double z, int axis, double ru, double rv)
 {
     Ellipse *self;
 
@@ -770,7 +780,6 @@ Ellipse *ellipse_new(World *world, double x, double y, double z, int axis, doubl
 	warn_exit("length is negative for Ellipse");
 
     self = EALLOC(Ellipse);
-    self->world = world;
     self->x = x;
     self->y = y;
     self->z = z;
@@ -838,43 +847,43 @@ static void ellipse_ipoint_ary_add(Ellipse *self, iPoint_ary *ipoint_ary, int ax
     }
 }
 
-static iPoint *ellipse_each(Ellipse *self)
+static int ellipse_each(Ellipse *self, iPoint **pp)
 {
     int uc, vc, wc, ru, rv;
     int ui, vi, ri, u1, v1;
     iPoint_ary *ipoint_ary;
 
     if (self->each != NULL && self->each->index >= 0)
-	return each_each(self->each);
+	return each_each(self->each, pp);
 
     switch (self->axis) {
     case AXIS_X:
-	uc = iround((self->y - self->world->y0) / self->world->dy);
-	vc = iround((self->z - self->world->z0) / self->world->dz);
-	wc = iround((self->x - self->world->x0) / self->world->dx);
-	ru = iround(self->ru / self->world->dy);
-	rv = iround(self->rv / self->world->dz);
+	uc = iround((self->y - sim->world->y0) / sim->world->dy);
+	vc = iround((self->z - sim->world->z0) / sim->world->dz);
+	wc = iround((self->x - sim->world->x0) / sim->world->dx);
+	ru = iround(self->ru / sim->world->dy);
+	rv = iround(self->rv / sim->world->dz);
 	break;
     case AXIS_Y:
-	uc = iround((self->x - self->world->x0) / self->world->dx);
-	vc = iround((self->z - self->world->z0) / self->world->dz);
-	wc = iround((self->y - self->world->y0) / self->world->dy);
-	ru = iround(self->ru / self->world->dx);
-	rv = iround(self->rv / self->world->dz);
+	uc = iround((self->x - sim->world->x0) / sim->world->dx);
+	vc = iround((self->z - sim->world->z0) / sim->world->dz);
+	wc = iround((self->y - sim->world->y0) / sim->world->dy);
+	ru = iround(self->ru / sim->world->dx);
+	rv = iround(self->rv / sim->world->dz);
 	break;
     case AXIS_Z:
-	uc = iround((self->x - self->world->x0) / self->world->dx);
-	vc = iround((self->y - self->world->y0) / self->world->dy);
-	wc = iround((self->z - self->world->z0) / self->world->dz);
-	ru = iround(self->ru / self->world->dx);
-	rv = iround(self->rv / self->world->dy);
+	uc = iround((self->x - sim->world->x0) / sim->world->dx);
+	vc = iround((self->y - sim->world->y0) / sim->world->dy);
+	wc = iround((self->z - sim->world->z0) / sim->world->dz);
+	ru = iround(self->ru / sim->world->dx);
+	rv = iround(self->rv / sim->world->dy);
 	break;
     default:
 	bug("unknown axis %d", self->axis);
     }
 
     if (ru == 0 && rv == 0)
-	return NULL;
+	return 0;
 
     ipoint_ary = ipoint_ary_new();
     if (ru > rv) {
@@ -903,23 +912,23 @@ static iPoint *ellipse_each(Ellipse *self)
 	}
     }
     self->each = each_new(ipoint_ary);
-    return each_each(self->each);
+    return each_each(self->each, pp);
 }
 
 static void ellipse_offset(Ellipse *self)
 {
     switch (self->axis) {
     case AXIS_X:
-	self->ru -= self->world->dy;
-	self->rv -= self->world->dz;
+	self->ru -= sim->world->dy;
+	self->rv -= sim->world->dz;
 	break;
     case AXIS_Y:
-	self->ru -= self->world->dz;
-	self->rv -= self->world->dx;
+	self->ru -= sim->world->dz;
+	self->rv -= sim->world->dx;
 	break;
     case AXIS_Z:
-	self->ru -= self->world->dx;
-	self->rv -= self->world->dy;
+	self->ru -= sim->world->dx;
+	self->rv -= sim->world->dy;
 	break;
     default:
 	bug("unknow axis %d", self->axis);
@@ -935,7 +944,7 @@ static void ellipse_edge(Ellipse *self)
 
 /* Circle */
 
-Circle *circle_new(World *world, double x, double y, double z, int axis, double r)
+Circle *circle_new(double x, double y, double z, int axis, double r)
 {
     Circle *self;
 
@@ -943,13 +952,13 @@ Circle *circle_new(World *world, double x, double y, double z, int axis, double 
 	warn_exit("length is negative for Circle");
 
     self = EALLOC(Circle);
-    self->ellipse = ellipse_new(world, x, y, z, axis, r, r);
+    self->ellipse = ellipse_new(x, y, z, axis, r, r);
     return self;
 }
 
-static iPoint *circle_each(Circle *self)
+static int circle_each(Circle *self, iPoint **pp)
 {
-    return ellipse_each(self->ellipse);
+    return ellipse_each(self->ellipse, pp);
 }
 
 static void circle_offset(Circle *self)
@@ -964,7 +973,7 @@ static void circle_edge(Circle *self)
 
 /* Polygon */
 
-Polygon *polygon_new(World *world, double x1, double y1, double z1,
+Polygon *polygon_new(double x1, double y1, double z1,
 	int axis, Vector2d_ary *dudv_ary)
 {
     Polygon *self;
@@ -972,7 +981,6 @@ Polygon *polygon_new(World *world, double x1, double y1, double z1,
     int index;
 
     self = EALLOC(Polygon);
-    self->world = world;
     self->axis = axis;
     self->vector2d_ary = vector2d_ary_new();
     switch (self->axis) {
@@ -1004,7 +1012,7 @@ Polygon *polygon_new(World *world, double x1, double y1, double z1,
     return self;
 }
 
-static iPoint *polygon_each(Polygon *self)
+static int polygon_each(Polygon *self, iPoint **pp)
 {
     Vector2d_ary *ary;
     int index;
@@ -1016,7 +1024,7 @@ static iPoint *polygon_each(Polygon *self)
     iPoint *p;
 
     if (self->each != NULL && self->each->index >= 0)
-	return each_each(self->each);
+	return each_each(self->each, pp);
 
     ary = vector2d_ary_new();
     for (index = 0; index < self->vector2d_ary->size; ++index) {
@@ -1058,9 +1066,11 @@ static iPoint *polygon_each(Polygon *self)
 		default:
 		    bug("unknow axis %d", self->axis);
 		}
-		tr = triangle_new(self->world, x1, y1, z1, self->axis,
+		tr = triangle_new(x1, y1, z1, self->axis,
 			vb.x - x1, vb.y - y1, vc.x - x1, vc.y - y1);
-		for (p = triangle_each(tr); p != NULL; p = triangle_each(tr)) {
+		while (triangle_each(tr, &p)) {
+		    if (p == NULL)
+			continue;
 		    ipoint_ary_push(ipoint_ary, *p);
 		}
 		vector2d_ary_delete_at(ary, 1);
@@ -1069,7 +1079,7 @@ static iPoint *polygon_each(Polygon *self)
 	vector2d_ary_rotate(ary, 1);
     }
     self->each = each_new(ipoint_ary);
-    return each_each(self->each);
+    return each_each(self->each, pp);
 }
 
 static void polygon_offset(Polygon *self)
@@ -1079,20 +1089,20 @@ static void polygon_offset(Polygon *self)
     switch (self->axis) {
     case AXIS_X:
 	for (index = 0; index < self->vector2d_ary->size; ++index) {
-	    self->vector2d_ary->ptr[index].x -= self->world->dy;
-	    self->vector2d_ary->ptr[index].y -= self->world->dz;
+	    self->vector2d_ary->ptr[index].x -= sim->world->dy;
+	    self->vector2d_ary->ptr[index].y -= sim->world->dz;
 	}
 	break;
     case AXIS_Y:
 	for (index = 0; index < self->vector2d_ary->size; ++index) {
-	    self->vector2d_ary->ptr[index].x -= self->world->dx;
-	    self->vector2d_ary->ptr[index].y -= self->world->dz;
+	    self->vector2d_ary->ptr[index].x -= sim->world->dx;
+	    self->vector2d_ary->ptr[index].y -= sim->world->dz;
 	}
 	break;
     case AXIS_Z:
 	for (index = 0; index < self->vector2d_ary->size; ++index) {
-	    self->vector2d_ary->ptr[index].x -= self->world->dx;
-	    self->vector2d_ary->ptr[index].y -= self->world->dy;
+	    self->vector2d_ary->ptr[index].x -= sim->world->dx;
+	    self->vector2d_ary->ptr[index].y -= sim->world->dy;
 	}
 	break;
     default:
@@ -1102,7 +1112,7 @@ static void polygon_offset(Polygon *self)
 
 /* Box */
 
-Box *box_new(World *world, double x, double y, double z, double xlen, double ylen, double zlen)
+Box *box_new(double x, double y, double z, double xlen, double ylen, double zlen)
 {
     Box *self;
     Obj *obj;
@@ -1111,16 +1121,15 @@ Box *box_new(World *world, double x, double y, double z, double xlen, double yle
 	warn_exit("length is negative for Box");
 
     self = EALLOC(Box);
-    self->world = world;
     obj = obj_new(OBJ_RECT);
-    obj->uobj.rect = rect_new(world, x, y, z, AXIS_Z, xlen, ylen);
-    self->sweep = sweep_new(self->world, AXIS_Z, zlen, obj);
+    obj->uobj.rect = rect_new(x, y, z, AXIS_Z, xlen, ylen);
+    self->sweep = sweep_new(AXIS_Z, zlen, obj);
     return self;
 }
 
-static iPoint *box_each(Box *self)
+static int box_each(Box *self, iPoint **pp)
 {
-    return sweep_each(self->sweep);
+    return sweep_each(self->sweep, pp);
 }
 
 static void box_offset(Box *self)
@@ -1139,39 +1148,37 @@ Obj *obj_new(int objtype)
     return self;
 }
 
-iPoint *obj_each(Obj *self)
+int obj_each(Obj *self, iPoint **pp)
 {
-    iPoint *p;
-
     switch (self->objtype) {
     case OBJ_RECT:
-	p = rect_each(self->uobj.rect);
+	return rect_each(self->uobj.rect, pp);
 	break;
     case OBJ_TRIANGLE:
-	p = triangle_each(self->uobj.triangle);
+	return triangle_each(self->uobj.triangle, pp);
 	break;
     case OBJ_ELLIPSE:
-	p = ellipse_each(self->uobj.ellipse);
+	return ellipse_each(self->uobj.ellipse, pp);
 	break;
     case OBJ_CIRCLE:
-	p = circle_each(self->uobj.circle);
+	return circle_each(self->uobj.circle, pp);
 	break;
     case OBJ_POLYGON:
-	p = polygon_each(self->uobj.polygon);
+	return polygon_each(self->uobj.polygon, pp);
 	break;
     case OBJ_BOX:
-	p = box_each(self->uobj.box);
+	return box_each(self->uobj.box, pp);
 	break;
     case OBJ_SWEEP:
-	p = sweep_each(self->uobj.sweep);
+	return sweep_each(self->uobj.sweep, pp);
 	break;
     case OBJ_EDGE:
-	p = edge_each(self->uobj.edge);
+	return edge_each(self->uobj.edge, pp);
 	break;
     default:
 	bug("unknown obj %d", self->objtype);
     }
-    return p;
+    return 0;	/* NOTREACHED */
 }
 
 void obj_offset(Obj *self)
