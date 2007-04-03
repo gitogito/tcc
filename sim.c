@@ -215,7 +215,7 @@ static void sim_set_region_heat(void)
 	while (obj_each(obj, &p)) {
 	    if (p == NULL)
 		continue;
-	    if (!world_inside_p(*p))
+	    if (!sim_active_p(*p))
 		continue;
 	    if (first) {
 		first = 0;
