@@ -7,7 +7,9 @@
 
 #define NELEMS(ary)	(sizeof(ary) / sizeof((ary)[0]))
 
-int iround(double x);
+typedef short IP_TYPE;
+
+IP_TYPE iround(double x);
 
 enum {
     DIR_LEFT = 0,
@@ -42,16 +44,16 @@ Vector2d_ary *vector2d_ary_new(void);
 void vector2d_ary_push(Vector2d_ary *self, Vector2d vector2d);
 
 typedef struct iPoint {
-    int i;
-    int j;
-    int k;
+    IP_TYPE i;
+    IP_TYPE j;
+    IP_TYPE k;
 } iPoint;
 
-iPoint get_ipoint(int i, int j, int k);
+iPoint get_ipoint(IP_TYPE i, IP_TYPE j, IP_TYPE k);
 iPoint ipoint_offset(iPoint ipoint, int dirx, int diry, int dirz);
 int ipoint_eq(iPoint ipoint1, iPoint ipoint2);
 iPoint ipoint_add(iPoint ipoint1, iPoint ipoint2);
-iPoint *ipoint_new(int i, int j, int k);
+iPoint *ipoint_new(IP_TYPE i, IP_TYPE j, IP_TYPE k);
 
 typedef iPoint *** Array3Dp;
 
@@ -100,9 +102,9 @@ struct World {
     double dx;
     double dy;
     double dz;
-    int ni;
-    int nj;
-    int nk;
+    IP_TYPE ni;
+    IP_TYPE nj;
+    IP_TYPE nk;
     Each *each;
 };
 
@@ -158,7 +160,7 @@ typedef struct Triangle {
     int axis;
     double u1;
     double v1;
-    int wi;
+    IP_TYPE wi;
     double du2;
     double dv2;
     double du3;

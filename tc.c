@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <float.h>
+#include "tc.h"
 #include "sim.h"
 #include "solvele.h"
 
@@ -57,10 +58,10 @@ int main(int argc, char **argv)
     char *fname;
     Sim *sim;
     Array3Dd ary;
-    int ni, nj, nk;
+    IP_TYPE ni, nj, nk;
     double x0, y0, z0;
     double dx, dy, dz;
-    int i, j, k;
+    IP_TYPE i, j, k;
     double x, y, z;
     double val;
     double min, max;

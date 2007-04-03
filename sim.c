@@ -82,7 +82,7 @@ World *world_new(double x0, double y0, double z0,
 static int world_each(iPoint **pp)
 {
     iPoint_ary *ipoint_ary;
-    int i, j, k;
+    IP_TYPE i, j, k;
 
     if (sim->world->each != NULL && sim->world->each->index >= 0)
 	return each_each(sim->world->each, pp);
@@ -111,7 +111,7 @@ int world_inside_p(iPoint ipoint)
 
 /* Config */
 
-static void config_parse(Config *self, char *fname)
+static void config_parse(char *fname)
 {
     extern int yyparse();
     extern int yydebug;
@@ -131,7 +131,7 @@ static void config_parse(Config *self, char *fname)
 	fclose(yyin);
 }
 
-static Config *config_new(char *fname)
+static Config *config_new(void)
 {
     Config *self;
 
@@ -256,17 +256,17 @@ static void sim_set_region(void)
     sim_set_region_lambda();
 }
 
-static void sim_set_matrix_const(int i, int j, int k)
+static void sim_set_matrix_const(IP_TYPE i, IP_TYPE j, IP_TYPE k)
 {
     if (sim->heat_ary[i][j][k] != NULL &&
 	    ipoint_eq(*(sim->heat_ipoint_ary[i][j][k]), get_ipoint(i, j, k)))
 	sim->coefs[i][j][k].cnst = *(sim->heat_ary[i][j][k]);
 }
 
-static void sim_set_matrix_coef0(int i, int j, int k, double dx, double dy, double dz)
+static void sim_set_matrix_coef0(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, double dy, double dz)
 {
     int idir, dir;
-    int ix, iy, iz;
+    IP_TYPE ix, iy, iz;
     int dirx, diry, dirz;
     iPoint pp, ipoint_l;
     double l;
@@ -327,12 +327,12 @@ static void sim_set_matrix_coef0(int i, int j, int k, double dx, double dy, doub
     }
 }
 
-static void sim_set_matrix_coef(int i, int j, int k, double dx, double dy, double dz)
+static void sim_set_matrix_coef(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, double dy, double dz)
 {
     int idir, dir;
     int dirx, diry, dirz;
     double value;
-    int ix, iy, iz;
+    IP_TYPE ix, iy, iz;
     iPoint pp, ipoint_l;
     double l;
 
@@ -441,8 +441,8 @@ Sim *sim_new(char *fname)
 
     if (opt_v)
 	warn("configuring ...");
-    sim->config = config_new(fname);
-    config_parse(sim->config, fname);
+    sim->config = config_new();
+    config_parse(fname);
 
     if (opt_v)
 	warn("setting region ...");

@@ -4,12 +4,12 @@
 #include "mem.h"
 #include "tc.h"
 
-int iround(double x)
+IP_TYPE iround(double x)
 {
     if (x < 0.0)
-	return (int) (x - 0.5);
+	return (IP_TYPE) (x - 0.5);
     else
-	return (int) (x + 0.5);
+	return (IP_TYPE) (x + 0.5);
 }
 
 static double min_d(double a, double b)
@@ -139,7 +139,7 @@ static void vector2d_ary_rotate(Vector2d_ary *self, int index)
 
 /* iPoint */
 
-iPoint get_ipoint(int i, int j, int k)
+iPoint get_ipoint(IP_TYPE i, IP_TYPE j, IP_TYPE k)
 {
     iPoint ipoint;
 
@@ -151,7 +151,7 @@ iPoint get_ipoint(int i, int j, int k)
 
 iPoint ipoint_offset(iPoint ipoint, int dirx, int diry, int dirz)
 {
-    int i, j, k;
+    IP_TYPE i, j, k;
 
     switch (dirx) {
     case DIR_LEFT:
@@ -206,7 +206,7 @@ iPoint ipoint_add(iPoint ipoint1, iPoint ipoint2)
 	    );
 }
 
-iPoint *ipoint_new(int i, int j, int k)
+iPoint *ipoint_new(IP_TYPE i, IP_TYPE j, IP_TYPE k)
 {
     iPoint *self;
 
@@ -266,9 +266,9 @@ Sweep *sweep_new(int axis, double len, Obj *obj)
 static int sweep_each(Sweep *self, iPoint **pp)
 {
     iPoint *p;
-    int leni;
+    IP_TYPE leni;
     iPoint_ary *ipoint_ary;
-    int i, j, k;
+    IP_TYPE i, j, k;
     int ret;
 
     if (self->each != NULL && self->each->index >= 0)
@@ -355,7 +355,7 @@ Edge *edge_new(Obj *obj)
     return self;
 }
 
-int edge_each(Edge *self, iPoint **pp)
+static int edge_each(Edge *self, iPoint **pp)
 {
     return obj_each(self->obj, pp);
 }
@@ -401,10 +401,10 @@ Rect *rect_new(double x, double y, double z, int axis, double len1, double len2)
 
 static int rect_each(Rect *self, iPoint **pp)
 {
-    int xi, yi, zi;
-    int len1, len2;
+    IP_TYPE xi, yi, zi;
+    IP_TYPE len1, len2;
     iPoint_ary *ipoint_ary;
-    int i, j, k;
+    IP_TYPE i, j, k;
 
     if (self->each != NULL && self->each->index >= 0)
 	return each_each(self->each, pp);
@@ -536,10 +536,10 @@ static Triangle_z *triangle_z_new(double x1, double y1, double dx, double dx2, d
 
 static int triangle_z_each(Triangle_z *self, iPoint **pp)
 {
-    int i1, j1, i2, j2, ix, jx;
+    IP_TYPE i1, j1, i2, j2, ix, jx;
     double a12, b12, ax2, bx2;
-    int i, j, i12, ix2;
-    int istart, iend, jstart, jend;
+    IP_TYPE i, j, i12, ix2;
+    IP_TYPE istart, iend, jstart, jend;
     iPoint_ary *ipoint_ary;
 
     if (self->each != NULL && self->each->index >= 0)
@@ -624,7 +624,7 @@ Triangle *triangle_new(double x1, double y1, double z1,
 
 static iPoint *triangle_each2(Triangle *self, iPoint *p)
 {
-    int i2, j2, k2;
+    IP_TYPE i2, j2, k2;
 
     assert(p->k == 0);
     switch (self->axis) {
@@ -792,9 +792,9 @@ Ellipse *ellipse_new(double x, double y, double z, int axis, double ru, double r
 }
 
 static void ellipse_ipoint_ary_add(Ellipse *self, iPoint_ary *ipoint_ary, int axis,
-	int wc, int u1, int u2, int v)
+	IP_TYPE wc, IP_TYPE u1, IP_TYPE u2, IP_TYPE v)
 {
-    int u;
+    IP_TYPE u;
     iPoint ipoint;
 
     if (self->edge) {
@@ -849,8 +849,8 @@ static void ellipse_ipoint_ary_add(Ellipse *self, iPoint_ary *ipoint_ary, int ax
 
 static int ellipse_each(Ellipse *self, iPoint **pp)
 {
-    int uc, vc, wc, ru, rv;
-    int ui, vi, ri, u1, v1;
+    IP_TYPE uc, vc, wc, ru, rv;
+    IP_TYPE ui, vi, ri, u1, v1;
     iPoint_ary *ipoint_ary;
 
     if (self->each != NULL && self->each->index >= 0)
@@ -889,8 +889,8 @@ static int ellipse_each(Ellipse *self, iPoint **pp)
     if (ru > rv) {
 	ui = ri = ru;  vi = 0;
 	while (ui >= vi) {
-	    u1 = (int)((long)ui * rv / ru);
-	    v1 = (int)((long)vi * rv / ru);
+	    u1 = (IP_TYPE)((long)ui * rv / ru);
+	    v1 = (IP_TYPE)((long)vi * rv / ru);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc - v1);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - ui, uc + ui, vc + v1);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - vi, uc + vi, vc - u1);
@@ -901,8 +901,8 @@ static int ellipse_each(Ellipse *self, iPoint **pp)
     } else {
 	ui = ri = rv;  vi = 0;
 	while (ui >= vi) {
-	    u1 = (int)((long)ui * ru / rv);
-	    v1 = (int)((long)vi * ru / rv);
+	    u1 = (IP_TYPE)((long)ui * ru / rv);
+	    v1 = (IP_TYPE)((long)vi * ru / rv);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc - vi);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - u1, uc + u1, vc + vi);
 	    ellipse_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc - v1, uc + v1, vc - ui);
