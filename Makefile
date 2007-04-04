@@ -6,7 +6,7 @@ DEP_COMAMND = gcc -MM $(SRCS)
 
 CC = gcc
 CFLAGS = -g -Wall -O2 -Wno-uninitialized -I/usr/include/ufsparse
-LIBS = -lgc -lm -lumfpack -lamd
+LIBS = -lm -lumfpack -lamd
 
 TARGET = a.out
 SRCS = tc.c sim.c obj.c mem.c solvele.c sparse_matrix.c y.tab.c lex.yy.c
