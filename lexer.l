@@ -10,6 +10,8 @@ extern int yydebug;
 long lineno = 1;
 %}
 
+%option nounput
+
 ws	[ \t]+
 word	[a-zA-Z_][a-zA-Z_0-9]*
 digit	[0-9]
