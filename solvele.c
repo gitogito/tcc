@@ -101,10 +101,13 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 	    eps = eps_sor;
 	else
 	    eps = EPS;
-	if (opt_o)
+	if (opt_o) {
 	    omega = omega_sor;
-	else
+	} else {
 	    omega = 2.0 / (1.0 + sqrt(1.0 - 1.0/3.0 * (cos(M_PI / ni) + cos(M_PI / nj) + cos(M_PI / nk))));
+	    if (omega < 1.9)
+		omega = 1.9;
+	}
 	if (opt_v) {
 	    warn("SOR epsilon is %g", eps);
 	    warn("SOR relaxation factor is %g", omega);
