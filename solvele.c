@@ -59,6 +59,81 @@ void solvele_print_vector(Solvele *self)
     dvec_print(self->vec);
 }
 
+static void sor(double *u, int size, int ni, int nj, int nk, int *ap, int *ai, double *ax, double *pb)
+{
+    static char rotate[] = "|/-\\";
+    int i, j, ii, index, pi;
+    int ok;
+    double eps, omega, v, c0, new_val, old_val, comp;
+
+    if (opt_v)
+        warn("solving using SOR method ...");
+    for (i = 0; i < size; ++i) {
+        u[i] = 0.0;
+    }
+    if (opt_e)
+        eps = eps_sor;
+    else
+        eps = EPS;
+    if (opt_o) {
+        omega = omega_sor;
+    } else {
+        omega = 2.0 / (1.0 + sqrt(1.0 - 1.0/3.0 * (cos(M_PI / ni) + cos(M_PI / nj) + cos(M_PI / nk))));
+        if (omega < 1.9)
+            omega = 1.9;
+    }
+    if (opt_v) {
+        warn("SOR epsilon is %g", eps);
+        warn("SOR relaxation factor is %g", omega);
+    }
+    for (ii = 0; /* do nothing */; ++ii) {
+        for (index = 0; index < N; ++index) {
+            for (i = 0; i < size; ++i) {
+                v = pb[i];
+                for (pi = ap[i]; pi < ap[i + 1]; ++pi) {
+                    j = ai[pi];
+                    if (i == j)
+                        c0 = ax[pi];
+                    else
+                        v -= ax[pi] * u[j];
+                }
+                new_val = v / c0;
+                old_val = u[i];
+                u[i] += omega * (new_val - old_val);
+            }
+        }
+
+        ok = 1;
+        for (i = 0; i < size; ++i) {
+            v = pb[i];
+            for (pi = ap[i]; pi < ap[i + 1]; ++pi) {
+                j = ai[pi];
+                if (i == j)
+                    c0 = ax[pi];
+                else
+                    v -= ax[pi] * u[j];
+            }
+            new_val = v / c0;
+            old_val = u[i];
+            u[i] += omega * (new_val - old_val);
+            if (ok && (N + 1) * fabs(new_val) > DBL_EPSILON) {
+                comp = eps / (fabs((new_val - old_val) / ((N + 1) * new_val)));
+                if (comp < 1.0) {
+                    ok = 0;
+                    if (opt_v)
+                        fprintf(stderr, "\r%c %5.1f%%",
+                                rotate[ii % (sizeof(rotate) - 1)], 100.0 * comp);
+                }
+            }
+        }
+        if (ok) {
+            if (opt_v)
+                fprintf(stderr, "\rfinished\n");
+            break;
+        }
+    }
+}
+
 double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 {
     int *ap;
@@ -69,13 +144,6 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 #ifdef HAVE_UMFPACK_H
     void *Symbolic, *Numeric;
 #endif
-    double eps, omega;
-    int size, ok, pi, i, j;
-    double v, old_val, new_val, c0;
-    int index;
-    int ii;
-    double comp;
-    static char rotate[] = "|/-\\";
 
     get_crs(self->mat, self->vec, &ap, &ai, &ax, &pb);
 
@@ -94,75 +162,8 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 	warn_exit("solver with UMFPACK is not implemented in solvele_solve");
 #endif
     } else {
-	if (opt_v)
-	    warn("solving using SOR method ...");
-	size = self->size;
-	for (i = 0; i < size; ++i) {
-	    u[i] = 0.0;
-	}
-	if (opt_e)
-	    eps = eps_sor;
-	else
-	    eps = EPS;
-	if (opt_o) {
-	    omega = omega_sor;
-	} else {
-	    omega = 2.0 / (1.0 + sqrt(1.0 - 1.0/3.0 * (cos(M_PI / ni) + cos(M_PI / nj) + cos(M_PI / nk))));
-	    if (omega < 1.9)
-		omega = 1.9;
-	}
-	if (opt_v) {
-	    warn("SOR epsilon is %g", eps);
-	    warn("SOR relaxation factor is %g", omega);
-	}
-	for (ii = 0; /* do nothing */; ++ii) {
-	    for (index = 0; index < N; ++index) {
-		for (i = 0; i < size; ++i) {
-		    v = pb[i];
-		    for (pi = ap[i]; pi < ap[i + 1]; ++pi) {
-			j = ai[pi];
-			if (i == j)
-			    c0 = ax[pi];
-			else
-			    v -= ax[pi] * u[j];
-		    }
-		    new_val = v / c0;
-		    old_val = u[i];
-		    u[i] += omega * (new_val - old_val);
-		}
-	    }
-
-	    ok = 1;
-	    for (i = 0; i < size; ++i) {
-		v = pb[i];
-		for (pi = ap[i]; pi < ap[i + 1]; ++pi) {
-		    j = ai[pi];
-		    if (i == j)
-			c0 = ax[pi];
-		    else
-			v -= ax[pi] * u[j];
-		}
-		new_val = v / c0;
-		old_val = u[i];
-		u[i] += omega * (new_val - old_val);
-		if (ok && (N + 1) * fabs(new_val) > DBL_EPSILON) {
-                    comp = eps / (fabs((new_val - old_val) / ((N + 1) * new_val)));
-                    if (comp < 1.0) {
-                        ok = 0;
-                        if (opt_v)
-                            fprintf(stderr, "\r%c %5.1f%%",
-                                    rotate[ii % (sizeof(rotate) - 1)], 100.0 * comp);
-                    }
-                }
-	    }
-	    if (ok) {
-                if (opt_v)
-                    fprintf(stderr, "\rfinished\n");
-		break;
-            }
-	}
+        sor(u, self->size, ni, nj, nk, ap, ai, ax, pb);
     }
-
     return u;
 }
 
