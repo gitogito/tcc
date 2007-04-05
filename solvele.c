@@ -73,7 +73,9 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
     int size, ok, pi, i, j;
     double v, old_val, new_val, c0;
     int index;
+    int ii;
     double comp;
+    static char rotate[] = "|/-\\";
 
     get_crs(self->mat, self->vec, &ap, &ai, &ax, &pb);
 
@@ -113,7 +115,7 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 	    warn("SOR epsilon is %g", eps);
 	    warn("SOR relaxation factor is %g", omega);
 	}
-	for (;;) {
+	for (ii = 0; /* do nothing */; ++ii) {
 	    for (index = 0; index < N; ++index) {
 		for (i = 0; i < size; ++i) {
 		    v = pb[i];
@@ -148,7 +150,8 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
                     if (comp < 1.0) {
                         ok = 0;
                         if (opt_v)
-                            fprintf(stderr, "\r%5.1f%%", 100.0 * comp);
+                            fprintf(stderr, "\r%c %5.1f%%",
+                                    rotate[ii % (sizeof(rotate) - 1)], 100.0 * comp);
                     }
                 }
 	    }
