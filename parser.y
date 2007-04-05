@@ -257,85 +257,85 @@ obj:
 	$$->uobj.box = box_new($2.x, $2.y, $2.z, $4.x, $4.y, $4.z);
     }
 
-  | TK_RECT point ',' TK_SYMBOL ',' vector2d
+  | TK_RECT TK_SYMBOL ',' point ',' vector2d
     {
 	int axis;
 
 	$$ = obj_new(OBJ_RECT);
-	if (strcmp($4, ":X") == 0)
+	if (strcmp($2, ":X") == 0)
 	    axis = AXIS_X;
-	else if (strcmp($4, ":Y") == 0)
+	else if (strcmp($2, ":Y") == 0)
 	    axis = AXIS_Y;
-	else if (strcmp($4, ":Z") == 0)
+	else if (strcmp($2, ":Z") == 0)
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.rect = rect_new($2.x, $2.y, $2.z, axis, $6.x, $6.y);
+	$$->uobj.rect = rect_new($4.x, $4.y, $4.z, axis, $6.x, $6.y);
     }
 
-  | TK_TRIANGLE point ',' TK_SYMBOL ',' vector2d ',' vector2d
+  | TK_TRIANGLE TK_SYMBOL ',' point ',' vector2d ',' vector2d
     {
 	int axis;
 
 	$$ = obj_new(OBJ_TRIANGLE);
-	if (strcmp($4, ":X") == 0)
+	if (strcmp($2, ":X") == 0)
 	    axis = AXIS_X;
-	else if (strcmp($4, ":Y") == 0)
+	else if (strcmp($2, ":Y") == 0)
 	    axis = AXIS_Y;
-	else if (strcmp($4, ":Z") == 0)
+	else if (strcmp($2, ":Z") == 0)
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.triangle = triangle_new($2.x, $2.y, $2.z,
+	$$->uobj.triangle = triangle_new($4.x, $4.y, $4.z,
 	    axis, $6.x, $6.y, $8.x, $8.y);
     }
 
-  | TK_CIRCLE point ',' TK_SYMBOL ',' expr
+  | TK_CIRCLE TK_SYMBOL ',' point ',' expr
     {
 	int axis;
 
 	$$ = obj_new(OBJ_CIRCLE);
-	if (strcmp($4, ":X") == 0)
+	if (strcmp($2, ":X") == 0)
 	    axis = AXIS_X;
-	else if (strcmp($4, ":Y") == 0)
+	else if (strcmp($2, ":Y") == 0)
 	    axis = AXIS_Y;
-	else if (strcmp($4, ":Z") == 0)
+	else if (strcmp($2, ":Z") == 0)
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.circle = circle_new($2.x, $2.y, $2.z, axis, $6);
+	$$->uobj.circle = circle_new($4.x, $4.y, $4.z, axis, $6);
     }
 
-  | TK_ELLIPSE point ',' TK_SYMBOL ',' expr ',' expr
+  | TK_ELLIPSE TK_SYMBOL ',' point ',' expr ',' expr
     {
 	int axis;
 
 	$$ = obj_new(OBJ_ELLIPSE);
-	if (strcmp($4, ":X") == 0)
+	if (strcmp($2, ":X") == 0)
 	    axis = AXIS_X;
-	else if (strcmp($4, ":Y") == 0)
+	else if (strcmp($2, ":Y") == 0)
 	    axis = AXIS_Y;
-	else if (strcmp($4, ":Z") == 0)
+	else if (strcmp($2, ":Z") == 0)
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.ellipse = ellipse_new($2.x, $2.y, $2.z, axis, $6, $8);
+	$$->uobj.ellipse = ellipse_new($4.x, $4.y, $4.z, axis, $6, $8);
     }
 
-  | TK_POLYGON point ',' TK_SYMBOL ',' vector2d_ary
+  | TK_POLYGON TK_SYMBOL ',' point ',' vector2d_ary
     {
 	int axis;
 
 	$$ = obj_new(OBJ_POLYGON);
-	if (strcmp($4, ":X") == 0)
+	if (strcmp($2, ":X") == 0)
 	    axis = AXIS_X;
-	else if (strcmp($4, ":Y") == 0)
+	else if (strcmp($2, ":Y") == 0)
 	    axis = AXIS_Y;
-	else if (strcmp($4, ":Z") == 0)
+	else if (strcmp($2, ":Z") == 0)
 	    axis = AXIS_Z;
 	else
 	    yyerror("unknown axis");
-	$$->uobj.polygon = polygon_new($2.x, $2.y, $2.z, axis, $6);
+	$$->uobj.polygon = polygon_new($4.x, $4.y, $4.z, axis, $6);
     }
 
   | TK_SWEEP TK_SYMBOL ',' expr ',' obj
