@@ -73,6 +73,7 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
     int size, ok, pi, i, j;
     double v, old_val, new_val, c0;
     int index;
+    double comp;
 
     get_crs(self->mat, self->vec, &ap, &ai, &ax, &pb);
 
@@ -142,14 +143,20 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 		new_val = v / c0;
 		old_val = u[i];
 		u[i] += omega * (new_val - old_val);
-		if (ok && fabs(new_val) > DBL_EPSILON &&
-			fabs(new_val - old_val) > (N + 1) * eps * fabs(new_val))
-		{
-		    ok = 0;
-		}
+		if (ok && (N + 1) * fabs(new_val) > DBL_EPSILON) {
+                    comp = eps / (fabs((new_val - old_val) / ((N + 1) * new_val)));
+                    if (comp < 1.0) {
+                        ok = 0;
+                        if (opt_v)
+                            fprintf(stderr, "\r%5.1f%%", 100.0 * comp);
+                    }
+                }
 	    }
-	    if (ok)
+	    if (ok) {
+                if (opt_v)
+                    fprintf(stderr, "\rfinished\n");
 		break;
+            }
 	}
     }
 
