@@ -250,7 +250,7 @@ Sweep *sweep_new(int axis, double len, Obj *obj)
 {
     Sweep *self;
 
-    if (len <= 0.0)
+    if (len < 0.0)
 	warn_exit("length is negative for Sweep");
     if (obj_dim(obj) != 2)
 	warn_exit("sweep can't take a %dD object", obj_dim(obj));
@@ -337,7 +337,7 @@ static void sweep_offset(Sweep *self)
     default:
 	bug("unknow axis %d", self->axis);
     }
-    if (self->len <= 0.0)
+    if (self->len < 0.0)
 	warn_exit("length of sweep becomes negative");
 }
 
@@ -384,7 +384,7 @@ Rect *rect_new(double x, double y, double z, int axis, double len1, double len2)
     if (!ok)
 	bug("unknown axis %d", axis);
 
-    if (len1 <= 0.0 || len2 <= 0.0)
+    if (len1 < 0.0 || len2 < 0.0)
 	warn_exit("length is negative for Rect");
 
     self = EALLOC(Rect);
@@ -500,7 +500,7 @@ static void rect_offset(Rect *self)
     default:
 	bug("unknow axis %d", self->axis);
     }
-    if (self->len1 <= 0.0 || self->len2 <= 0.0)
+    if (self->len1 < 0.0 || self->len2 < 0.0)
 	warn_exit("length of rect becomes negative");
 }
 
@@ -776,7 +776,7 @@ Ellipse *ellipse_new(double x, double y, double z, int axis, double ru, double r
 {
     Ellipse *self;
 
-    if (ru <= 0.0 || rv <= 0.0)
+    if (ru < 0.0 || rv < 0.0)
 	warn_exit("length is negative for Ellipse");
 
     self = EALLOC(Ellipse);
@@ -933,7 +933,7 @@ static void ellipse_offset(Ellipse *self)
     default:
 	bug("unknow axis %d", self->axis);
     }
-    if (self->ru <= 0.0 || self->rv <= 0.0)
+    if (self->ru < 0.0 || self->rv < 0.0)
 	warn_exit("length of ellipse becomes negative");
 }
 
@@ -948,7 +948,7 @@ Circle *circle_new(double x, double y, double z, int axis, double r)
 {
     Circle *self;
 
-    if (r <= 0.0)
+    if (r < 0.0)
 	warn_exit("length is negative for Circle");
 
     self = EALLOC(Circle);
@@ -1117,7 +1117,7 @@ Box *box_new(double x, double y, double z, double xlen, double ylen, double zlen
     Box *self;
     Obj *obj;
 
-    if (xlen <= 0.0 || ylen <= 0.0 || zlen <= 0.0)
+    if (xlen < 0.0 || ylen < 0.0 || zlen < 0.0)
 	warn_exit("length is negative for Box");
 
     self = EALLOC(Box);
