@@ -237,7 +237,7 @@ int each_each(Each *self, iPoint **pp)
 	*pp = &(self->ipoint_ary->ptr[self->index++]);
 	return 1;
     } else {
-	self->index = -1;
+	self->index = 0;
 	return 0;
     }
 }
