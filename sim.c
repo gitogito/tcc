@@ -256,14 +256,14 @@ static void sim_set_region(void)
     sim_set_region_lambda();
 }
 
-static void sim_set_matrix_const(IP_TYPE i, IP_TYPE j, IP_TYPE k)
+static void sim_set_matrix_const(iPoint *p)
 {
-    if (sim->heat_ary[i][j][k] != NULL &&
-	    ipoint_eq(*(sim->heat_ipoint_ary[i][j][k]), get_ipoint(i, j, k)))
-	sim->coefs[i][j][k].cnst = *(sim->heat_ary[i][j][k]);
+    if (sim->heat_ary[p->i][p->j][p->k] != NULL &&
+	    ipoint_eq(*(sim->heat_ipoint_ary[p->i][p->j][p->k]), *p))
+	sim->coefs[p->i][p->j][p->k].cnst = *(sim->heat_ary[p->i][p->j][p->k]);
 }
 
-static void sim_set_matrix_coef0(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, double dy, double dz)
+static void sim_set_matrix_coef0(iPoint *p, double dx, double dy, double dz)
 {
     int idir, dir;
     IP_TYPE ix, iy, iz;
@@ -273,7 +273,7 @@ static void sim_set_matrix_coef0(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, dou
 
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
-	if (!sim_active_p(ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dir])))
+	if (!sim_active_p(ipoint_add(*p, sim->dir_to_ipoint[dir])))
 	    continue;
 	switch (dir) {
 	case DIR_LEFT: case DIR_RIGHT:
@@ -281,12 +281,12 @@ static void sim_set_matrix_coef0(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, dou
 		diry = dir_y[iy];
 		for (iz = 0; iz < NELEMS(dir_z); ++iz) {
 		    dirz = dir_z[iz];
-		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[diry]);
+		    pp = ipoint_add(*p, sim->dir_to_ipoint[diry]);
 		    pp = ipoint_add(pp, sim->dir_to_ipoint[dirz]);
 		    if (sim_active_p(pp)) {
-			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dir, diry, dirz);
+			ipoint_l = ipoint_offset(*p, dir, diry, dirz);
 			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
-			sim->coefs[i][j][k].coef0 += -l/dx*(dy/2)*(dz/2);
+			sim->coefs[p->i][p->j][p->k].coef0 += -l/dx*(dy/2)*(dz/2);
 		    }
 		}
 	    }
@@ -296,12 +296,12 @@ static void sim_set_matrix_coef0(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, dou
 		dirz = dir_z[iz];
 		for (ix = 0; ix < NELEMS(dir_x); ++ix) {
 		    dirx = dir_x[ix];
-		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dirz]);
+		    pp = ipoint_add(*p, sim->dir_to_ipoint[dirz]);
 		    pp = ipoint_add(pp, sim->dir_to_ipoint[dirx]);
 		    if (sim_active_p(pp)) {
-			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dirx, dir, dirz);
+			ipoint_l = ipoint_offset(*p, dirx, dir, dirz);
 			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
-			sim->coefs[i][j][k].coef0 += -l/dy*(dz/2)*(dx/2);
+			sim->coefs[p->i][p->j][p->k].coef0 += -l/dy*(dz/2)*(dx/2);
 		    }
 		}
 	    }
@@ -311,12 +311,12 @@ static void sim_set_matrix_coef0(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, dou
 		dirx = dir_x[ix];
 		for (iy = 0; iy < NELEMS(dir_y); ++iy) {
 		    diry = dir_y[iy];
-		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dirx]);
+		    pp = ipoint_add(*p, sim->dir_to_ipoint[dirx]);
 		    pp = ipoint_add(pp, sim->dir_to_ipoint[diry]);
 		    if (sim_active_p(pp)) {
-			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dirx, diry, dir);
+			ipoint_l = ipoint_offset(*p, dirx, diry, dir);
 			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
-			sim->coefs[i][j][k].coef0 += -l/dz*(dx/2)*(dy/2);
+			sim->coefs[p->i][p->j][p->k].coef0 += -l/dz*(dx/2)*(dy/2);
 		    }
 		}
 	    }
@@ -327,7 +327,7 @@ static void sim_set_matrix_coef0(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, dou
     }
 }
 
-static void sim_set_matrix_coef(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, double dy, double dz)
+static void sim_set_matrix_coef(iPoint *p, double dx, double dy, double dz)
 {
     int idir, dir;
     int dirx, diry, dirz;
@@ -338,13 +338,13 @@ static void sim_set_matrix_coef(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, doub
 
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
-	if (!sim_active_p(ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dir]))) {
-	    sim->coefs[i][j][k].coef[dir].index = -1;
+	if (!sim_active_p(ipoint_add(*p, sim->dir_to_ipoint[dir]))) {
+	    sim->coefs[p->i][p->j][p->k].coef[dir].index = -1;
 	    continue;
 	}
 
-	sim->coefs[i][j][k].coef[dir].index =
-	    world_to_index(ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dir]));
+	sim->coefs[p->i][p->j][p->k].coef[dir].index =
+	    world_to_index(ipoint_add(*p, sim->dir_to_ipoint[dir]));
 	value = 0.0;
 	switch (dir) {
 	case DIR_LEFT: case DIR_RIGHT:
@@ -352,10 +352,10 @@ static void sim_set_matrix_coef(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, doub
 		diry = dir_y[iy];
 		for (iz = 0; iz < NELEMS(dir_z); ++iz) {
 		    dirz = dir_z[iz];
-		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[diry]);
+		    pp = ipoint_add(*p, sim->dir_to_ipoint[diry]);
 		    pp = ipoint_add(pp, sim->dir_to_ipoint[dirz]);
 		    if (sim_active_p(pp)) {
-			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dir, diry, dirz);
+			ipoint_l = ipoint_offset(*p, dir, diry, dirz);
 			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
 			value += l/dx*(dy/2)*(dz/2);
 		    }
@@ -367,10 +367,10 @@ static void sim_set_matrix_coef(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, doub
 		dirz = dir_z[iz];
 		for (ix = 0; ix < NELEMS(dir_x); ++ix) {
 		    dirx = dir_x[ix];
-		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dirz]);
+		    pp = ipoint_add(*p, sim->dir_to_ipoint[dirz]);
 		    pp = ipoint_add(pp, sim->dir_to_ipoint[dirx]);
 		    if (sim_active_p(pp)) {
-			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dirx, dir, dirz);
+			ipoint_l = ipoint_offset(*p, dirx, dir, dirz);
 			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
 			value += l/dy*(dz/2)*(dx/2);
 		    }
@@ -382,10 +382,10 @@ static void sim_set_matrix_coef(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, doub
 		dirx = dir_x[ix];
 		for (iy = 0; iy < NELEMS(dir_y); ++iy) {
 		    diry = dir_y[iy];
-		    pp = ipoint_add(get_ipoint(i, j, k), sim->dir_to_ipoint[dirx]);
+		    pp = ipoint_add(*p, sim->dir_to_ipoint[dirx]);
 		    pp = ipoint_add(pp, sim->dir_to_ipoint[diry]);
 		    if (sim_active_p(pp)) {
-			ipoint_l = ipoint_offset(get_ipoint(i, j, k), dirx, diry, dir);
+			ipoint_l = ipoint_offset(*p, dirx, diry, dir);
 			l = sim->lambda_ary[ipoint_l.i][ipoint_l.j][ipoint_l.k];
 			value += l/dz*(dx/2)*(dy/2);
 		    }
@@ -395,7 +395,7 @@ static void sim_set_matrix_coef(IP_TYPE i, IP_TYPE j, IP_TYPE k, double dx, doub
 	default:
 	    bug("sim_set_matrix_coef");
 	}
-	sim->coefs[i][j][k].coef[dir].value = value;
+	sim->coefs[p->i][p->j][p->k].coef[dir].value = value;
     }
 }
 
@@ -421,9 +421,9 @@ static void sim_set_matrix(void)
 	if (sim->fix_ary[p->i][p->j][p->k] != NULL)
 	    continue;
 
-	sim_set_matrix_const(p->i, p->j, p->k);
-	sim_set_matrix_coef0(p->i, p->j, p->k, dx, dy, dz);
-	sim_set_matrix_coef(p->i, p->j, p->k, dx, dy, dz);
+	sim_set_matrix_const(p);
+	sim_set_matrix_coef0(p, dx, dy, dz);
+	sim_set_matrix_coef(p, dx, dy, dz);
     }
 }
 
