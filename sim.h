@@ -50,9 +50,9 @@ typedef struct iPoint {
 } iPoint;
 
 iPoint get_ipoint(IP_TYPE i, IP_TYPE j, IP_TYPE k);
-iPoint ipoint_offset(iPoint ipoint, int dirx, int diry, int dirz);
-int ipoint_eq(iPoint ipoint1, iPoint ipoint2);
-iPoint ipoint_add(iPoint ipoint1, iPoint ipoint2);
+iPoint ipoint_offset(iPoint *ipoint, int dirx, int diry, int dirz);
+int ipoint_eq(iPoint *ipoint1, iPoint *ipoint2);
+iPoint ipoint_add(iPoint *ipoint1, iPoint *ipoint2);
 iPoint *ipoint_new(IP_TYPE i, IP_TYPE j, IP_TYPE k);
 
 typedef iPoint *** Array3Dp;
@@ -111,7 +111,7 @@ struct World {
 World *world_new(double x, double y, double z,
 	double xlen, double ylen, double zlen,
 	double dx, double dy, double dz);
-int world_inside_p(iPoint ipoint);
+int world_inside_p(iPoint *ipoint);
 
 enum {
     AXIS_X,
@@ -275,7 +275,7 @@ typedef struct Sim {
 
 extern Sim *sim;
 
-int sim_active_p(iPoint ipoint);
+int sim_active_p(iPoint *ipoint);
 Sim *sim_new(char *fname);
 Array3Dd sim_calc(void);
 

@@ -149,16 +149,16 @@ iPoint get_ipoint(IP_TYPE i, IP_TYPE j, IP_TYPE k)
     return ipoint;
 }
 
-iPoint ipoint_offset(iPoint ipoint, int dirx, int diry, int dirz)
+iPoint ipoint_offset(iPoint *ipoint, int dirx, int diry, int dirz)
 {
     IP_TYPE i, j, k;
 
     switch (dirx) {
     case DIR_LEFT:
-	i = ipoint.i - 1;
+	i = ipoint->i - 1;
 	break;
     case DIR_RIGHT:
-	i = ipoint.i;
+	i = ipoint->i;
 	break;
     default:
 	bug("unknown dir %d", dirx);
@@ -166,10 +166,10 @@ iPoint ipoint_offset(iPoint ipoint, int dirx, int diry, int dirz)
 
     switch (diry) {
     case DIR_FRONT:
-	j = ipoint.j - 1;
+	j = ipoint->j - 1;
 	break;
     case DIR_BACK:
-	j = ipoint.j;
+	j = ipoint->j;
 	break;
     default:
 	bug("unknown dir %d", diry);
@@ -177,10 +177,10 @@ iPoint ipoint_offset(iPoint ipoint, int dirx, int diry, int dirz)
 
     switch (dirz) {
     case DIR_BELOW:
-	k = ipoint.k - 1;
+	k = ipoint->k - 1;
 	break;
     case DIR_ABOVE:
-	k = ipoint.k;
+	k = ipoint->k;
 	break;
     default:
 	bug("unknown dir %d", dirz);
@@ -189,20 +189,20 @@ iPoint ipoint_offset(iPoint ipoint, int dirx, int diry, int dirz)
     return get_ipoint(i, j, k);
 }
 
-int ipoint_eq(iPoint ipoint1, iPoint ipoint2)
+int ipoint_eq(iPoint *ipoint1, iPoint *ipoint2)
 {
-    if (ipoint1.i == ipoint2.i && ipoint1.j == ipoint2.j && ipoint1.k == ipoint2.k)
+    if (ipoint1->i == ipoint2->i && ipoint1->j == ipoint2->j && ipoint1->k == ipoint2->k)
 	return 1;
     else
 	return 0;
 }
 
-iPoint ipoint_add(iPoint ipoint1, iPoint ipoint2)
+iPoint ipoint_add(iPoint *ipoint1, iPoint *ipoint2)
 {
     return get_ipoint(
-	    ipoint1.i + ipoint2.i,
-	    ipoint1.j + ipoint2.j,
-	    ipoint1.k + ipoint2.k
+	    ipoint1->i + ipoint2->i,
+	    ipoint1->j + ipoint2->j,
+	    ipoint1->k + ipoint2->k
 	    );
 }
 

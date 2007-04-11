@@ -146,7 +146,7 @@ int main(int argc, char **argv)
 	    y = y0 + dy * j;
 	    for (i = 0; i < ni; ++i) {
 		x = x0 + dx * i;
-		if (sim_active_p(get_ipoint(i, j, k))) {
+		if (sim_active_p(ipoint_new(i, j, k))) {
 		    val = ary[i][j][k];
 		    if (val > max)
 			max = val;
@@ -166,7 +166,7 @@ int main(int argc, char **argv)
 	    y = y0 + dy * j;
 	    for (i = 0; i < ni; ++i) {
 		x = x0 + dx * i;
-		if (sim_active_p(get_ipoint(i, j, k))) {
+		if (sim_active_p(ipoint_new(i, j, k))) {
 		    val = ary[i][j][k];
 		    act = 1;
 		} else {
