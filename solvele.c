@@ -64,12 +64,25 @@ static void sor(double *u, int size, int ni, int nj, int nk, int *ap, int *ai, d
     static char rotate[] = "|/-\\";
     int i, j, ii, index, pi;
     int ok;
-    double eps, omega, v, c0, new_val, old_val, comp;
+    double eps, omega, c0, new_val, old_val, comp;
 
     if (opt_v)
         warn("solving using SOR method ...");
     for (i = 0; i < size; ++i) {
         u[i] = 0.0;
+    }
+    /* matrix and vector elements are normalized */
+    for (i = 0; i < size; ++i) {
+	for (pi = ap[i]; pi < ap[i + 1]; ++pi) {
+	    j = ai[pi];
+	    if (i == j) {
+		c0 = ax[pi];
+		break;
+	    }
+	}
+	pb[i] /= c0;
+	for (pi = ap[i]; pi < ap[i + 1]; ++pi)
+	    ax[pi] /= c0;
     }
     if (opt_e)
         eps = eps_sor;
@@ -89,15 +102,12 @@ static void sor(double *u, int size, int ni, int nj, int nk, int *ap, int *ai, d
     for (ii = 0; /* do nothing */; ++ii) {
         for (index = 0; index < N; ++index) {
             for (i = 0; i < size; ++i) {
-                v = pb[i];
+                new_val = pb[i];
                 for (pi = ap[i]; pi < ap[i + 1]; ++pi) {
                     j = ai[pi];
-                    if (i == j)
-                        c0 = ax[pi];
-                    else
-                        v -= ax[pi] * u[j];
+                    if (i != j)
+                        new_val -= ax[pi] * u[j];
                 }
-                new_val = v / c0;
                 old_val = u[i];
                 u[i] += omega * (new_val - old_val);
             }
@@ -105,15 +115,12 @@ static void sor(double *u, int size, int ni, int nj, int nk, int *ap, int *ai, d
 
         ok = 1;
         for (i = 0; i < size; ++i) {
-            v = pb[i];
+            new_val = pb[i];
             for (pi = ap[i]; pi < ap[i + 1]; ++pi) {
                 j = ai[pi];
-                if (i == j)
-                    c0 = ax[pi];
-                else
-                    v -= ax[pi] * u[j];
+                if (i != j)
+                    new_val -= ax[pi] * u[j];
             }
-            new_val = v / c0;
             old_val = u[i];
             u[i] += omega * (new_val - old_val);
             if (ok && (N + 1) * fabs(new_val) > DBL_EPSILON) {
