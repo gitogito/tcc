@@ -1,6 +1,7 @@
 #include <stdio.h>
 #include "sparse_matrix.h"
 #include "mem.h"
+#include "tc.h"
 
 #define NTH	100
 
@@ -217,6 +218,7 @@ void get_crs(SparseMatrix *a0, DenseVector *b0,
     double *ax;
     double *b;
     int i, j, k, n;
+    double c0;
     SpMatElem *elem;
 
     *pap = EALLOCN(int, a0->n + 1);
@@ -233,24 +235,43 @@ void get_crs(SparseMatrix *a0, DenseVector *b0,
     n = 0;
     k = 0;
     for (i = 0; i < a0->n; ++i) {
+	/* get coef of diagonal element */
 	if (a0->rows[i].type == ROW_ARY) {
 	    for (j = 0; j < a0->n; ++j) {
-		if (a0->rows[i].urow.ary[j] != 0.0) {
+		if (i == j) {
+		    if (a0->rows[i].urow.ary[j] == 0.0)
+			warn_exit("diagonal element of matrix is zero");
+		    c0 = a0->rows[i].urow.ary[j];
+		}
+	    }
+	} else {
+	    for (elem = a0->rows[i].urow.list; elem != NULL; elem = elem->next) {
+		if (i == elem->idx) {
+		    c0 = elem->val;
+		}
+	    }
+	}
+
+	if (a0->rows[i].type == ROW_ARY) {
+	    for (j = 0; j < a0->n; ++j) {
+		if (i != j && a0->rows[i].urow.ary[j] != 0.0) {
 		    ++n;
 		    ai[k] = j;
-		    ax[k] = a0->rows[i].urow.ary[j];
+		    ax[k] = a0->rows[i].urow.ary[j] / c0;
 		    ++k;
 		}
 	    }
 	} else {
 	    for (elem = a0->rows[i].urow.list; elem != NULL; elem = elem->next) {
-		++n;
-		ai[k] = elem->idx;
-		ax[k] = elem->val;
-		++k;
+		if (i != elem->idx) {
+		    ++n;
+		    ai[k] = elem->idx;
+		    ax[k] = elem->val / c0;
+		    ++k;
+		}
 	    }
 	}
 	ap[i + 1] = n;
-	b[i] = b0->val[i];
+	b[i] = b0->val[i] / c0;
     }
 }
