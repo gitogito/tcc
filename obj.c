@@ -38,7 +38,7 @@ static int alloc_size(int size)
 
 /* iPoint_ary */
 
-iPoint_ary * ipoint_ary_new(void)
+iPoint_ary *ipoint_ary_new(void)
 {
     iPoint_ary *self;
 
@@ -280,7 +280,7 @@ static int sweep_each(Sweep *self, iPoint **pp)
     ipoint_ary = ipoint_ary_new();
     switch (self->axis) {
     case AXIS_X:
-	leni = iround(self->len / sim->world->dx) + 1;
+	leni = iround(self->len / world->dx) + 1;
 	do {
 	    if (p != NULL) {
 		for (i = p->i; i < p->i + leni; ++i) {
@@ -291,7 +291,7 @@ static int sweep_each(Sweep *self, iPoint **pp)
 	} while (ret);
 	break;
     case AXIS_Y:
-	leni = iround(self->len / sim->world->dy) + 1;
+	leni = iround(self->len / world->dy) + 1;
 	do {
 	    if (p != NULL) {
 		for (j = p->j; j < p->j + leni; ++j) {
@@ -302,7 +302,7 @@ static int sweep_each(Sweep *self, iPoint **pp)
 	} while (ret);
 	break;
     case AXIS_Z:
-	leni = iround(self->len / sim->world->dz) + 1;
+	leni = iround(self->len / world->dz) + 1;
 	do {
 	    if (p != NULL) {
 		for (k = p->k; k < p->k + leni; ++k) {
@@ -323,15 +323,15 @@ static void sweep_offset(Sweep *self)
 {
     switch (self->axis) {
     case AXIS_X:
-	self->len -= sim->world->dx;
+	self->len -= world->dx;
 	obj_offset(self->obj);
 	break;
     case AXIS_Y:
-	self->len -= sim->world->dy;
+	self->len -= world->dy;
 	obj_offset(self->obj);
 	break;
     case AXIS_Z:
-	self->len -= sim->world->dz;
+	self->len -= world->dz;
 	obj_offset(self->obj);
 	break;
     default:
@@ -409,14 +409,14 @@ static int rect_each(Rect *self, iPoint **pp)
     if (self->each != NULL && self->each->index >= 0)
 	return each_each(self->each, pp);
 
-    xi = iround((self->x - sim->world->x0) / sim->world->dx);
-    yi = iround((self->y - sim->world->y0) / sim->world->dy);
-    zi = iround((self->z - sim->world->z0) / sim->world->dz);
+    xi = iround((self->x - world->x0) / world->dx);
+    yi = iround((self->y - world->y0) / world->dy);
+    zi = iround((self->z - world->z0) / world->dz);
     ipoint_ary = ipoint_ary_new();
     switch (self->axis) {
     case AXIS_X:
-	len1 = iround(self->len1 / sim->world->dy) + 1;
-	len2 = iround(self->len2 / sim->world->dz) + 1;
+	len1 = iround(self->len1 / world->dy) + 1;
+	len2 = iround(self->len2 / world->dz) + 1;
 	if (self->edge) {
 	    for (j = yi; j < yi + len1; ++j) {
 		ipoint_ary_push(ipoint_ary, get_ipoint(xi, j, zi           ));
@@ -435,8 +435,8 @@ static int rect_each(Rect *self, iPoint **pp)
 	}
 	break;
     case AXIS_Y:
-	len1 = iround(self->len1 / sim->world->dx) + 1;
-	len2 = iround(self->len2 / sim->world->dz) + 1;
+	len1 = iround(self->len1 / world->dx) + 1;
+	len2 = iround(self->len2 / world->dz) + 1;
 	if (self->edge) {
 	    for (i = xi; i < xi + len1; ++i) {
 		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi, zi           ));
@@ -455,8 +455,8 @@ static int rect_each(Rect *self, iPoint **pp)
 	}
 	break;
     case AXIS_Z:
-	len1 = iround(self->len1 / sim->world->dx) + 1;
-	len2 = iround(self->len2 / sim->world->dy) + 1;
+	len1 = iround(self->len1 / world->dx) + 1;
+	len2 = iround(self->len2 / world->dy) + 1;
 	if (self->edge) {
 	    for (i = xi; i < xi + len1; ++i) {
 		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi           , zi));
@@ -486,16 +486,16 @@ static void rect_offset(Rect *self)
 {
     switch (self->axis) {
     case AXIS_X:
-	self->len1 -= sim->world->dy;
-	self->len2 -= sim->world->dz;
+	self->len1 -= world->dy;
+	self->len2 -= world->dz;
 	break;
     case AXIS_Y:
-	self->len1 -= sim->world->dz;
-	self->len2 -= sim->world->dx;
+	self->len1 -= world->dz;
+	self->len2 -= world->dx;
 	break;
     case AXIS_Z:
-	self->len1 -= sim->world->dx;
-	self->len2 -= sim->world->dy;
+	self->len1 -= world->dx;
+	self->len2 -= world->dy;
 	break;
     default:
 	bug("unknow axis %d", self->axis);
@@ -545,11 +545,11 @@ static int triangle_z_each(Triangle_z *self, iPoint **pp)
     if (self->each != NULL && self->each->index >= 0)
 	return each_each(self->each, pp);
 
-    i1 = iround((self->x1 - sim->world->x0) / sim->world->dx);
-    j1 = iround((self->y1 - sim->world->y0) / sim->world->dy);
-    i2 = iround((self->x1 + self->dx2 - sim->world->x0) / sim->world->dx);
-    j2 = iround((self->y1 + self->dy2 - sim->world->y0) / sim->world->dy);
-    ix = iround(((self->x1+self->dx) - sim->world->x0) / sim->world->dx);
+    i1 = iround((self->x1 - world->x0) / world->dx);
+    j1 = iround((self->y1 - world->y0) / world->dy);
+    i2 = iround((self->x1 + self->dx2 - world->x0) / world->dx);
+    j2 = iround((self->y1 + self->dy2 - world->y0) / world->dy);
+    ix = iround(((self->x1+self->dx) - world->x0) / world->dx);
     jx = j1;
 
     a12 = (double) (i1 - i2) / (j1 - j2);
@@ -597,17 +597,17 @@ Triangle *triangle_new(double x1, double y1, double z1,
     case AXIS_X:
 	self->u1 = y1;
 	self->v1 = z1;
-	self->wi = iround((x1 - sim->world->x0) / sim->world->dx);
+	self->wi = iround((x1 - world->x0) / world->dx);
 	break;
     case AXIS_Y:
 	self->u1 = x1;
 	self->v1 = z1;
-	self->wi = iround((y1 - sim->world->y0) / sim->world->dy);
+	self->wi = iround((y1 - world->y0) / world->dy);
 	break;
     case AXIS_Z:
 	self->u1 = x1;
 	self->v1 = y1;
-	self->wi = iround((z1 - sim->world->z0) / sim->world->dz);
+	self->wi = iround((z1 - world->z0) / world->dz);
 	break;
     default:
 	bug("unknow axis %d", self->axis);
@@ -748,22 +748,22 @@ static void triangle_offset(Triangle *self)
 {
     switch (self->axis) {
     case AXIS_X:
-	self->du2 -= sim->world->dy;
-	self->du2 -= sim->world->dz;
-	self->du3 -= sim->world->dy;
-	self->du3 -= sim->world->dz;
+	self->du2 -= world->dy;
+	self->du2 -= world->dz;
+	self->du3 -= world->dy;
+	self->du3 -= world->dz;
 	break;
     case AXIS_Y:
-	self->du2 -= sim->world->dz;
-	self->dv2 -= sim->world->dx;
-	self->du3 -= sim->world->dz;
-	self->dv3 -= sim->world->dx;
+	self->du2 -= world->dz;
+	self->dv2 -= world->dx;
+	self->du3 -= world->dz;
+	self->dv3 -= world->dx;
 	break;
     case AXIS_Z:
-	self->du2 -= sim->world->dx;
-	self->dv2 -= sim->world->dy;
-	self->du3 -= sim->world->dx;
-	self->dv3 -= sim->world->dy;
+	self->du2 -= world->dx;
+	self->dv2 -= world->dy;
+	self->du3 -= world->dx;
+	self->dv3 -= world->dy;
 	break;
     default:
 	bug("unknow axis %d", self->axis);
@@ -858,25 +858,25 @@ static int ellipse_each(Ellipse *self, iPoint **pp)
 
     switch (self->axis) {
     case AXIS_X:
-	uc = iround((self->y - sim->world->y0) / sim->world->dy);
-	vc = iround((self->z - sim->world->z0) / sim->world->dz);
-	wc = iround((self->x - sim->world->x0) / sim->world->dx);
-	ru = iround(self->ru / sim->world->dy);
-	rv = iround(self->rv / sim->world->dz);
+	uc = iround((self->y - world->y0) / world->dy);
+	vc = iround((self->z - world->z0) / world->dz);
+	wc = iround((self->x - world->x0) / world->dx);
+	ru = iround(self->ru / world->dy);
+	rv = iround(self->rv / world->dz);
 	break;
     case AXIS_Y:
-	uc = iround((self->x - sim->world->x0) / sim->world->dx);
-	vc = iround((self->z - sim->world->z0) / sim->world->dz);
-	wc = iround((self->y - sim->world->y0) / sim->world->dy);
-	ru = iround(self->ru / sim->world->dx);
-	rv = iround(self->rv / sim->world->dz);
+	uc = iround((self->x - world->x0) / world->dx);
+	vc = iround((self->z - world->z0) / world->dz);
+	wc = iround((self->y - world->y0) / world->dy);
+	ru = iround(self->ru / world->dx);
+	rv = iround(self->rv / world->dz);
 	break;
     case AXIS_Z:
-	uc = iround((self->x - sim->world->x0) / sim->world->dx);
-	vc = iround((self->y - sim->world->y0) / sim->world->dy);
-	wc = iround((self->z - sim->world->z0) / sim->world->dz);
-	ru = iround(self->ru / sim->world->dx);
-	rv = iround(self->rv / sim->world->dy);
+	uc = iround((self->x - world->x0) / world->dx);
+	vc = iround((self->y - world->y0) / world->dy);
+	wc = iround((self->z - world->z0) / world->dz);
+	ru = iround(self->ru / world->dx);
+	rv = iround(self->rv / world->dy);
 	break;
     default:
 	bug("unknown axis %d", self->axis);
@@ -919,16 +919,16 @@ static void ellipse_offset(Ellipse *self)
 {
     switch (self->axis) {
     case AXIS_X:
-	self->ru -= sim->world->dy;
-	self->rv -= sim->world->dz;
+	self->ru -= world->dy;
+	self->rv -= world->dz;
 	break;
     case AXIS_Y:
-	self->ru -= sim->world->dz;
-	self->rv -= sim->world->dx;
+	self->ru -= world->dz;
+	self->rv -= world->dx;
 	break;
     case AXIS_Z:
-	self->ru -= sim->world->dx;
-	self->rv -= sim->world->dy;
+	self->ru -= world->dx;
+	self->rv -= world->dy;
 	break;
     default:
 	bug("unknow axis %d", self->axis);
@@ -1089,20 +1089,20 @@ static void polygon_offset(Polygon *self)
     switch (self->axis) {
     case AXIS_X:
 	for (index = 0; index < self->vector2d_ary->size; ++index) {
-	    self->vector2d_ary->ptr[index].x -= sim->world->dy;
-	    self->vector2d_ary->ptr[index].y -= sim->world->dz;
+	    self->vector2d_ary->ptr[index].x -= world->dy;
+	    self->vector2d_ary->ptr[index].y -= world->dz;
 	}
 	break;
     case AXIS_Y:
 	for (index = 0; index < self->vector2d_ary->size; ++index) {
-	    self->vector2d_ary->ptr[index].x -= sim->world->dx;
-	    self->vector2d_ary->ptr[index].y -= sim->world->dz;
+	    self->vector2d_ary->ptr[index].x -= world->dx;
+	    self->vector2d_ary->ptr[index].y -= world->dz;
 	}
 	break;
     case AXIS_Z:
 	for (index = 0; index < self->vector2d_ary->size; ++index) {
-	    self->vector2d_ary->ptr[index].x -= sim->world->dx;
-	    self->vector2d_ary->ptr[index].y -= sim->world->dy;
+	    self->vector2d_ary->ptr[index].x -= world->dx;
+	    self->vector2d_ary->ptr[index].y -= world->dy;
 	}
 	break;
     default:

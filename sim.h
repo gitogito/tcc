@@ -78,8 +78,6 @@ typedef struct iPoint_ary {
     iPoint *ptr;
 } iPoint_ary;
 
-typedef struct World World;
-
 iPoint_ary *ipoint_ary_new(void);
 void ipoint_ary_push(iPoint_ary *self, iPoint ipoint);
 
@@ -92,7 +90,7 @@ typedef struct Each {
 Each *each_new(iPoint_ary *ipoint_ary);
 int each_each(Each *self, iPoint **pp);
 
-struct World {
+typedef struct World {
     double x0;
     double y0;
     double z0;
@@ -106,7 +104,9 @@ struct World {
     IP_TYPE nj;
     IP_TYPE nk;
     Each *each;
-};
+} World;
+
+extern World *world;
 
 World *world_new(double x, double y, double z,
 	double xlen, double ylen, double zlen,
@@ -261,10 +261,10 @@ typedef struct Config {
     AryObj *lambda_obj_ary;
 } Config;
 
+extern Config *config;
+
 typedef struct Sim {
-    Config *config;
     iPoint dir_to_ipoint[NDIRS];
-    World *world;
     Array3Di active_p_ary;
     Array3Dd *fix_ary;
     Array3Dd *heat_ary;

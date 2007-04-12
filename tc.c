@@ -56,7 +56,6 @@ int main(int argc, char **argv)
 {
     char *s;
     char *fname;
-    Sim *sim;
     Array3Dd ary;
     IP_TYPE ni, nj, nk;
     double x0, y0, z0;
@@ -128,15 +127,15 @@ int main(int argc, char **argv)
     sim = sim_new(fname);
     ary = sim_calc();
 
-    ni = sim->world->ni;
-    nj = sim->world->nj;
-    nk = sim->world->nk;
-    x0 = sim->world->x0;
-    y0 = sim->world->y0;
-    z0 = sim->world->z0;
-    dx = sim->world->dx;
-    dy = sim->world->dy;
-    dz = sim->world->dz;
+    ni = world->ni;
+    nj = world->nj;
+    nk = world->nk;
+    x0 = world->x0;
+    y0 = world->y0;
+    z0 = world->z0;
+    dx = world->dx;
+    dy = world->dy;
+    dz = world->dz;
 
     max = DBL_MIN;
     min = DBL_MAX;
@@ -157,9 +156,9 @@ int main(int argc, char **argv)
 	}
     }
 
-    printf("# %d\t%g\t%g\n", ni, x0, x0 + sim->world->xlen);
-    printf("# %d\t%g\t%g\n", nj, y0, y0 + sim->world->ylen);
-    printf("# %d\t%g\t%g\n", nk, z0, z0 + sim->world->zlen);
+    printf("# %d\t%g\t%g\n", ni, x0, x0 + world->xlen);
+    printf("# %d\t%g\t%g\n", nj, y0, y0 + world->ylen);
+    printf("# %d\t%g\t%g\n", nk, z0, z0 + world->zlen);
     for (k = 0; k < nk; ++k) {
 	z = z0 + dz * k;
 	for (j = 0; j < nj; ++j) {

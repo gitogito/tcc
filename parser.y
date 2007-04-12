@@ -112,9 +112,9 @@ var_assign:
 world:
     TK_LINE TK_WORLD point ',' vector ',' expr ',' expr ',' expr
     {
-	if (sim->world != NULL)
+	if (world != NULL)
 	    warn_exit("world is already defined at line %ld", lineno);
-	sim->world = world_new($3.x, $3.y, $3.z, $5.x, $5.y, $5.z, $7, $9, $11);
+	world = world_new($3.x, $3.y, $3.z, $5.x, $5.y, $5.z, $7, $9, $11);
 	state = ST_WORLD;
     }
 
@@ -161,24 +161,24 @@ command:
 	switch (state) {
 	case ST_ACTIVE:
 	    obj->uval.i = 1;
-	    aryobj_push(sim->config->active_obj_ary, obj);
+	    aryobj_push(config->active_obj_ary, obj);
 	    break;
 	case ST_NOACTIVE:
 	    obj->uval.i = 0;
-	    aryobj_push(sim->config->active_obj_ary, obj);
+	    aryobj_push(config->active_obj_ary, obj);
 	    break;
 	case ST_FIX:
 	    obj->uval.d = value;
-	    aryobj_push(sim->config->fix_obj_ary, obj);
+	    aryobj_push(config->fix_obj_ary, obj);
 	    break;
 	case ST_HEAT:
 	    obj->uval.d = value;
-	    aryobj_push(sim->config->heat_obj_ary, obj);
+	    aryobj_push(config->heat_obj_ary, obj);
 	    break;
 	case ST_LAMBDA:
 	    obj->uval.d = value;
 	    obj_offset(obj);
-	    aryobj_push(sim->config->lambda_obj_ary, obj);
+	    aryobj_push(config->lambda_obj_ary, obj);
 	    break;
 	default:
 	    warn_exit("object must not be here at line %ld", lineno);

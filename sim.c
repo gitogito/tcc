@@ -5,6 +5,8 @@
 #include "tc.h"
 #include "solvele.h"
 
+Config *config;
+World *world;
 Sim *sim;
 
 static int dir_array[NDIRS] = { DIR_LEFT, DIR_RIGHT, DIR_FRONT, DIR_BACK, DIR_BELOW, DIR_ABOVE };
@@ -52,7 +54,7 @@ static Coefs get_coefs(void)
 
 static int world_to_index(iPoint *ipoint)
 {
-    return ipoint->i + sim->world->ni * (ipoint->j + sim->world->nj * ipoint->k);
+    return ipoint->i + world->ni * (ipoint->j + world->nj * ipoint->k);
 }
 
 World *world_new(double x0, double y0, double z0,
@@ -62,21 +64,21 @@ World *world_new(double x0, double y0, double z0,
     if (xlen <= 0.0 || ylen <= 0.0 || zlen <= 0.0)
 	warn_exit("length is negative for World");
 
-    sim->world = EALLOC(World);
-    sim->world->x0 = x0;
-    sim->world->y0 = y0;
-    sim->world->z0 = z0;
-    sim->world->xlen = xlen;
-    sim->world->ylen = ylen;
-    sim->world->zlen = zlen;
-    sim->world->dx = dx;
-    sim->world->dy = dy;
-    sim->world->dz = dz;
-    sim->world->ni = iround(xlen / dx) + 1;
-    sim->world->nj = iround(ylen / dy) + 1;
-    sim->world->nk = iround(zlen / dz) + 1;
-    sim->world->each = NULL;
-    return sim->world;
+    world = EALLOC(World);
+    world->x0 = x0;
+    world->y0 = y0;
+    world->z0 = z0;
+    world->xlen = xlen;
+    world->ylen = ylen;
+    world->zlen = zlen;
+    world->dx = dx;
+    world->dy = dy;
+    world->dz = dz;
+    world->ni = iround(xlen / dx) + 1;
+    world->nj = iround(ylen / dy) + 1;
+    world->nk = iround(zlen / dz) + 1;
+    world->each = NULL;
+    return world;
 }
 
 static int world_each(iPoint **pp)
@@ -84,26 +86,26 @@ static int world_each(iPoint **pp)
     iPoint_ary *ipoint_ary;
     IP_TYPE i, j, k;
 
-    if (sim->world->each != NULL && sim->world->each->index >= 0)
-	return each_each(sim->world->each, pp);
+    if (world->each != NULL && world->each->index >= 0)
+	return each_each(world->each, pp);
 
     ipoint_ary = ipoint_ary_new();
-    for (i = 0; i < sim->world->ni; ++i) {
-	for (j = 0; j < sim->world->nj; ++j) {
-	    for (k = 0; k < sim->world->nk; ++k) {
+    for (i = 0; i < world->ni; ++i) {
+	for (j = 0; j < world->nj; ++j) {
+	    for (k = 0; k < world->nk; ++k) {
 		ipoint_ary_push(ipoint_ary, get_ipoint(i, j, k));
 	    }
 	}
     }
-    sim->world->each = each_new(ipoint_ary);
-    return each_each(sim->world->each, pp);
+    world->each = each_new(ipoint_ary);
+    return each_each(world->each, pp);
 }
 
 int world_inside_p(iPoint *ipoint)
 {
-    if (ipoint->i < 0 || ipoint->i >= sim->world->ni ||
-	    ipoint->j < 0 || ipoint->j >= sim->world->nj ||
-	    ipoint->k < 0 || ipoint->k >= sim->world->nk)
+    if (ipoint->i < 0 || ipoint->i >= world->ni ||
+	    ipoint->j < 0 || ipoint->j >= world->nj ||
+	    ipoint->k < 0 || ipoint->k >= world->nk)
 	return 0;
     else
 	return 1;
@@ -147,9 +149,9 @@ static Config *config_new(void)
 
 int sim_active_p(iPoint *ipoint)
 {
-    if (ipoint->i < 0 || ipoint->i >= sim->world->ni ||
-	    ipoint->j < 0 || ipoint->j >= sim->world->nj ||
-	    ipoint->k < 0 || ipoint->k >= sim->world->nk)
+    if (ipoint->i < 0 || ipoint->i >= world->ni ||
+	    ipoint->j < 0 || ipoint->j >= world->nj ||
+	    ipoint->k < 0 || ipoint->k >= world->nk)
 	return 0;
     else
 	return sim->active_p_ary[ipoint->i][ipoint->j][ipoint->k];
@@ -162,8 +164,8 @@ static void sim_set_region_active(void)
     Obj *obj;
     int index;
 
-    ALLOCATE_3D2(sim->active_p_ary, int, sim->world->ni, sim->world->nj, sim->world->nk, 0);
-    active_obj_ary = sim->config->active_obj_ary;
+    ALLOCATE_3D2(sim->active_p_ary, int, world->ni, world->nj, world->nk, 0);
+    active_obj_ary = config->active_obj_ary;
     for (index = 0; index < active_obj_ary->size; ++index) {
 	obj = active_obj_ary->ptr[index];
 	while (obj_each(obj, &p)) {
@@ -183,8 +185,8 @@ static void sim_set_region_fix(void)
     Obj *obj;
     int i;
 
-    ALLOCATE_3D2(sim->fix_ary, double *, sim->world->ni, sim->world->nj, sim->world->nk, NULL);
-    obj_ary = sim->config->fix_obj_ary;
+    ALLOCATE_3D2(sim->fix_ary, double *, world->ni, world->nj, world->nk, NULL);
+    obj_ary = config->fix_obj_ary;
     for (i = 0; i < obj_ary->size; ++i) {
 	obj = obj_ary->ptr[i];
 	while (obj_each(obj, &p)) {
@@ -206,9 +208,9 @@ static void sim_set_region_heat(void)
     int first;
     iPoint ipoint0;
 
-    ALLOCATE_3D2(sim->heat_ary, double *, sim->world->ni, sim->world->nj, sim->world->nk, NULL);
-    ALLOCATE_3D2(sim->heat_ipoint_ary, iPoint *, sim->world->ni, sim->world->nj, sim->world->nk, NULL);
-    obj_ary = sim->config->heat_obj_ary;
+    ALLOCATE_3D2(sim->heat_ary, double *, world->ni, world->nj, world->nk, NULL);
+    ALLOCATE_3D2(sim->heat_ipoint_ary, iPoint *, world->ni, world->nj, world->nk, NULL);
+    obj_ary = config->heat_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
 	first = 1;
@@ -234,8 +236,8 @@ static void sim_set_region_lambda(void)
     Obj *obj;
     iPoint *p;
 
-    ALLOCATE_3D2(sim->lambda_ary, double, sim->world->ni, sim->world->nj, sim->world->nk, 1.0);
-    obj_ary = sim->config->lambda_obj_ary;
+    ALLOCATE_3D2(sim->lambda_ary, double, world->ni, world->nj, world->nk, 1.0);
+    obj_ary = config->lambda_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
 	while (obj_each(obj, &p)) {
@@ -406,16 +408,16 @@ static void sim_set_matrix(void)
     iPoint *p;
     double dx, dy, dz;
 
-    ALLOCATE_3D(sim->coefs, Coefs, sim->world->ni, sim->world->nj, sim->world->nk);
+    ALLOCATE_3D(sim->coefs, Coefs, world->ni, world->nj, world->nk);
     while (world_each(&p)) {
 	if (p == NULL)
 	    continue;
 	sim->coefs[p->i][p->j][p->k] = get_coefs();
     }
 
-    dx = sim->world->dx;
-    dy = sim->world->dy;
-    dz = sim->world->dz;
+    dx = world->dx;
+    dy = world->dy;
+    dz = world->dz;
 
     while (world_each(&p)) {
 	if (p == NULL)
@@ -432,7 +434,7 @@ static void sim_set_matrix(void)
 Sim *sim_new(char *fname)
 {
     sim = EALLOC(Sim);
-    sim->world = NULL;
+    world = NULL;
 
     sim->dir_to_ipoint[DIR_LEFT]  = get_ipoint(-1,  0,  0);
     sim->dir_to_ipoint[DIR_RIGHT] = get_ipoint( 1,  0,  0);
@@ -443,7 +445,7 @@ Sim *sim_new(char *fname)
 
     if (opt_v)
 	warn("configuring ...");
-    sim->config = config_new();
+    config = config_new();
     config_parse(fname);
 
     if (opt_v)
@@ -469,7 +471,7 @@ Array3Dd sim_calc()
     double *sol;
     Array3Dd ary;
 
-    nindex = sim->world->ni * sim->world->nj * sim->world->nk;
+    nindex = world->ni * world->nj * world->nk;
     solver = solvele_new(nindex);
     while (world_each(&p)) {
 	if (p == NULL)
@@ -512,9 +514,9 @@ Array3Dd sim_calc()
 
     if (opt_v)
 	warn("solving equations ...");
-    sol = solvele_solve(solver, sim->world->ni, sim->world->nj, sim->world->nk);
+    sol = solvele_solve(solver, world->ni, world->nj, world->nk);
 
-    ALLOCATE_3D(ary, double, sim->world->ni, sim->world->nj, sim->world->nk);
+    ALLOCATE_3D(ary, double, world->ni, world->nj, world->nk);
     while (world_each(&p)) {
 	if (p == NULL)
 	    continue;
