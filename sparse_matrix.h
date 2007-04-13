@@ -44,6 +44,8 @@ void smat_free(SparseMatrix *m);
 void smat_set(SparseMatrix *m, int i, int j, double val);
 double smat_ref(SparseMatrix *m, int i, int j);
 void smat_print(SparseMatrix *m);
+void get_crs_without_diag(SparseMatrix *a0, DenseVector *b0,
+	int **pap, int **pai, double **pax, double **pb);
 void get_crs(SparseMatrix *a0, DenseVector *b0,
 	int **pap, int **pai, double **pax, double **pb);
 

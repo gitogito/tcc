@@ -59,7 +59,8 @@ void solvele_print_vector(Solvele *self)
     dvec_print(self->vec);
 }
 
-static void sor(double *u, int size, int ni, int nj, int nk, int *ap, int *ai, double *ax, double *pb)
+static void sor_without_diag(double *u, int size, int ni, int nj, int nk,
+	int *ap, int *ai, double *ax, double *pb)
 {
     static char rotate[] = "|/-\\";
     int i, ii, index, pi;
@@ -135,12 +136,11 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
     void *Symbolic, *Numeric;
 #endif
 
-    get_crs(self->mat, self->vec, &ap, &ai, &ax, &pb);
-
     u = EALLOCN(double, self->size);
 
     if (opt_u) {
 #ifdef HAVE_UMFPACK_H
+	get_crs(self->mat, self->vec, &ap, &ai, &ax, &pb);
 	if (opt_v)
 	    warn("solving using UMFPACK ...");
 	umfpack_di_symbolic(self->size, self->size, ap, ai, ax, &Symbolic, NULL, NULL);
@@ -152,7 +152,8 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 	warn_exit("solver with UMFPACK is not implemented in solvele_solve");
 #endif
     } else {
-        sor(u, self->size, ni, nj, nk, ap, ai, ax, pb);
+	get_crs_without_diag(self->mat, self->vec, &ap, &ai, &ax, &pb);
+        sor_without_diag(u, self->size, ni, nj, nk, ap, ai, ax, pb);
     }
     return u;
 }

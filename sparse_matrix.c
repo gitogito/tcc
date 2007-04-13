@@ -210,7 +210,11 @@ void smat_print(SparseMatrix *m)
     }
 }
 
-void get_crs(SparseMatrix *a0, DenseVector *b0,
+/*
+ * get CRS (Compressed Column Storage).
+ * diagonal elements are remove, and all elements are divided by the diagonal element.
+ */
+void get_crs_without_diag(SparseMatrix *a0, DenseVector *b0,
 	int **pap, int **pai, double **pax, double **pb)
 {
     int *ap;
@@ -273,5 +277,54 @@ void get_crs(SparseMatrix *a0, DenseVector *b0,
 	}
 	ap[i + 1] = n;
 	b[i] = b0->val[i] / c0;
+    }
+}
+
+/*
+ * get CRS (Compressed Column Storage)
+ */
+void get_crs(SparseMatrix *a0, DenseVector *b0,
+	int **pap, int **pai, double **pax, double **pb)
+{
+    int *ap;
+    int *ai;
+    double *ax;
+    double *b;
+    int i, j, k, n;
+    SpMatElem *elem;
+
+    *pap = EALLOCN(int, a0->n + 1);
+    *pai = EALLOCN(int, a0->nnz);
+    *pax = EALLOCN(double, a0->nnz);
+    *pb = EALLOCN(double, a0->n);
+
+    ap = *pap;
+    ai = *pai;
+    ax = *pax;
+    b = *pb;
+
+    ap[0] = 0;
+    n = 0;
+    k = 0;
+    for (i = 0; i < a0->n; ++i) {
+	if (a0->rows[i].type == ROW_ARY) {
+	    for (j = 0; j < a0->n; ++j) {
+		if (a0->rows[i].urow.ary[j] != 0.0) {
+		    ++n;
+		    ai[k] = j;
+		    ax[k] = a0->rows[i].urow.ary[j];
+		    ++k;
+		}
+	    }
+	} else {
+	    for (elem = a0->rows[i].urow.list; elem != NULL; elem = elem->next) {
+		++n;
+		ai[k] = elem->idx;
+		ax[k] = elem->val;
+		++k;
+	    }
+	}
+	ap[i + 1] = n;
+	b[i] = b0->val[i];
     }
 }
