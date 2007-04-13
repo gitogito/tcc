@@ -64,8 +64,7 @@ static void sor_without_diag(double *u, int size, int ni, int nj, int nk,
 {
     static char rotate[] = "|/-\\";
     int i, ii, index, pi;
-    int ok;
-    double eps, omega, new_val, old_val, comp;
+    double eps, omega, new_val, old_val, sum_abs, sum_abs_diff;
 
     if (opt_v)
         warn("solving using SOR method ...");
@@ -99,7 +98,7 @@ static void sor_without_diag(double *u, int size, int ni, int nj, int nk,
             }
         }
 
-        ok = 1;
+        sum_abs = sum_abs_diff = 0.0;
         for (i = 0; i < size; ++i) {
             new_val = pb[i];
             for (pi = ap[i]; pi < ap[i + 1]; ++pi) {
@@ -107,21 +106,16 @@ static void sor_without_diag(double *u, int size, int ni, int nj, int nk,
             }
             old_val = u[i];
             u[i] += omega * (new_val - old_val);
-            if (ok && (N + 1) * fabs(new_val) > DBL_EPSILON) {
-                comp = eps / (fabs((new_val - old_val) / ((N + 1) * new_val)));
-                if (comp < 1.0) {
-                    ok = 0;
-                    if (opt_v)
-                        fprintf(stderr, "\r%c %5.1f%%",
-                                rotate[ii % (sizeof(rotate) - 1)], 100.0 * comp);
-                }
-            }
-        }
-        if (ok) {
-            if (opt_v)
-                fprintf(stderr, "\rfinished\n");
+	    sum_abs += fabs(new_val);
+	    sum_abs_diff += fabs(new_val - old_val);
+	}
+        if (sum_abs_diff / sum_abs < eps) {
+	    fprintf(stderr, "\rfinished\n");
             break;
         }
+	if (opt_v)
+	    fprintf(stderr, "\r%c %5.1f%%", rotate[ii % (sizeof(rotate) - 1)],
+		    100.0 * eps / (sum_abs_diff / sum_abs));
     }
 }
 
