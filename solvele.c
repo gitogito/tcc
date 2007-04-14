@@ -110,7 +110,8 @@ static void sor_without_diag(double *u, int size, int ni, int nj, int nk,
 	    sum_abs_diff += fabs(new_val - old_val);
 	}
         if (sum_abs_diff / sum_abs < eps) {
-	    fprintf(stderr, "\rfinished\n");
+	    if (opt_v)
+		fprintf(stderr, "\rfinished\n");
             break;
         }
 	if (opt_v)
