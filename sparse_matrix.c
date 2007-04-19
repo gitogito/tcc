@@ -84,7 +84,7 @@ void smat_free(SparseMatrix *m)
     if (m == NULL)
 	return;
     for (i = 0; i < m->n; ++i) {
-	if (m->rows[i].type == ROW_ARY) {
+	if (m->rows[i].type == ROW_LIST) {
 	    p = m->rows[i].urow.list;
 	    while (p != NULL) {
 		p2 = p;
