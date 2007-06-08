@@ -5,8 +5,8 @@ LEX	= flex
 DEP_COMAMND = gcc -MM $(SRCS)
 
 CC = gcc
-CFLAGS = -g -Wall -O2 -Wno-uninitialized -I/usr/include/ufsparse
-LIBS = -lm -lumfpack -lamd
+CFLAGS = -g -Wall -O2 -Wno-uninitialized -I/Users/ysk/arch/Darwin_i386/include/ufsparse
+LIBS = -lm -lumfpack -lamd -lblas
 
 TARGET = a.out
 SRCS = tc.c sim.c obj.c mem.c solvele.c sparse_matrix.c y.tab.c lex.yy.c

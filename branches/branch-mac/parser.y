@@ -99,6 +99,7 @@ input:
 
 var_assigns:
     var_assign
+    {}
 
   | var_assigns var_assign
 
