@@ -1033,8 +1033,6 @@ static int polygon_each(Polygon *self, iPoint **pp)
 
     ipoint_ary = ipoint_ary_new();
     while (ary->size >= 3) {
-	for (index = 0; index < ary->size; ++index) {
-	}
 	va = ary->ptr[0];
 	vb = ary->ptr[1];
 	vc = ary->ptr[2];
@@ -1049,9 +1047,9 @@ static int polygon_each(Polygon *self, iPoint **pp)
 	    if (ok) {
 		switch (self->axis) {
 		case AXIS_X:
-		    x1 = va.x;
-		    y1 = va.y;
-		    z1 = self->w;
+		    x1 = self->w;
+		    y1 = va.x;
+		    z1 = va.y;
 		    break;
 		case AXIS_Y:
 		    x1 = va.x;
