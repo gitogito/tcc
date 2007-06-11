@@ -1022,6 +1022,7 @@ static int polygon_each(Polygon *self, iPoint **pp)
     double x1, y1, z1;
     Triangle *tr;
     iPoint *p;
+    int n_fail;
 
     if (self->each != NULL && self->each->index >= 0)
 	return each_each(self->each, pp);
@@ -1032,14 +1033,15 @@ static int polygon_each(Polygon *self, iPoint **pp)
     }
 
     ipoint_ary = ipoint_ary_new();
+    n_fail = 0;
     while (ary->size >= 3) {
-	for (index = 0; index < ary->size; ++index) {
-	}
 	va = ary->ptr[0];
 	vb = ary->ptr[1];
 	vc = ary->ptr[2];
-	if (vector2d_counter_clock_p(va, vb, vc)) {
-	    ok = 1;
+	ok = 1;
+	if (!vector2d_counter_clock_p(va, vb, vc)) {
+	    ok = 0;
+	} else {
 	    for (index = 3; index < ary->size; ++index) {
 		if (vector2d_inner_triangle_p(ary->ptr[index], va, vb, vc)) {
 		    ok = 0;
@@ -1049,9 +1051,9 @@ static int polygon_each(Polygon *self, iPoint **pp)
 	    if (ok) {
 		switch (self->axis) {
 		case AXIS_X:
-		    x1 = va.x;
-		    y1 = va.y;
-		    z1 = self->w;
+		    x1 = self->w;
+		    y1 = va.x;
+		    z1 = va.y;
 		    break;
 		case AXIS_Y:
 		    x1 = va.x;
@@ -1076,7 +1078,14 @@ static int polygon_each(Polygon *self, iPoint **pp)
 		vector2d_ary_delete_at(ary, 1);
 	    }
 	}
-	vector2d_ary_rotate(ary, 1);
+	if (ok) {
+	    n_fail = 0;
+	} else {
+	    ++n_fail;
+	    if (n_fail >= ary->size)
+		warn_exit("invalid polygon");
+	    vector2d_ary_rotate(ary, 1);
+	}
     }
     self->each = each_new(ipoint_ary);
     return each_each(self->each, pp);
