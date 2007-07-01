@@ -211,7 +211,7 @@ void smat_print(SparseMatrix *m)
 }
 
 /*
- * get CRS (Compressed Column Storage).
+ * get CRS (Compressed Row Storage).
  * diagonal elements are remove, and all elements are divided by the diagonal element.
  */
 void get_crs_without_diag(SparseMatrix *a0, DenseVector *b0,
