@@ -140,6 +140,7 @@ static Config *config_new(void)
     self = EALLOC(Config);
     self->active_obj_ary = aryobj_new();
     self->fix_obj_ary = aryobj_new();
+    self->fixheat_obj_ary = aryobj_new();
     self->heat_obj_ary = aryobj_new();
     self->lambda_obj_ary = aryobj_new();
     return self;
@@ -199,7 +200,7 @@ static void sim_set_region_fix(void)
     }
 }
 
-static void sim_set_region_heat(void)
+static void sim_set_region_fixheat(void)
 {
     iPoint *p;
     AryObj *obj_ary;
@@ -208,9 +209,9 @@ static void sim_set_region_heat(void)
     int first;
     iPoint ipoint0;
 
-    ALLOCATE_3D2(sim->heat_ary, double *, world->ni, world->nj, world->nk, NULL);
-    ALLOCATE_3D2(sim->heat_ipoint_ary, iPoint *, world->ni, world->nj, world->nk, NULL);
-    obj_ary = config->heat_obj_ary;
+    ALLOCATE_3D2(sim->fixheat_ary, double *, world->ni, world->nj, world->nk, NULL);
+    ALLOCATE_3D2(sim->fixheat_ipoint_ary, iPoint *, world->ni, world->nj, world->nk, NULL);
+    obj_ary = config->fixheat_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
 	first = 1;
@@ -223,8 +224,47 @@ static void sim_set_region_heat(void)
 		first = 0;
 		ipoint0 = *p;
 	    }
-	    sim->heat_ipoint_ary[p->i][p->j][p->k] = ipoint_new(ipoint0.i, ipoint0.j, ipoint0.k);
-	    sim->heat_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	    sim->fixheat_ipoint_ary[p->i][p->j][p->k] = ipoint_new(ipoint0.i, ipoint0.j, ipoint0.k);
+	    sim->fixheat_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	}
+    }
+}
+
+static void sim_set_region_heat(void)
+{
+    iPoint *p;
+    AryObj *obj_ary;
+    int index;
+    Obj *obj;
+    double heat, sum_heat;
+
+    ALLOCATE_3D2(sim->heat_ary, double *, world->ni, world->nj, world->nk, NULL);
+    obj_ary = config->heat_obj_ary;
+    for (index = 0; index < obj_ary->size; ++index) {
+	obj = obj_ary->ptr[index];
+	sum_heat = 0;
+	while (obj_each(obj, &p)) {
+	    if (p == NULL)
+		continue;
+	    if (!sim_active_p(p))
+		continue;
+	    fprintf(stderr, "%d, %d, %d\n", p->i, p->j, p->k);
+	    fprintf(stderr, "%d, %d, %d\n", world->ni, world->nj, world->nk);
+	    if ((p->i == 0 || p->i == world->ni - 1) && (p->j == 0 || p->j == world->nj - 1))
+		heat = 0.25;
+	    else if (p->i == 0 || p->i == world->ni - 1 || p->j == 0 || p->j == world->nj - 1)
+		heat = 0.5;
+	    if (0 < p->i && p->i < world->ni - 1 && 0 < p->j && p->j < world->nj - 1)
+		heat = 1.0;
+	    sim->heat_ary[p->i][p->j][p->k] = double_new(heat);
+	    sum_heat += heat;
+	}
+	while (obj_each(obj, &p)) {
+	    if (p == NULL)
+		continue;
+	    if (!sim_active_p(p))
+		continue;
+	    *(sim->heat_ary[p->i][p->j][p->k]) /= sum_heat;
 	}
     }
 }
@@ -254,14 +294,17 @@ static void sim_set_region(void)
 {
     sim_set_region_active();
     sim_set_region_fix();
+    sim_set_region_fixheat();
     sim_set_region_heat();
     sim_set_region_lambda();
 }
 
 static void sim_set_matrix_const(iPoint *p)
 {
-    if (sim->heat_ary[p->i][p->j][p->k] != NULL &&
-	    ipoint_eq(sim->heat_ipoint_ary[p->i][p->j][p->k], p))
+    if (sim->fixheat_ary[p->i][p->j][p->k] != NULL &&
+	    ipoint_eq(sim->fixheat_ipoint_ary[p->i][p->j][p->k], p))
+	sim->coefs[p->i][p->j][p->k].cnst = *(sim->fixheat_ary[p->i][p->j][p->k]);
+    if (sim->heat_ary[p->i][p->j][p->k] != NULL)
 	sim->coefs[p->i][p->j][p->k].cnst = *(sim->heat_ary[p->i][p->j][p->k]);
 }
 
@@ -487,7 +530,7 @@ Array3Dd sim_calc()
 	    solvele_set_vector(solver, index, 0.0);
 	    continue;
 	}
-	hfp = sim->heat_ipoint_ary[p->i][p->j][p->k];
+	hfp = sim->fixheat_ipoint_ary[p->i][p->j][p->k];
 	if (hfp != NULL) {
 	    if (!ipoint_eq(p, hfp)) {
 		index = world_to_index(p);

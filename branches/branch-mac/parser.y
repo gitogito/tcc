@@ -19,6 +19,7 @@ enum {
     ST_ACTIVE,
     ST_NOACTIVE,
     ST_FIX,
+    ST_FIXHEAT,
     ST_HEAT,
     ST_LAMBDA,
 };
@@ -141,6 +142,13 @@ command:
 	value = $3;
     }
 
+  | TK_LINE TK_FIX TK_HEAT expr
+    {
+	state = ST_FIXHEAT;
+
+	value = $4;
+    }
+
   | TK_LINE TK_HEAT expr
     {
 	state = ST_HEAT;
@@ -171,6 +179,10 @@ command:
 	case ST_FIX:
 	    obj->uval.d = value;
 	    aryobj_push(config->fix_obj_ary, obj);
+	    break;
+	case ST_FIXHEAT:
+	    obj->uval.d = value;
+	    aryobj_push(config->fixheat_obj_ary, obj);
 	    break;
 	case ST_HEAT:
 	    obj->uval.d = value;
