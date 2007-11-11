@@ -248,8 +248,6 @@ static void sim_set_region_heat(void)
 		continue;
 	    if (!sim_active_p(p))
 		continue;
-	    fprintf(stderr, "%d, %d, %d\n", p->i, p->j, p->k);
-	    fprintf(stderr, "%d, %d, %d\n", world->ni, world->nj, world->nk);
 	    if ((p->i == 0 || p->i == world->ni - 1) && (p->j == 0 || p->j == world->nj - 1))
 		heat = 0.25;
 	    else if (p->i == 0 || p->i == world->ni - 1 || p->j == 0 || p->j == world->nj - 1)
