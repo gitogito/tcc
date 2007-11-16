@@ -257,6 +257,7 @@ void aryobj_push(AryObj *self, Obj *obj);
 typedef struct Config {
     AryObj *active_obj_ary;
     AryObj *fix_obj_ary;
+    AryObj *fixheat_obj_ary;
     AryObj *heat_obj_ary;
     AryObj *lambda_obj_ary;
 } Config;
@@ -267,8 +268,9 @@ typedef struct Sim {
     iPoint dir_to_ipoint[NDIRS];
     Array3Di active_p_ary;
     Array3Dd *fix_ary;
+    Array3Dd *fixheat_ary;
+    Array3Dp *fixheat_ipoint_ary;
     Array3Dd *heat_ary;
-    Array3Dp *heat_ipoint_ary;
     Array3Dd lambda_ary;
     Array3Dc coefs;
 } Sim;

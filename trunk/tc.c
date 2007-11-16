@@ -5,6 +5,10 @@
 #include "tc.h"
 #include "sim.h"
 #include "solvele.h"
+#include "config.h"
+#ifdef HAVE_LIBGC
+#include "gc.h"
+#endif
 
 char *prgname;
 
@@ -65,6 +69,10 @@ int main(int argc, char **argv)
     double val;
     double min, max;
     int act;
+
+#ifdef HAVE_LIBGC
+    GC_init();
+#endif
 
     prgname = argv[0];
     --argc;
