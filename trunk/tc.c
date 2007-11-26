@@ -60,7 +60,8 @@ int main(int argc, char **argv)
 {
     char *s;
     char *fname;
-    Array3Dd ary;
+    double *sol;
+    iPoint ipoint;
     IP_TYPE ni, nj, nk;
     double x0, y0, z0;
     double dx, dy, dz;
@@ -133,7 +134,7 @@ int main(int argc, char **argv)
 	warn_exit("too many args");
 
     sim = sim_new(fname);
-    ary = sim_calc();
+    sol = sim_calc();
 
     ni = world->ni;
     nj = world->nj;
@@ -153,8 +154,11 @@ int main(int argc, char **argv)
 	    y = y0 + dy * j;
 	    for (i = 0; i < ni; ++i) {
 		x = x0 + dx * i;
-		if (sim_active_p(ipoint_new(i, j, k))) {
-		    val = ary[i][j][k];
+		ipoint.i = i;
+		ipoint.j = j;
+		ipoint.k = k;
+		if (sim_active_p(&ipoint)) {
+		    val = sol[world_to_index(&ipoint)];
 		    if (val > max)
 			max = val;
 		    if (val < min)
@@ -173,8 +177,11 @@ int main(int argc, char **argv)
 	    y = y0 + dy * j;
 	    for (i = 0; i < ni; ++i) {
 		x = x0 + dx * i;
-		if (sim_active_p(ipoint_new(i, j, k))) {
-		    val = ary[i][j][k];
+		ipoint.i = i;
+		ipoint.j = j;
+		ipoint.k = k;
+		if (sim_active_p(&ipoint)) {
+		    val = sol[world_to_index(&ipoint)];
 		    act = 1;
 		} else {
 		    val = min - 0.2 * (max - min);

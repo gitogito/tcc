@@ -2,6 +2,7 @@
 #define _SIM_H_
 
 #include <stdio.h>
+#include "solvele.h"
 
 #define NDIRS   	(2 * 3) /* 2 * (number of dimensions) */
 
@@ -57,19 +58,6 @@ iPoint *ipoint_new(IP_TYPE i, IP_TYPE j, IP_TYPE k);
 
 typedef iPoint *** Array3Dp;
 
-typedef struct Coef {
-    int index;
-    double value;
-} Coef;
-
-typedef struct Coefs {
-    Coef coef[NDIRS];
-    double coef0;
-    double cnst;
-} Coefs;
-
-typedef Coefs *** Array3Dc;
-
 typedef struct Obj Obj;
 
 typedef struct iPoint_ary {
@@ -108,6 +96,7 @@ typedef struct World {
 
 extern World *world;
 
+int world_to_index(iPoint *ipoint);
 World *world_new(double x, double y, double z,
 	double xlen, double ylen, double zlen,
 	double dx, double dy, double dz);
@@ -272,13 +261,13 @@ typedef struct Sim {
     Array3Dp *fixheat_ipoint_ary;
     Array3Dd *heat_ary;
     Array3Dd lambda_ary;
-    Array3Dc coefs;
+    Solvele *solver;
 } Sim;
 
 extern Sim *sim;
 
 int sim_active_p(iPoint *ipoint);
 Sim *sim_new(char *fname);
-Array3Dd sim_calc(void);
+double *sim_calc(void);
 
 #endif
