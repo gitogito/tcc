@@ -161,6 +161,12 @@ command:
 	value = $4;
     }
 
+  | TK_LINE TK_HEAT TK_FIX expr
+    {
+	state = ST_FIXHEAT;
+	value = $4;
+    }
+
   | TK_LINE TK_HEAT expr
     {
 	state = ST_HEAT;
