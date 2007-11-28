@@ -62,6 +62,19 @@ static void var_assign(char *varname, double value)
     v->val = value;
 }
 
+static int symbol_to_axis(char *symbol)
+{
+    if (strcmp(symbol, "X") == 0)
+	return AXIS_X;
+    else if (strcmp(symbol, "Y") == 0)
+	return AXIS_Y;
+    else if (strcmp(symbol, "Z") == 0)
+	return AXIS_Z;
+    else
+	yyerror("unknown axis");
+    /* NOTREACHED */
+}
+
 %}
 
 %union {
@@ -100,6 +113,7 @@ input:
 
 var_assigns:
     var_assign
+    {}
 
   | var_assigns var_assign
 
@@ -144,14 +158,12 @@ command:
   | TK_LINE TK_FIX TK_HEAT expr
     {
 	state = ST_FIXHEAT;
-
 	value = $4;
     }
 
   | TK_LINE TK_HEAT expr
     {
 	state = ST_HEAT;
-
 	value = $3;
     }
 
@@ -274,14 +286,7 @@ obj:
 	int axis;
 
 	$$ = obj_new(OBJ_RECT);
-	if (strcmp($2, ":X") == 0)
-	    axis = AXIS_X;
-	else if (strcmp($2, ":Y") == 0)
-	    axis = AXIS_Y;
-	else if (strcmp($2, ":Z") == 0)
-	    axis = AXIS_Z;
-	else
-	    yyerror("unknown axis");
+	axis = symbol_to_axis($2);
 	$$->uobj.rect = rect_new($4.x, $4.y, $4.z, axis, $6.x, $6.y);
     }
 
@@ -290,14 +295,7 @@ obj:
 	int axis;
 
 	$$ = obj_new(OBJ_TRIANGLE);
-	if (strcmp($2, ":X") == 0)
-	    axis = AXIS_X;
-	else if (strcmp($2, ":Y") == 0)
-	    axis = AXIS_Y;
-	else if (strcmp($2, ":Z") == 0)
-	    axis = AXIS_Z;
-	else
-	    yyerror("unknown axis");
+	axis = symbol_to_axis($2);
 	$$->uobj.triangle = triangle_new($4.x, $4.y, $4.z,
 	    axis, $6.x, $6.y, $8.x, $8.y);
     }
@@ -307,14 +305,7 @@ obj:
 	int axis;
 
 	$$ = obj_new(OBJ_CIRCLE);
-	if (strcmp($2, ":X") == 0)
-	    axis = AXIS_X;
-	else if (strcmp($2, ":Y") == 0)
-	    axis = AXIS_Y;
-	else if (strcmp($2, ":Z") == 0)
-	    axis = AXIS_Z;
-	else
-	    yyerror("unknown axis");
+	axis = symbol_to_axis($2);
 	$$->uobj.circle = circle_new($4.x, $4.y, $4.z, axis, $6);
     }
 
@@ -323,14 +314,7 @@ obj:
 	int axis;
 
 	$$ = obj_new(OBJ_ELLIPSE);
-	if (strcmp($2, ":X") == 0)
-	    axis = AXIS_X;
-	else if (strcmp($2, ":Y") == 0)
-	    axis = AXIS_Y;
-	else if (strcmp($2, ":Z") == 0)
-	    axis = AXIS_Z;
-	else
-	    yyerror("unknown axis");
+	axis = symbol_to_axis($2);
 	$$->uobj.ellipse = ellipse_new($4.x, $4.y, $4.z, axis, $6, $8);
     }
 
@@ -339,14 +323,7 @@ obj:
 	int axis;
 
 	$$ = obj_new(OBJ_POLYGON);
-	if (strcmp($2, ":X") == 0)
-	    axis = AXIS_X;
-	else if (strcmp($2, ":Y") == 0)
-	    axis = AXIS_Y;
-	else if (strcmp($2, ":Z") == 0)
-	    axis = AXIS_Z;
-	else
-	    yyerror("unknown axis");
+	axis = symbol_to_axis($2);
 	$$->uobj.polygon = polygon_new($4.x, $4.y, $4.z, axis, $6);
     }
 
@@ -355,14 +332,7 @@ obj:
 	int axis;
 
 	$$ = obj_new(OBJ_SWEEP);
-	if (strcmp($2, ":X") == 0)
-	    axis = AXIS_X;
-	else if (strcmp($2, ":Y") == 0)
-	    axis = AXIS_Y;
-	else if (strcmp($2, ":Z") == 0)
-	    axis = AXIS_Z;
-	else
-	    yyerror("unknown axis");
+	axis = symbol_to_axis($2);
 	$$->uobj.sweep = sweep_new(axis, $4, $6);
     }
 

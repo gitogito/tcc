@@ -61,7 +61,7 @@ world		return TK_WORLD;
 }
 
 :{word} {
-    yylval.str = estrdup(yytext);
+    yylval.str = estrdup(yytext + 1);
     return TK_SYMBOL;
 }
 
