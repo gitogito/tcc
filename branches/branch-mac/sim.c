@@ -271,7 +271,7 @@ static void sim_set_region(void)
     sim_set_region_lambda();
 }
 
-static void sim_set_matrix_coef0(iPoint *p0, iPoint *p, double dx, double dy, double dz)
+static void sim_add_matrix_coef0(iPoint *p0, iPoint *p, double dx, double dy, double dz)
 {
     int idir, dir;
     IP_TYPE ix, iy, iz;
@@ -339,7 +339,7 @@ static void sim_set_matrix_coef0(iPoint *p0, iPoint *p, double dx, double dy, do
     }
 }
 
-static void sim_set_matrix_coef(iPoint *p0, iPoint *p, double dx, double dy, double dz)
+static void sim_add_matrix_coef(iPoint *p0, iPoint *p, double dx, double dy, double dz)
 {
     int idir, dir;
     int dirx, diry, dirz;
@@ -438,27 +438,27 @@ static void sim_set_matrix(void)
 	    val = *(sim->fix_ary[p->i][p->j][p->k]);
 	    solvele_set_vector(sim->solver, index, val);
 	} else if (sim->heat_ary[p->i][p->j][p->k] != NULL) {
-	    sim_set_matrix_coef0(p, p, dx, dy, dz);
-	    sim_set_matrix_coef(p, p, dx, dy, dz);
+	    sim_add_matrix_coef0(p, p, dx, dy, dz);
+	    sim_add_matrix_coef(p, p, dx, dy, dz);
 	    val = - *(sim->heat_ary[p->i][p->j][p->k]);
 	    solvele_set_vector(sim->solver, index, val);
 	} else if (sim->fixheat_ary[p->i][p->j][p->k] != NULL) {
 	    fh0p = sim->fixheat_ipoint_ary[p->i][p->j][p->k];
 	    if (ipoint_eq(p, fh0p)) {
-		sim_set_matrix_coef0(p, p, dx, dy, dz);
-		sim_set_matrix_coef(p, p, dx, dy, dz);
+		sim_add_matrix_coef0(p, p, dx, dy, dz);
+		sim_add_matrix_coef(p, p, dx, dy, dz);
 		val = - *(sim->fixheat_ary[p->i][p->j][p->k]);
 		solvele_set_vector(sim->solver, index, val);
 	    } else {
 		index_fh0p = world_to_index(fh0p);
 		solvele_set_matrix(sim->solver, index, index, -1.0);
 		solvele_set_matrix(sim->solver, index, index_fh0p, 1.0);
-		sim_set_matrix_coef0(fh0p, p, dx, dy, dz);
-		sim_set_matrix_coef(fh0p, p, dx, dy, dz);
+		sim_add_matrix_coef0(fh0p, p, dx, dy, dz);
+		sim_add_matrix_coef(fh0p, p, dx, dy, dz);
 	    }
 	} else {
-	    sim_set_matrix_coef0(p, p, dx, dy, dz);
-	    sim_set_matrix_coef(p, p, dx, dy, dz);
+	    sim_add_matrix_coef0(p, p, dx, dy, dz);
+	    sim_add_matrix_coef(p, p, dx, dy, dz);
 	}
     }
 }
