@@ -185,6 +185,7 @@ typedef struct Polygon {
     int axis;
     double w;
     Vector2d_ary *vector2d_ary;
+    int (*rotate_p_func)(Vector2d va, Vector2d vb, Vector2d vc);
     Each *each;
 } Polygon;
 

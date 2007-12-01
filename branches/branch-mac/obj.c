@@ -80,6 +80,11 @@ static int vector2d_counter_clock_p(Vector2d va, Vector2d vb, Vector2d vc)
     return vector2d_outer_prod(vector2d_sub(va, vb), vector2d_sub(vc, vb)) <= 0.0;
 }
 
+static int vector2d_clock_p(Vector2d va, Vector2d vb, Vector2d vc)
+{
+    return !vector2d_counter_clock_p(va, vb, vc);
+}
+
 static int vector2d_inner_triangle_p(Vector2d vp, Vector2d va, Vector2d vb, Vector2d vc)
 {
     double val_ab, val_bc, val_ca;
@@ -1019,6 +1024,7 @@ Polygon *polygon_new(double x1, double y1, double z1,
 	v.y = dudv_ary->ptr[index].y + v0.y;
 	vector2d_ary_push(self->vector2d_ary, v);
     }
+    self->rotate_p_func = vector2d_counter_clock_p;
     self->each = NULL;
     return self;
 }
@@ -1050,7 +1056,7 @@ static int polygon_each(Polygon *self, iPoint **pp)
 	vb = ary->ptr[1];
 	vc = ary->ptr[2];
 	ok = 1;
-	if (!vector2d_counter_clock_p(va, vb, vc)) {
+	if (!self->rotate_p_func(va, vb, vc)) {
 	    ok = 0;
 	} else {
 	    for (index = 3; index < ary->size; ++index) {
@@ -1094,8 +1100,14 @@ static int polygon_each(Polygon *self, iPoint **pp)
 	    n_fail = 0;
 	} else {
 	    ++n_fail;
-	    if (n_fail >= ary->size)
-		warn_exit("invalid polygon");
+	    if (n_fail >= ary->size) {
+		if (self->rotate_p_func == vector2d_counter_clock_p) {
+		    self->rotate_p_func = vector2d_clock_p;
+		    return polygon_each(self, pp);
+		} else {
+		    warn_exit("invalid polygon");
+		}
+	    }
 	    vector2d_ary_rotate(ary, 1);
 	}
     }
