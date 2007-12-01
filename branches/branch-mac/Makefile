@@ -5,7 +5,7 @@ LEX	= flex
 DEP_COMAMND = gcc -MM $(SRCS)
 
 CC = gcc
-CFLAGS = -g -Wall -O2 -Wno-uninitialized -I/Users/ysk/arch/Darwin_i386/include/ufsparse
+CFLAGS = -g -Wall -O2 -I/Users/ysk/arch/Darwin_i386/include/ufsparse
 LIBS = -lm -lumfpack -lamd -lblas
 
 TARGET = a.out

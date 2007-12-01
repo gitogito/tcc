@@ -238,6 +238,7 @@ void get_crs_without_diag(SparseMatrix *a0, DenseVector *b0,
     ap[0] = 0;
     n = 0;
     k = 0;
+    c0 = -1.0;	/* for shutting up compiler */
     for (i = 0; i < a0->n; ++i) {
 	/* get coef of diagonal element */
 	if (a0->rows[i].type == ROW_ARY) {
