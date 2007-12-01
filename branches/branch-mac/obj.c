@@ -651,7 +651,6 @@ static iPoint *triangle_each2(Triangle *self, iPoint *p)
     default:
 	bug("unknow axis %d", self->axis);
     }
-    assert(i2 >= 0 && j2 >= 0 && k2 >= 0);
     return ipoint_new(i2, j2, k2);
 }
 
