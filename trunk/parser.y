@@ -73,6 +73,8 @@ static int symbol_to_axis(char *symbol)
     else
 	yyerror("unknown axis");
     /* NOTREACHED */
+    bug("NOTREACHED");
+    return -1;
 }
 
 %}

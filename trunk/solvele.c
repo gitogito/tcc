@@ -24,7 +24,7 @@ double omega_sor;
 void solvele_set_matrix(Solvele *self, int i, int j, double val)
 {
     if (i < 0 || j < 0)
-	warn("negative index in solvele_set_matrix");
+	warn_exit("negative index in solvele_set_matrix");
     if (i >= self->size || j >= self->size)
 	warn_exit("too large index in solvele_set_matrix");
     smat_set(self->mat, i, j, val);
@@ -79,8 +79,12 @@ static void sor_without_diag(double *u, int size, int ni, int nj, int nk,
         omega = omega_sor;
     } else {
         omega = 2.0 / (1.0 + sqrt(1.0 - 1.0/3.0 * (cos(M_PI / ni) + cos(M_PI / nj) + cos(M_PI / nk))));
-        if (omega < 1.9)
-            omega = 1.9;
+        if (omega < 1.9) {
+	    if (ni * nj * nk < 100)
+		omega = 1.2;
+	    else
+		omega = 1.9;
+	}
     }
     if (opt_v) {
         warn("SOR epsilon is %g", eps);

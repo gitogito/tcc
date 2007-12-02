@@ -80,6 +80,11 @@ static int vector2d_counter_clock_p(Vector2d va, Vector2d vb, Vector2d vc)
     return vector2d_outer_prod(vector2d_sub(va, vb), vector2d_sub(vc, vb)) <= 0.0;
 }
 
+static int vector2d_clock_p(Vector2d va, Vector2d vb, Vector2d vc)
+{
+    return !vector2d_counter_clock_p(va, vb, vc);
+}
+
 static int vector2d_inner_triangle_p(Vector2d vp, Vector2d va, Vector2d vb, Vector2d vc)
 {
     double val_ab, val_bc, val_ca;
@@ -153,6 +158,8 @@ iPoint ipoint_offset(iPoint *ipoint, int dirx, int diry, int dirz)
 {
     IP_TYPE i, j, k;
 
+    i = j = k = -1;
+
     switch (dirx) {
     case DIR_LEFT:
 	i = ipoint->i - 1;
@@ -185,6 +192,8 @@ iPoint ipoint_offset(iPoint *ipoint, int dirx, int diry, int dirz)
     default:
 	bug("unknown dir %d", dirz);
     }
+
+    assert(i >= 0 && j >= 0 && k >= 0);
 
     return get_ipoint(i, j, k);
 }
@@ -626,6 +635,7 @@ static iPoint *triangle_each2(Triangle *self, iPoint *p)
 {
     IP_TYPE i2, j2, k2;
 
+    i2 = j2 = k2 = -1;
     assert(p->k == 0);
     switch (self->axis) {
     case AXIS_X:
@@ -713,6 +723,7 @@ static int triangle_each(Triangle *self, iPoint **pp)
 	    vb = v2;
 	} else {
 	    bug("not reached");
+	    ua = va = ux = vx = ub = vb = -1.0;	/* for shutting up compiler */
 	}
 	a = (ua - ub) / (va - vb);
 	b = (ub*va - ua*vb) / (va - vb);
@@ -725,6 +736,8 @@ static int triangle_each(Triangle *self, iPoint **pp)
     ret1 = triangle_z_each(self->tr1, &p1);
     if (self->tr2 != NULL) {
 	ret2 = triangle_z_each(self->tr2, &p2);
+    } else {
+	ret2 = 0;
     }
     ipoint_ary = ipoint_ary_new();
     for (; ret1; ret1 = triangle_z_each(self->tr1, &p1)) {
@@ -880,6 +893,7 @@ static int ellipse_each(Ellipse *self, iPoint **pp)
 	break;
     default:
 	bug("unknown axis %d", self->axis);
+	uc = vc = wc = ru = rv = -1;	/* for shutting up compiler */
     }
 
     if (ru == 0 && rv == 0)
@@ -980,6 +994,8 @@ Polygon *polygon_new(double x1, double y1, double z1,
     Vector2d v0, v;
     int index;
 
+    v0.x = v0.y = -1.0;	/* for shutting up compiler */
+
     self = EALLOC(Polygon);
     self->axis = axis;
     self->vector2d_ary = vector2d_ary_new();
@@ -1008,6 +1024,7 @@ Polygon *polygon_new(double x1, double y1, double z1,
 	v.y = dudv_ary->ptr[index].y + v0.y;
 	vector2d_ary_push(self->vector2d_ary, v);
     }
+    self->rotate_p_func = vector2d_counter_clock_p;
     self->each = NULL;
     return self;
 }
@@ -1039,7 +1056,7 @@ static int polygon_each(Polygon *self, iPoint **pp)
 	vb = ary->ptr[1];
 	vc = ary->ptr[2];
 	ok = 1;
-	if (!vector2d_counter_clock_p(va, vb, vc)) {
+	if (!self->rotate_p_func(va, vb, vc)) {
 	    ok = 0;
 	} else {
 	    for (index = 3; index < ary->size; ++index) {
@@ -1067,6 +1084,7 @@ static int polygon_each(Polygon *self, iPoint **pp)
 		    break;
 		default:
 		    bug("unknow axis %d", self->axis);
+		    x1 = y1 = z1 = -1.0;	/* for shutting up compiler */
 		}
 		tr = triangle_new(x1, y1, z1, self->axis,
 			vb.x - x1, vb.y - y1, vc.x - x1, vc.y - y1);
@@ -1082,8 +1100,14 @@ static int polygon_each(Polygon *self, iPoint **pp)
 	    n_fail = 0;
 	} else {
 	    ++n_fail;
-	    if (n_fail >= ary->size)
-		warn_exit("invalid polygon");
+	    if (n_fail >= ary->size) {
+		if (self->rotate_p_func == vector2d_counter_clock_p) {
+		    self->rotate_p_func = vector2d_clock_p;
+		    return polygon_each(self, pp);
+		} else {
+		    warn_exit("invalid polygon");
+		}
+	    }
 	    vector2d_ary_rotate(ary, 1);
 	}
     }
