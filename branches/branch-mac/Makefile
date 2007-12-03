@@ -2,7 +2,7 @@ YACC	= bison -y
 YFLAGS	= -d -v
 LEX	= flex
 
-DEP_COMAMND = gcc -MM $(SRCS)
+DEP_COMAMND = gcc -MM $(CFLAGS) $(SRCS)
 
 CC = gcc
 CFLAGS = -g -Wall -O2 -I/Users/ysk/arch/Darwin_i386/include/ufsparse
