@@ -198,6 +198,8 @@ static void sim_free_region_fix(void)
 	    if (!world_inside_p(p))
 		continue;
 	    FREE(sim->fix_ary[p->i][p->j][p->k]);
+	    /* set NULL for avoid to free twice */
+	    sim->fix_ary[p->i][p->j][p->k] = NULL;
 	}
     }
     FREE_3D(sim->fix_ary);
@@ -250,7 +252,11 @@ static void sim_free_region_fixheat(void)
 	    if (!sim_active_p(p))
 		continue;
 	    FREE(sim->fixheat_ary[p->i][p->j][p->k]);
+	    /* set NULL for avoid to free twice */
+	    sim->fixheat_ary[p->i][p->j][p->k] = NULL;
 	    FREE(sim->fixheat_ipoint_ary[p->i][p->j][p->k]);
+	    /* set NULL for avoid to free twice */
+	    sim->fixheat_ipoint_ary[p->i][p->j][p->k] = NULL;
 	}
     }
     FREE_3D(sim->fixheat_ipoint_ary);
@@ -310,6 +316,8 @@ static void sim_free_region_heat(void)
 	    if (!sim_active_p(p))
 		continue;
 	    FREE(sim->heat_ary[p->i][p->j][p->k]);
+	    /* set NULL for avoid to free twice */
+	    sim->heat_ary[p->i][p->j][p->k] = NULL;
 	}
     }
     FREE_3D(sim->heat_ary);
