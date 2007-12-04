@@ -31,6 +31,11 @@
 	} \
     } \
 } while (0)
+#define FREE_3D(var)	do { \
+    FREE((var)[0][0]); \
+    FREE((var)[0]); \
+    FREE(var); \
+} while (0)
 
 #ifdef HAVE_LIBGC
 

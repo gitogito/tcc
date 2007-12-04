@@ -135,24 +135,36 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
     void *Symbolic, *Numeric;
 #endif
 
-    u = EALLOCN(double, self->size);
-
     if (opt_u) {
 #ifdef HAVE_UMFPACK_H
 	get_crs(self->mat, self->vec, &ap, &ai, &ax, &pb);
+	dvec_free(self->vec);
+	smat_free(self->mat);
 	if (opt_v)
 	    warn("solving using UMFPACK ...");
 	umfpack_di_symbolic(self->size, self->size, ap, ai, ax, &Symbolic, NULL, NULL);
 	umfpack_di_numeric(ap, ai, ax, Symbolic, &Numeric, NULL, NULL);
 	umfpack_di_free_symbolic(&Symbolic);
+	u = EALLOCN(double, self->size);
 	umfpack_di_solve(UMFPACK_At, ap, ai, ax, u, pb, Numeric, NULL, NULL);
+	FREE(pb);
+	FREE(ax);
+	FREE(ai);
+	FREE(ap);
 	umfpack_di_free_numeric (&Numeric);
 #else
 	warn_exit("solver with UMFPACK is not implemented in solvele_solve");
 #endif
     } else {
 	get_crs_without_diag(self->mat, self->vec, &ap, &ai, &ax, &pb);
+	dvec_free(self->vec);
+	smat_free(self->mat);
+	u = EALLOCN(double, self->size);
         sor_without_diag(u, self->size, ni, nj, nk, ap, ai, ax, pb);
+	FREE(pb);
+	FREE(ax);
+	FREE(ai);
+	FREE(ap);
     }
     return u;
 }
