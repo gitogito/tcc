@@ -1325,6 +1325,12 @@ AryObj *aryobj_new(void)
     return self;
 }
 
+void aryobj_free(AryObj *self)
+{
+    FREE(self->ptr);
+    FREE(self);
+}
+
 void aryobj_push(AryObj *self, Obj *obj)
 {
     ++(self->size);

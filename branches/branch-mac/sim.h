@@ -242,6 +242,7 @@ typedef struct AryObj {
 } AryObj;
 
 AryObj *aryobj_new(void);
+void aryobj_free(AryObj *self);
 void aryobj_push(AryObj *self, Obj *obj);
 
 typedef struct Config {

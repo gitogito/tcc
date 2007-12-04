@@ -119,6 +119,15 @@ static Config *config_new(void)
     return self;
 }
 
+static void config_free(void)
+{
+    aryobj_free(config->lambda_obj_ary);
+    aryobj_free(config->heat_obj_ary);
+    aryobj_free(config->fixheat_obj_ary);
+    aryobj_free(config->fix_obj_ary);
+    aryobj_free(config->active_obj_ary);
+}
+
 /* Sim */
 
 int sim_active_p(iPoint *ipoint)
@@ -173,6 +182,27 @@ static void sim_set_region_fix(void)
     }
 }
 
+static void sim_free_region_fix(void)
+{
+    iPoint *p;
+    AryObj *obj_ary;
+    Obj *obj;
+    int i;
+
+    obj_ary = config->fix_obj_ary;
+    for (i = 0; i < obj_ary->size; ++i) {
+	obj = obj_ary->ptr[i];
+	while (obj_each(obj, &p)) {
+	    if (p == NULL)
+		continue;
+	    if (!world_inside_p(p))
+		continue;
+	    FREE(sim->fix_ary[p->i][p->j][p->k]);
+	}
+    }
+    FREE_3D(sim->fix_ary);
+}
+
 static void sim_set_region_fixheat(void)
 {
     iPoint *p;
@@ -202,6 +232,29 @@ static void sim_set_region_fixheat(void)
 	    sim->fixheat_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
 	}
     }
+}
+
+static void sim_free_region_fixheat(void)
+{
+    iPoint *p;
+    AryObj *obj_ary;
+    int index;
+    Obj *obj;
+
+    obj_ary = config->fixheat_obj_ary;
+    for (index = 0; index < obj_ary->size; ++index) {
+	obj = obj_ary->ptr[index];
+	while (obj_each(obj, &p)) {
+	    if (p == NULL)
+		continue;
+	    if (!sim_active_p(p))
+		continue;
+	    FREE(sim->fixheat_ary[p->i][p->j][p->k]);
+	    FREE(sim->fixheat_ipoint_ary[p->i][p->j][p->k]);
+	}
+    }
+    FREE_3D(sim->fixheat_ipoint_ary);
+    FREE_3D(sim->fixheat_ary);
 }
 
 static void sim_set_region_heat(void)
@@ -241,6 +294,27 @@ static void sim_set_region_heat(void)
     }
 }
 
+static void sim_free_region_heat(void)
+{
+    iPoint *p;
+    AryObj *obj_ary;
+    int index;
+    Obj *obj;
+
+    obj_ary = config->heat_obj_ary;
+    for (index = 0; index < obj_ary->size; ++index) {
+	obj = obj_ary->ptr[index];
+	while (obj_each(obj, &p)) {
+	    if (p == NULL)
+		continue;
+	    if (!sim_active_p(p))
+		continue;
+	    FREE(sim->heat_ary[p->i][p->j][p->k]);
+	}
+    }
+    FREE_3D(sim->heat_ary);
+}
+
 static void sim_set_region_lambda(void)
 {
     int index;
@@ -262,6 +336,11 @@ static void sim_set_region_lambda(void)
     }
 }
 
+static void sim_free_region_lambda(void)
+{
+    FREE_3D(sim->lambda_ary);
+}
+
 static void sim_set_region(void)
 {
     sim_set_region_active();
@@ -269,6 +348,14 @@ static void sim_set_region(void)
     sim_set_region_fixheat();
     sim_set_region_heat();
     sim_set_region_lambda();
+}
+
+static void sim_free_region(void)
+{
+    sim_free_region_lambda();
+    sim_free_region_heat();
+    sim_free_region_fixheat();
+    sim_free_region_fix();
 }
 
 static void sim_add_matrix_coef0(iPoint *p0, iPoint *p, double dx, double dy, double dz)
@@ -487,6 +574,9 @@ Sim *sim_new(char *fname)
     if (opt_v)
 	warn("setting matrix ...");
     sim_set_matrix();
+
+    sim_free_region();
+    config_free();
 
     return sim;
 }
