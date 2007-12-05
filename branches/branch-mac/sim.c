@@ -177,7 +177,10 @@ static void sim_set_region_fix(void)
 		continue;
 	    if (!world_inside_p(p))
 		continue;
-	    sim->fix_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	    if (sim->fix_ary[p->i][p->j][p->k] == NULL)
+		sim->fix_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	    else
+		*(sim->fix_ary[p->i][p->j][p->k]) = obj->uval.d;
 	}
     }
 }
@@ -230,8 +233,13 @@ static void sim_set_region_fixheat(void)
 		first = 0;
 		ipoint0 = *p;
 	    }
-	    sim->fixheat_ipoint_ary[p->i][p->j][p->k] = ipoint_new(ipoint0.i, ipoint0.j, ipoint0.k);
-	    sim->fixheat_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	    if (sim->fixheat_ipoint_ary[p->i][p->j][p->k] == NULL) {
+		sim->fixheat_ipoint_ary[p->i][p->j][p->k] = ipoint_new(ipoint0.i, ipoint0.j, ipoint0.k);
+		sim->fixheat_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	    } else {
+		*(sim->fixheat_ipoint_ary[p->i][p->j][p->k]) = ipoint0;
+		*(sim->fixheat_ary[p->i][p->j][p->k]) = obj->uval.d;
+	    }
 	}
     }
 }
@@ -287,7 +295,10 @@ static void sim_set_region_heat(void)
 		heat = 0.5;
 	    else
 		heat = 1.0;
-	    sim->heat_ary[p->i][p->j][p->k] = double_new(heat);
+	    if (sim->heat_ary[p->i][p->j][p->k] == NULL)
+		sim->heat_ary[p->i][p->j][p->k] = double_new(heat);
+	    else
+		*(sim->heat_ary[p->i][p->j][p->k]) = heat;
 	    sum_heat += heat;
 	}
 	while (obj_each(obj, &p)) {
