@@ -51,6 +51,8 @@ iPoint_ary *ipoint_ary_new(void)
 
 static void ipoint_ary_free(iPoint_ary *self)
 {
+    if (self == NULL)
+	return;
     FREE(self->ptr);
     FREE(self);
 }
@@ -120,6 +122,8 @@ Vector2d_ary *vector2d_ary_new(void)
 
 static void vector2d_ary_free(Vector2d_ary *self)
 {
+    if (self == NULL)
+	return;
     FREE(self->ptr);
     FREE(self);
 }
@@ -252,6 +256,8 @@ Each *each_new(iPoint_ary *ipoint_ary)
 
 static void each_free(Each *self)
 {
+    if (self == NULL)
+	return;
     ipoint_ary_free(self->ipoint_ary);
     FREE(self);
 }
@@ -294,6 +300,8 @@ void obj_free(Obj *self);
 
 static void sweep_free(Sweep *self)
 {
+    if (self == NULL)
+	return;
     obj_free(self->obj);
     each_free(self->each);
     FREE(self);
@@ -393,6 +401,8 @@ Edge *edge_new(Obj *obj)
 
 static void edge_free(Edge *self)
 {
+    if (self == NULL)
+	return;
     obj_free(self->obj);
     FREE(self);
 }
@@ -443,6 +453,8 @@ Rect *rect_new(double x, double y, double z, int axis, double len1, double len2)
 
 static void rect_free(Rect *self)
 {
+    if (self == NULL)
+	return;
     each_free(self->each);
     FREE(self);
 }
@@ -584,6 +596,8 @@ static Triangle_z *triangle_z_new(double x1, double y1, double dx, double dx2, d
 
 static void triangle_z_free(Triangle_z *self)
 {
+    if (self == NULL)
+	return;
     each_free(self->each);
     FREE(self);
 }
@@ -678,6 +692,8 @@ Triangle *triangle_new(double x1, double y1, double z1,
 
 static void triangle_free(Triangle *self)
 {
+    if (self == NULL)
+	return;
     triangle_z_free(self->tr1);
     triangle_z_free(self->tr2);
     each_free(self->each);
@@ -859,6 +875,8 @@ Ellipse *ellipse_new(double x, double y, double z, int axis, double ru, double r
 
 static void ellipse_free(Ellipse *self)
 {
+    if (self == NULL)
+	return;
     each_free(self->each);
     FREE(self);
 }
@@ -1031,6 +1049,8 @@ Circle *circle_new(double x, double y, double z, int axis, double r)
 
 static void circle_free(Circle *self)
 {
+    if (self == NULL)
+	return;
     ellipse_free(self->ellipse);
     FREE(self);
 }
@@ -1096,6 +1116,8 @@ Polygon *polygon_new(double x1, double y1, double z1,
 
 static void polygon_free(Polygon *self)
 {
+    if (self == NULL)
+	return;
     vector2d_ary_free(self->vector2d_ary);
     each_free(self->each);
     FREE(self);
@@ -1234,6 +1256,8 @@ Box *box_new(double x, double y, double z, double xlen, double ylen, double zlen
 
 static void box_free(Box *self)
 {
+    if (self == NULL)
+	return;
     sweep_free(self->sweep);
     FREE(self);
 }
@@ -1262,6 +1286,8 @@ ObjAry *objary_new(AryObj *aryobj)
 
 static void objary_free(ObjAry *self)
 {
+    if (self == NULL)
+	return;
     aryobj_free(self->aryobj);
     FREE(self);
 }
@@ -1294,6 +1320,8 @@ Obj *obj_new(int objtype)
 
 void obj_free(Obj *self)
 {
+    if (self == NULL)
+	return;
     switch (self->objtype) {
     case OBJ_RECT:
 	return rect_free(self->uobj.rect);
@@ -1478,6 +1506,8 @@ void aryobj_free(AryObj *self)
 {
     int index;
 
+    if (self == NULL)
+	return;
     for (index = 0; index < self->size; ++index)
 	obj_free(self->ptr[index]);
     FREE(self->ptr);
