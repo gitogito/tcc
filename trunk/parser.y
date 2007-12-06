@@ -13,25 +13,11 @@ int yylex();
 
 extern long lineno;
 
-enum {
-    ST_START,
-    ST_WORLD,
-    ST_ACTIVE,
-    ST_NOACTIVE,
-    ST_FIX,
-    ST_FIXHEAT,
-    ST_HEAT,
-    ST_LAMBDA,
-};
-
 typedef struct var_t {
     char *name;
     double val;
     struct var_t *next;
 } var_t;
-
-static int state = ST_START;
-static double value;
 
 static var_t *varlist = NULL;
 
@@ -86,6 +72,7 @@ static int symbol_to_axis(char *symbol)
     Vector2d vector2d;
     Vector2d_ary *vector2d_ary;
     Obj *obj;
+    AryObj *aryobj;
 }
 
 %token <val> TK_NUMBER
@@ -100,6 +87,7 @@ static int symbol_to_axis(char *symbol)
 %type <vector2d_ary>	vector2d_ary
 %type <val>		expr var_assign
 %type <obj>		obj
+%type <aryobj>		objs
 
 %left		'+' '-'
 %left		'*' '/'
@@ -132,7 +120,6 @@ world:
 	if (world != NULL)
 	    warn_exit("world is already defined at line %ld", lineno);
 	world = world_new($3.x, $3.y, $3.z, $5.x, $5.y, $5.z, $7, $9, $11);
-	state = ST_WORLD;
     }
 
 commands:
@@ -141,80 +128,47 @@ commands:
   | commands command
 
 command:
-    TK_LINE TK_ACTIVE
+    TK_LINE TK_ACTIVE obj
     {
-	state = ST_ACTIVE;
+	$3->uval.i = 1;
+	aryobj_push(config->active_obj_ary, $3);
     }
 
-  | TK_LINE TK_NOACTIVE
+  | TK_LINE TK_NOACTIVE obj
     {
-	state = ST_NOACTIVE;
+	$3->uval.i = 0;
+	aryobj_push(config->active_obj_ary, $3);
     }
 
-  | TK_LINE TK_FIX expr
+  | TK_LINE TK_FIX expr obj
     {
-	state = ST_FIX;
-	value = $3;
+	$4->uval.d = $3;
+	aryobj_push(config->fix_obj_ary, $4);
     }
 
-  | TK_LINE TK_FIX TK_HEAT expr
+  | TK_LINE TK_FIX TK_HEAT expr obj
     {
-	state = ST_FIXHEAT;
-	value = $4;
+	$5->uval.d = $4;
+	aryobj_push(config->fixheat_obj_ary, $5);
     }
 
-  | TK_LINE TK_HEAT TK_FIX expr
+  | TK_LINE TK_HEAT TK_FIX expr obj
     {
-	state = ST_FIXHEAT;
-	value = $4;
+	$5->uval.d = $4;
+	aryobj_push(config->fixheat_obj_ary, $5);
     }
 
-  | TK_LINE TK_HEAT expr
+  | TK_LINE TK_HEAT expr obj
     {
-	state = ST_HEAT;
-	value = $3;
+	$4->uval.d = $3;
+	aryobj_push(config->heat_obj_ary, $4);
     }
 
-  | TK_LINE TK_LAMBDA expr
+  | TK_LINE TK_LAMBDA expr obj
     {
-	state = ST_LAMBDA;
-	value = $3;
-    }
-
-  | obj
-    {
-	Obj *obj;
-
-	obj = $1;
-	switch (state) {
-	case ST_ACTIVE:
-	    obj->uval.i = 1;
-	    aryobj_push(config->active_obj_ary, obj);
-	    break;
-	case ST_NOACTIVE:
-	    obj->uval.i = 0;
-	    aryobj_push(config->active_obj_ary, obj);
-	    break;
-	case ST_FIX:
-	    obj->uval.d = value;
-	    aryobj_push(config->fix_obj_ary, obj);
-	    break;
-	case ST_FIXHEAT:
-	    obj->uval.d = value;
-	    aryobj_push(config->fixheat_obj_ary, obj);
-	    break;
-	case ST_HEAT:
-	    obj->uval.d = value;
-	    aryobj_push(config->heat_obj_ary, obj);
-	    break;
-	case ST_LAMBDA:
-	    obj->uval.d = value;
-	    obj_offset(obj);
-	    aryobj_push(config->lambda_obj_ary, obj);
-	    break;
-	default:
-	    warn_exit("object must not be here at line %ld", lineno);
-	}
+	$4->uval.d = $3;
+	obj_offset($4);
+	aryobj_push(config->lambda_obj_ary, $4);
     }
 
 point:
@@ -348,6 +302,23 @@ obj:
     {
 	$$ = obj_new(OBJ_EDGE);
 	$$->uobj.edge = edge_new($2);
+    }
+  | '[' objs ']'
+    {
+	$$ = obj_new(OBJ_OBJARY);
+	$$->uobj.objary = objary_new($2);
+    }
+
+objs:
+    obj
+    {
+	$$ = aryobj_new();
+	aryobj_push($$, $1);
+    }
+  | objs obj
+    {
+	$$ = $1;
+	aryobj_push($$, $2);
     }
 
 %%

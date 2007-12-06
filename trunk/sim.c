@@ -177,7 +177,10 @@ static void sim_set_region_fix(void)
 		continue;
 	    if (!world_inside_p(p))
 		continue;
-	    sim->fix_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	    if (sim->fix_ary[p->i][p->j][p->k] == NULL)
+		sim->fix_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	    else
+		*(sim->fix_ary[p->i][p->j][p->k]) = obj->uval.d;
 	}
     }
 }
@@ -230,8 +233,13 @@ static void sim_set_region_fixheat(void)
 		first = 0;
 		ipoint0 = *p;
 	    }
-	    sim->fixheat_ipoint_ary[p->i][p->j][p->k] = ipoint_new(ipoint0.i, ipoint0.j, ipoint0.k);
-	    sim->fixheat_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	    if (sim->fixheat_ipoint_ary[p->i][p->j][p->k] == NULL) {
+		sim->fixheat_ipoint_ary[p->i][p->j][p->k] = ipoint_new(ipoint0.i, ipoint0.j, ipoint0.k);
+		sim->fixheat_ary[p->i][p->j][p->k] = double_new(obj->uval.d);
+	    } else {
+		*(sim->fixheat_ipoint_ary[p->i][p->j][p->k]) = ipoint0;
+		*(sim->fixheat_ary[p->i][p->j][p->k]) = obj->uval.d;
+	    }
 	}
     }
 }
@@ -269,33 +277,36 @@ static void sim_set_region_heat(void)
     AryObj *obj_ary;
     int index;
     Obj *obj;
-    double heat, sum_heat;
+    double heat_coef, sum_heat_coef;
 
     ALLOCATE_3D2(sim->heat_ary, double *, world->ni, world->nj, world->nk, NULL);
     obj_ary = config->heat_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
 	obj = obj_ary->ptr[index];
-	sum_heat = 0;
+	sum_heat_coef = 0;
 	while (obj_each(obj, &p)) {
 	    if (p == NULL)
 		continue;
 	    if (!sim_active_p(p))
 		continue;
 	    if ((p->i == 0 || p->i == world->ni - 1) && (p->j == 0 || p->j == world->nj - 1))
-		heat = 0.25;
+		heat_coef = 0.25;
 	    else if (p->i == 0 || p->i == world->ni - 1 || p->j == 0 || p->j == world->nj - 1)
-		heat = 0.5;
+		heat_coef = 0.5;
 	    else
-		heat = 1.0;
-	    sim->heat_ary[p->i][p->j][p->k] = double_new(heat);
-	    sum_heat += heat;
+		heat_coef = 1.0;
+	    if (sim->heat_ary[p->i][p->j][p->k] == NULL)
+		sim->heat_ary[p->i][p->j][p->k] = double_new(heat_coef * obj->uval.d);
+	    else
+		*(sim->heat_ary[p->i][p->j][p->k]) = heat_coef * obj->uval.d;
+	    sum_heat_coef += heat_coef;
 	}
 	while (obj_each(obj, &p)) {
 	    if (p == NULL)
 		continue;
 	    if (!sim_active_p(p))
 		continue;
-	    *(sim->heat_ary[p->i][p->j][p->k]) /= sum_heat;
+	    *(sim->heat_ary[p->i][p->j][p->k]) /= sum_heat_coef;
 	}
     }
 }

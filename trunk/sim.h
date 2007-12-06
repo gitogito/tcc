@@ -198,6 +198,23 @@ typedef struct Box {
 
 Box *box_new(double x, double y, double z, double xlen, double ylen, double zlen);
 
+typedef struct AryObj {
+    Obj **ptr;
+    int alloc_size;
+    int size;
+} AryObj;
+
+AryObj *aryobj_new(void);
+void aryobj_free(AryObj *self);
+void aryobj_push(AryObj *self, Obj *obj);
+
+typedef struct ObjAry {
+    AryObj *aryobj;
+    int each_obj_index;
+} ObjAry;
+
+ObjAry *objary_new(AryObj *aryobj);
+
 enum {
     OBJ_RECT,
     OBJ_TRIANGLE,
@@ -207,6 +224,7 @@ enum {
     OBJ_BOX,
     OBJ_SWEEP,
     OBJ_EDGE,
+    OBJ_OBJARY,
 };
 
 union uobj {
@@ -218,6 +236,7 @@ union uobj {
     Box *box;
     Sweep *sweep;
     Edge *edge;
+    ObjAry *objary;
 };
 
 union uval {
@@ -234,16 +253,6 @@ struct Obj {
 Obj *obj_new(int objtype);
 int obj_each(Obj *self, iPoint **pp);
 void obj_offset(Obj *self);
-
-typedef struct AryObj {
-    Obj **ptr;
-    int alloc_size;
-    int size;
-} AryObj;
-
-AryObj *aryobj_new(void);
-void aryobj_free(AryObj *self);
-void aryobj_push(AryObj *self, Obj *obj);
 
 typedef struct Config {
     AryObj *active_obj_ary;
