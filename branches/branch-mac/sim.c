@@ -273,42 +273,95 @@ static void sim_free_region_fixheat(void)
 
 static void sim_set_region_heat(void)
 {
+    Array3Di heat_p_ary;
     iPoint *p;
     AryObj *obj_ary;
     int index;
     Obj *obj;
     double heat_coef, sum_heat_coef;
+    int idir, dir;
+    IP_TYPE ix, iy, iz;
+    int dirx, diry, dirz;
+    iPoint pp;
 
     ALLOCATE_3D2(sim->heat_ary, double *, world->ni, world->nj, world->nk, NULL);
+    ALLOCATE_3D(heat_p_ary, int, world->ni, world->nj, world->nk);
     obj_ary = config->heat_obj_ary;
     for (index = 0; index < obj_ary->size; ++index) {
+	while (world_each(&p))
+	    heat_p_ary[p->i][p->j][p->k] = 0;
 	obj = obj_ary->ptr[index];
-	sum_heat_coef = 0;
 	while (obj_each(obj, &p)) {
 	    if (p == NULL)
 		continue;
 	    if (!sim_active_p(p))
 		continue;
-	    if ((p->i == 0 || p->i == world->ni - 1) && (p->j == 0 || p->j == world->nj - 1))
-		heat_coef = 0.25;
-	    else if (p->i == 0 || p->i == world->ni - 1 || p->j == 0 || p->j == world->nj - 1)
-		heat_coef = 0.5;
-	    else
-		heat_coef = 1.0;
+	    heat_p_ary[p->i][p->j][p->k] = 1;
+	}
+	sum_heat_coef = 0;
+	while (world_each(&p)) {
+	    if (!heat_p_ary[p->i][p->j][p->k])
+		continue;
+	    heat_coef = 0.0;
+	    for (idir = 0; idir < NELEMS(dir_array); ++idir) {
+		dir = dir_array[idir];
+		pp = ipoint_add(p, &sim->dir_to_ipoint[dir]);
+		if (!sim_active_p(&pp))
+		    continue;
+		switch (dir) {
+		case DIR_LEFT: case DIR_RIGHT:
+		    for (iy = 0; iy < NELEMS(dir_y); ++iy) {
+			diry = dir_y[iy];
+			for (iz = 0; iz < NELEMS(dir_z); ++iz) {
+			    dirz = dir_z[iz];
+			    pp = ipoint_add(p, &sim->dir_to_ipoint[diry]);
+			    pp = ipoint_add(&pp, &sim->dir_to_ipoint[dirz]);
+			    if (sim_active_p(&pp))
+				heat_coef += 1.0 / (6 * 2 * 2);
+			}
+		    }
+		    break;
+		case DIR_FRONT: case DIR_BACK:
+		    for (iz = 0; iz < NELEMS(dir_z); ++iz) {
+			dirz = dir_z[iz];
+			for (ix = 0; ix < NELEMS(dir_x); ++ix) {
+			    dirx = dir_x[ix];
+			    pp = ipoint_add(p, &sim->dir_to_ipoint[dirz]);
+			    pp = ipoint_add(&pp, &sim->dir_to_ipoint[dirx]);
+			    if (sim_active_p(&pp))
+				heat_coef += 1.0 / (6 * 2 * 2);
+			}
+		    }
+		    break;
+		case DIR_BELOW: case DIR_ABOVE:
+		    for (ix = 0; ix < NELEMS(dir_x); ++ix) {
+			dirx = dir_x[ix];
+			for (iy = 0; iy < NELEMS(dir_y); ++iy) {
+			    diry = dir_y[iy];
+			    pp = ipoint_add(p, &sim->dir_to_ipoint[dirx]);
+			    pp = ipoint_add(&pp, &sim->dir_to_ipoint[diry]);
+			    if (sim_active_p(&pp))
+				heat_coef += 1.0 / (6 * 2 * 2);
+			}
+		    }
+		    break;
+		default:
+		    bug("sim_set_region_heat");
+		}
+	    }
 	    if (sim->heat_ary[p->i][p->j][p->k] == NULL)
 		sim->heat_ary[p->i][p->j][p->k] = double_new(heat_coef * obj->uval.d);
 	    else
 		*(sim->heat_ary[p->i][p->j][p->k]) = heat_coef * obj->uval.d;
 	    sum_heat_coef += heat_coef;
 	}
-	while (obj_each(obj, &p)) {
-	    if (p == NULL)
-		continue;
-	    if (!sim_active_p(p))
+	while (world_each(&p)) {
+	    if (!heat_p_ary[p->i][p->j][p->k])
 		continue;
 	    *(sim->heat_ary[p->i][p->j][p->k]) /= sum_heat_coef;
 	}
     }
+    FREE_3D(heat_p_ary);
 }
 
 static void sim_free_region_heat(void)
