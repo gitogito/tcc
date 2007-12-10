@@ -2,6 +2,7 @@
 #include <stdlib.h>
 #include <stdarg.h>
 #include <float.h>
+#include <string.h>
 #include "tc.h"
 #include "sim.h"
 #include "solvele.h"
@@ -14,6 +15,7 @@ char *prgname;
 
 int opt_e;
 int opt_o;
+int opt_r;
 int opt_u;
 int opt_v;
 int opt_y;
@@ -81,6 +83,7 @@ int main(int argc, char **argv)
 
     opt_e = 0;
     opt_o = 0;
+    opt_r = 0;
     opt_u = 0;
     opt_v = 0;
     opt_y = 0;
@@ -108,6 +111,24 @@ int main(int argc, char **argv)
 		omega_sor = atof(argv[0]);
 		if (omega_sor <= 0.0 || omega_sor >= 2.0)
 		    warn_exit("invalid omega %g", omega_sor);
+		break;
+	    } else if (*s == 'r') {
+		if (*(s + 1) != '\0')
+		    warn_exit("option 'r' must have an argument");
+		--argc;
+		++argv;
+		if (strcmp(argv[0], "active") == 0)
+		    opt_r = REGION_ACTIVE;
+		else if (strcmp(argv[0], "fix") == 0)
+		    opt_r = REGION_FIX;
+		else if (strcmp(argv[0], "fixheat") == 0)
+		    opt_r = REGION_FIXHEAT;
+		else if (strcmp(argv[0], "heat") == 0)
+		    opt_r = REGION_HEAT;
+		else if (strcmp(argv[0], "lambda") == 0)
+		    opt_r = REGION_LAMBDA;
+		else
+		    warn_exit("invalid keyword '%s' for option 'r'", argv[0]);
 		break;
 	    } else if (*s == 'u') {
 		opt_u = 1;
@@ -148,21 +169,23 @@ int main(int argc, char **argv)
 
     max = DBL_MIN;
     min = DBL_MAX;
-    for (k = 0; k < nk; ++k) {
-	z = z0 + dz * k;
-	for (j = 0; j < nj; ++j) {
-	    y = y0 + dy * j;
-	    for (i = 0; i < ni; ++i) {
-		x = x0 + dx * i;
-		ipoint.i = i;
+    if (opt_r == 0) {
+	for (k = 0; k < nk; ++k) {
+	    z = z0 + dz * k;
+	    ipoint.k = k;
+	    for (j = 0; j < nj; ++j) {
+		y = y0 + dy * j;
 		ipoint.j = j;
-		ipoint.k = k;
-		if (sim_active_p(&ipoint)) {
-		    val = sol[world_to_index(&ipoint)];
-		    if (val > max)
-			max = val;
-		    if (val < min)
-			min = val;
+		for (i = 0; i < ni; ++i) {
+		    x = x0 + dx * i;
+		    ipoint.i = i;
+		    if (sim_active_p(&ipoint)) {
+			val = sol[world_to_index(&ipoint)];
+			if (val > max)
+			    max = val;
+			if (val < min)
+			    min = val;
+		    }
 		}
 	    }
 	}
@@ -173,16 +196,19 @@ int main(int argc, char **argv)
     printf("# %d\t%g\t%g\n", nk, z0, z0 + world->zlen);
     for (k = 0; k < nk; ++k) {
 	z = z0 + dz * k;
+	ipoint.k = k;
 	for (j = 0; j < nj; ++j) {
 	    y = y0 + dy * j;
+	    ipoint.j = j;
 	    for (i = 0; i < ni; ++i) {
 		x = x0 + dx * i;
 		ipoint.i = i;
-		ipoint.j = j;
-		ipoint.k = k;
 		if (sim_active_p(&ipoint)) {
 		    val = sol[world_to_index(&ipoint)];
 		    act = 1;
+		} else if (opt_r) {
+		    val = sol[world_to_index(&ipoint)];
+		    act = 0;
 		} else {
 		    val = min - 0.2 * (max - min);
 		    act = 0;
