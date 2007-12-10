@@ -1306,6 +1306,13 @@ static int objary_each(ObjAry *self, iPoint **pp)
     return 0;
 }
 
+static void objary_offset(ObjAry *self)
+{
+    int index;
+
+    for (index = 0; index < self->aryobj->size; ++index)
+	obj_offset(self->aryobj->ptr[index]);
+}
 
 /* Obj */
 
@@ -1417,6 +1424,9 @@ void obj_offset(Obj *self)
 	break;
     case OBJ_EDGE:
 	warn_exit("edge_offset is not implemented");
+	break;
+    case OBJ_OBJARY:
+	objary_offset(self->uobj.objary);
 	break;
     default:
 	bug("unknown obj %d", self->objtype);
