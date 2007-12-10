@@ -21,6 +21,14 @@ enum {
     DIR_ABOVE
 };
 
+enum {
+    REGION_ACTIVE = 1,	/* opt_r = 0 for calculation */
+    REGION_FIX,
+    REGION_FIXHEAT,
+    REGION_HEAT,
+    REGION_LAMBDA,
+};
+
 typedef double *** Array3Dd;
 typedef int *** Array3Di;
 
@@ -273,6 +281,7 @@ typedef struct Sim {
     Array3Dd *heat_ary;
     Array3Dd lambda_ary;
     Solvele *solver;
+    char *fname;
 } Sim;
 
 extern Sim *sim;

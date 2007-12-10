@@ -681,36 +681,113 @@ Sim *sim_new(char *fname)
 {
     sim = EALLOC(Sim);
     world = NULL;
-
     sim->dir_to_ipoint[DIR_LEFT]  = get_ipoint(-1,  0,  0);
     sim->dir_to_ipoint[DIR_RIGHT] = get_ipoint( 1,  0,  0);
     sim->dir_to_ipoint[DIR_FRONT] = get_ipoint( 0, -1,  0);
     sim->dir_to_ipoint[DIR_BACK]  = get_ipoint( 0,  1,  0);
     sim->dir_to_ipoint[DIR_BELOW] = get_ipoint( 0,  0, -1);
     sim->dir_to_ipoint[DIR_ABOVE] = get_ipoint( 0,  0,  1);
+    sim->fname = fname;
+
+    return sim;
+}
+
+static double *sim_get_region(int region)
+{
+    int size;
+    double *u;
+    int i, j, k;
+    iPoint ipoint;
+    int index;
+    double *p;
+
+    size = world->ni * world->nj * world->nk;
+    u = EALLOCN(double, size);
+    for (k = 0; k < world->nk; ++k) {
+	ipoint.k = k;
+	for (j = 0; j < world->nj; ++j) {
+	    ipoint.j = j;
+	    for (i = 0; i < world->ni; ++i) {
+		ipoint.i = i;
+		index = world_to_index(&ipoint);
+		switch (region) {
+		case REGION_ACTIVE:
+		    if (sim_active_p(&ipoint))
+			u[index] = 1.0;
+		    else
+			u[index] = 0.0;
+		    break;
+		case REGION_FIX:
+		    p = sim->fix_ary[ipoint.i][ipoint.j][ipoint.k];
+		    if (sim_active_p(&ipoint) && p != NULL)
+			u[index] = *p;
+		    else
+			u[index] = -1.0;
+		    break;
+		case REGION_FIXHEAT:
+		    p = sim->fixheat_ary[ipoint.i][ipoint.j][ipoint.k];
+		    if (sim_active_p(&ipoint) && p != NULL)
+			u[index] = *p;
+		    else
+			u[index] = -1.0;
+		    break;
+		case REGION_HEAT:
+		    p = sim->heat_ary[ipoint.i][ipoint.j][ipoint.k];
+		    if (sim_active_p(&ipoint) && p != NULL)
+			u[index] = *p;
+		    else
+			u[index] = -1.0;
+		    break;
+		case REGION_LAMBDA:
+		    if (sim_active_p(&ipoint))
+			u[index] = sim->lambda_ary[ipoint.i][ipoint.j][ipoint.k];
+		    else
+			u[index] = -1.0;
+		    break;
+		default:
+		    bug("unknown region %d", region);
+		    /* NOTREACHED */
+		    u = NULL;	/* for shutting up compiler */
+		}
+	    }
+	}
+    }
+    return u;
+
+
+    return u;
+}
+
+double *sim_calc()
+{
+    double *u;
 
     if (opt_v)
 	warn("configuring ...");
     config = config_new();
-    config_parse(fname);
+    config_parse(sim->fname);
 
     if (opt_v)
 	warn("setting region ...");
     sim_set_region();
 
-    if (opt_v)
-	warn("setting matrix ...");
-    sim_set_matrix();
+    if (opt_r == 0) {
+	if (opt_v)
+	    warn("setting matrix ...");
+	sim_set_matrix();
 
-    sim_free_region();
-    config_free();
+	sim_free_region();
+	config_free();
 
-    return sim;
-}
+	if (opt_v)
+	    warn("solving equations ...");
 
-double *sim_calc()
-{
-    if (opt_v)
-	warn("solving equations ...");
-    return solvele_solve(sim->solver, world->ni, world->nj, world->nk);
+	u = solvele_solve(sim->solver, world->ni, world->nj, world->nk);
+    } else {
+	u = sim_get_region(opt_r);
+	sim_free_region();
+	config_free();
+    }
+
+    return u;
 }
