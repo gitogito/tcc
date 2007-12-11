@@ -162,8 +162,6 @@ typedef struct Triangle {
     double dv2;
     double du3;
     double dv3;
-    Triangle_z *tr1;
-    Triangle_z *tr2;
     Each *each;
 } Triangle;
 

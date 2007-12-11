@@ -602,6 +602,41 @@ static void triangle_z_free(Triangle_z *self)
     FREE(self);
 }
 
+static void triangle_z_line(iPoint_ary *ipoint_ary,
+	int x1, int y1, int x2, int y2)
+{
+    int dx, dy, s, step;
+
+    dx = abs(x2 - x1);  dy = abs(y2 - y1);
+    if (dx > dy) {
+        if (x1 > x2) {
+            step = (y1 > y2) ? 1 : -1;
+            s = x1;  x1 = x2;  x2 = s;  y1 = y2;
+        } else step = (y1 < y2) ? 1: -1;
+        ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
+        s = dx >> 1;
+        while (++x1 <= x2) {
+            if ((s -= dy) < 0) {
+                s += dx;  y1 += step;
+            };
+	    ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
+        }
+    } else {
+        if (y1 > y2) {
+            step = (x1 > x2) ? 1 : -1;
+            s = y1;  y1 = y2;  y2 = s;  x1 = x2;
+        } else step = (x1 < x2) ? 1 : -1;
+	ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
+        s = dy >> 1;
+        while (++y1 <= y2) {
+            if ((s -= dx) < 0) {
+                s += dy;  x1 += step;
+            }
+	    ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
+        }
+    }
+}
+
 static int triangle_z_each(Triangle_z *self, iPoint **pp)
 {
     IP_TYPE i1, j1, i2, j2, ix, jx;
@@ -647,6 +682,12 @@ static int triangle_z_each(Triangle_z *self, iPoint **pp)
 	for (i = istart; i <= iend; ++i)
 	    ipoint_ary_push(ipoint_ary, get_ipoint(i, j, 0));
     }
+
+    /* three lines of edges */
+    triangle_z_line(ipoint_ary, i1, j1, i2, j2);
+    triangle_z_line(ipoint_ary, i2, j2, ix, jx);
+    triangle_z_line(ipoint_ary, ix, jx, i1, j1);
+
     self->each = each_new(ipoint_ary);
 
     return each_each(self->each, pp);
@@ -684,8 +725,6 @@ Triangle *triangle_new(double x1, double y1, double z1,
     self->dv2 = dv2;
     self->du3 = du3;
     self->dv3 = dv3;
-    self->tr1 = NULL;
-    self->tr2 = NULL;
     self->each = NULL;
     return self;
 }
@@ -694,8 +733,6 @@ static void triangle_free(Triangle *self)
 {
     if (self == NULL)
 	return;
-    triangle_z_free(self->tr1);
-    triangle_z_free(self->tr2);
     each_free(self->each);
     FREE(self);
 }
@@ -738,6 +775,7 @@ static int triangle_each(Triangle *self, iPoint **pp)
     iPoint *p1, *p2;
     iPoint_ary *ipoint_ary;
     int ret1, ret2;
+    Triangle_z *tr1, *tr2;
 
     if (self->each != NULL && self->each->index >= 0)
 	return each_each(self->each, pp);
@@ -749,12 +787,13 @@ static int triangle_each(Triangle *self, iPoint **pp)
     u3 = self->u1 + self->du3;
     v3 = self->v1 + self->dv3;
 
+    tr2 = NULL;	/* for shutting up compiler */
     if (v1 == v2) {
-	self->tr1 = triangle_z_new(u1, v1, u2 - u1, u3 - u1, v3 - v1);
+	tr1 = triangle_z_new(u1, v1, u2 - u1, u3 - u1, v3 - v1);
     } else if (v2 == v3) {
-	self->tr1 = triangle_z_new(u2, v2, u3 - u2, u1 - u2, v1 - v2);
+	tr1 = triangle_z_new(u2, v2, u3 - u2, u1 - u2, v1 - v2);
     } else if (v3 == v1) {
-	self->tr1 = triangle_z_new(u3, v3, u1 - u3, u2 - u3, v2 - v3);
+	tr1 = triangle_z_new(u3, v3, u1 - u3, u2 - u3, v2 - v3);
     } else {
 	/*
 	 *           * pa
@@ -797,30 +836,33 @@ static int triangle_each(Triangle *self, iPoint **pp)
 	a = (ua - ub) / (va - vb);
 	b = (ub*va - ua*vb) / (va - vb);
 	dx = a * vx + b - ux;
-	self->tr1 = triangle_z_new(ux, vx, dx, ua - ux, va - vx);
-	self->tr2 = triangle_z_new(ux, vx, dx, ub - ux, vb - vx);
+	tr1 = triangle_z_new(ux, vx, dx, ua - ux, va - vx);
+	tr2 = triangle_z_new(ux, vx, dx, ub - ux, vb - vx);
     }
-    assert(self->tr1 != NULL);
+    assert(tr1 != NULL);
 
-    ret1 = triangle_z_each(self->tr1, &p1);
-    if (self->tr2 != NULL) {
-	ret2 = triangle_z_each(self->tr2, &p2);
+    ret1 = triangle_z_each(tr1, &p1);
+    if (tr2 != NULL) {
+	ret2 = triangle_z_each(tr2, &p2);
     } else {
 	ret2 = 0;
     }
     ipoint_ary = ipoint_ary_new();
-    for (; ret1; ret1 = triangle_z_each(self->tr1, &p1)) {
+    for (; ret1; ret1 = triangle_z_each(tr1, &p1)) {
 	if (p1 == NULL)
 	    continue;
 	ipoint_ary_push(ipoint_ary, *triangle_each2(self, p1));
     }
-    if (self->tr2 != NULL) {
-	for (; ret2; ret2 = triangle_z_each(self->tr2, &p2)) {
+    if (tr2 != NULL) {
+	for (; ret2; ret2 = triangle_z_each(tr2, &p2)) {
 	    if (p1 == NULL)
 		continue;
 	    ipoint_ary_push(ipoint_ary, *triangle_each2(self, p2));
 	}
     }
+    triangle_z_free(tr1);
+    triangle_z_free(tr2);
+
     self->each = each_new(ipoint_ary);
 
     return each_each(self->each, pp);
