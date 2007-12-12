@@ -279,6 +279,8 @@ typedef struct Sim {
     char *fname;
     double eps_sor;
     double omega_sor;
+    int index_size;
+    int *index_tbl;
 } Sim;
 
 extern Sim *sim;

@@ -208,9 +208,6 @@ int main(int argc, char **argv)
 		if (sim_active_p(&ipoint)) {
 		    val = sol[world_to_index(&ipoint)];
 		    act = 1;
-		} else if (opt_r) {
-		    val = sol[world_to_index(&ipoint)];
-		    act = 0;
 		} else {
 		    val = min - 0.2 * (max - min);
 		    act = 0;
