@@ -121,7 +121,8 @@ int main(int argc, char **argv)
 		    opt_r = REGION_ACTIVE;
 		else if (strcmp(argv[0], "fix") == 0)
 		    opt_r = REGION_FIX;
-		else if (strcmp(argv[0], "fixheat") == 0)
+		else if (strcmp(argv[0], "fixheat") == 0 ||
+			strcmp(argv[0], "heatfix") == 0)
 		    opt_r = REGION_FIXHEAT;
 		else if (strcmp(argv[0], "heat") == 0)
 		    opt_r = REGION_HEAT;
