@@ -5,7 +5,6 @@
 #include <string.h>
 #include "tc.h"
 #include "sim.h"
-#include "solvele.h"
 #include "config.h"
 #ifdef HAVE_LIBGC
 #include "gc.h"
@@ -72,6 +71,8 @@ int main(int argc, char **argv)
     double val;
     double min, max;
     int act;
+    double eps_sor = -1;
+    double omega_sor = -1;
 
 #ifdef HAVE_LIBGC
     GC_init();
@@ -155,7 +156,7 @@ int main(int argc, char **argv)
     if (argc > 0)
 	warn_exit("too many args");
 
-    sim = sim_new(fname);
+    sim = sim_new(fname, eps_sor, omega_sor);
     sol = sim_calc();
 
     ni = world->ni;

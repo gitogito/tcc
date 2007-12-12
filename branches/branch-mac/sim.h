@@ -280,12 +280,14 @@ typedef struct Sim {
     Array3Dd lambda_ary;
     Solvele *solver;
     char *fname;
+    double eps_sor;
+    double omega_sor;
 } Sim;
 
 extern Sim *sim;
 
 int sim_active_p(iPoint *ipoint);
-Sim *sim_new(char *fname);
+Sim *sim_new(char *fname, double eps_sor, double omega_sor);
 double *sim_calc(void);
 
 #endif

@@ -677,7 +677,7 @@ static void sim_set_matrix(void)
     }
 }
 
-Sim *sim_new(char *fname)
+Sim *sim_new(char *fname, double eps_sor, double omega_sor)
 {
     sim = EALLOC(Sim);
     world = NULL;
@@ -688,6 +688,8 @@ Sim *sim_new(char *fname)
     sim->dir_to_ipoint[DIR_BELOW] = get_ipoint( 0,  0, -1);
     sim->dir_to_ipoint[DIR_ABOVE] = get_ipoint( 0,  0,  1);
     sim->fname = fname;
+    sim->eps_sor = eps_sor;
+    sim->omega_sor = omega_sor;
 
     return sim;
 }
@@ -782,7 +784,8 @@ double *sim_calc()
 	if (opt_v)
 	    warn("solving equations ...");
 
-	u = solvele_solve(sim->solver, world->ni, world->nj, world->nk);
+	u = solvele_solve(sim->solver, sim->eps_sor, sim->omega_sor,
+		world->ni, world->nj, world->nk);
     } else {
 	u = sim_get_region(opt_r);
 	sim_free_region();
