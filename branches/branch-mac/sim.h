@@ -1,9 +1,6 @@
 #ifndef _SIM_H_
 #define _SIM_H_
 
-#include <stdio.h>
-#include "solvele.h"
-
 #define NDIRS   	(2 * 3) /* 2 * (number of dimensions) */
 
 #define NELEMS(ary)	(sizeof(ary) / sizeof((ary)[0]))
@@ -278,7 +275,7 @@ typedef struct Sim {
     Array3Dp *fixheat_ipoint_ary;
     Array3Dd *heat_ary;
     Array3Dd lambda_ary;
-    Solvele *solver;
+    struct Solvele *solver;
     char *fname;
     double eps_sor;
     double omega_sor;
