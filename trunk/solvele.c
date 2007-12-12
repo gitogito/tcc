@@ -18,9 +18,6 @@
 #define EPS	1.0e-6
 #define N	20
 
-double eps_sor;
-double omega_sor;
-
 void solvele_set_matrix(Solvele *self, int i, int j, double val)
 {
     if (i < 0 || j < 0)
@@ -59,7 +56,8 @@ void solvele_print_vector(Solvele *self)
     dvec_print(self->vec);
 }
 
-static void sor_without_diag(double *u, int size, int ni, int nj, int nk,
+static void sor_without_diag(double *u, double eps_sor, double omega_sor,
+	int size, int ni, int nj, int nk,
 	int *ap, int *ai, double *ax, double *pb)
 {
     static char rotate[] = "|/-\\";
@@ -124,7 +122,8 @@ static void sor_without_diag(double *u, int size, int ni, int nj, int nk,
     }
 }
 
-double *solvele_solve(Solvele *self, int ni, int nj, int nk)
+double *solvele_solve(Solvele *self, double eps_sor, double omega_sor,
+	int ni, int nj, int nk)
 {
     int *ap;
     int *ai;
@@ -160,7 +159,8 @@ double *solvele_solve(Solvele *self, int ni, int nj, int nk)
 	dvec_free(self->vec);
 	smat_free(self->mat);
 	u = EALLOCN(double, self->size);
-        sor_without_diag(u, self->size, ni, nj, nk, ap, ai, ax, pb);
+        sor_without_diag(u, eps_sor, omega_sor,
+		self->size, ni, nj, nk, ap, ai, ax, pb);
 	FREE(pb);
 	FREE(ax);
 	FREE(ai);

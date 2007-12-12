@@ -5,7 +5,6 @@
 #include <string.h>
 #include "tc.h"
 #include "sim.h"
-#include "solvele.h"
 #include "config.h"
 #ifdef HAVE_LIBGC
 #include "gc.h"
@@ -72,6 +71,8 @@ int main(int argc, char **argv)
     double val;
     double min, max;
     int act;
+    double eps_sor = -1;
+    double omega_sor = -1;
 
 #ifdef HAVE_LIBGC
     GC_init();
@@ -121,7 +122,8 @@ int main(int argc, char **argv)
 		    opt_r = REGION_ACTIVE;
 		else if (strcmp(argv[0], "fix") == 0)
 		    opt_r = REGION_FIX;
-		else if (strcmp(argv[0], "fixheat") == 0)
+		else if (strcmp(argv[0], "fixheat") == 0 ||
+			strcmp(argv[0], "heatfix") == 0)
 		    opt_r = REGION_FIXHEAT;
 		else if (strcmp(argv[0], "heat") == 0)
 		    opt_r = REGION_HEAT;
@@ -154,7 +156,7 @@ int main(int argc, char **argv)
     if (argc > 0)
 	warn_exit("too many args");
 
-    sim = sim_new(fname);
+    sim = sim_new(fname, eps_sor, omega_sor);
     sol = sim_calc();
 
     ni = world->ni;
@@ -206,9 +208,6 @@ int main(int argc, char **argv)
 		if (sim_active_p(&ipoint)) {
 		    val = sol[world_to_index(&ipoint)];
 		    act = 1;
-		} else if (opt_r) {
-		    val = sol[world_to_index(&ipoint)];
-		    act = 0;
 		} else {
 		    val = min - 0.2 * (max - min);
 		    act = 0;

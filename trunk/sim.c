@@ -27,7 +27,7 @@ static double *double_new(double v)
 
 int world_to_index(iPoint *ipoint)
 {
-    return ipoint->i + world->ni * (ipoint->j + world->nj * ipoint->k);
+    return sim->index_tbl[ipoint->i + world->ni * (ipoint->j + world->nj * ipoint->k)];
 }
 
 World *world_new(double x0, double y0, double z0,
@@ -354,11 +354,6 @@ static void sim_set_region_heat(void)
 	    heat_coef = 0.0;
 	    for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 		dir = dir_array[idir];
-		/*
-		pp = ipoint_add(p, &sim->dir_to_ipoint[dir]);
-		if (!sim_active_p(&pp))
-		    continue;
-		*/
 		switch (dir) {
 		case DIR_LEFT: case DIR_RIGHT:
 		    for (iy = 0; iy < NELEMS(dir_y); ++iy) {
@@ -495,11 +490,6 @@ static void sim_add_matrix_coef0(iPoint *p0, iPoint *p, double dx, double dy, do
     index = world_to_index(p);
     for (idir = 0; idir < NELEMS(dir_array); ++idir) {
 	dir = dir_array[idir];
-	/*
-	pp = ipoint_add(p, &sim->dir_to_ipoint[dir]);
-	if (!sim_active_p(&pp))
-	    continue;
-	*/
 	switch (dir) {
 	case DIR_LEFT: case DIR_RIGHT:
 	    for (iy = 0; iy < NELEMS(dir_y); ++iy) {
@@ -634,16 +624,17 @@ static void sim_set_matrix(void)
     int index, index_fh0p;
     double val;
 
-    sim->solver = solvele_new(world->ni * world->nj * world->nk);
+    sim->solver = solvele_new(sim->index_size);
 
     dx = world->dx;
     dy = world->dy;
     dz = world->dz;
 
     while (world_each(&p)) {
+	if (!sim_active_p(p))
+	    continue;
 	index = world_to_index(p);
-	if (p == NULL)
-	    bug("world_each returns NULL twice");
+	assert(index >= 0);
 	if (!sim->active_p_ary[p->i][p->j][p->k]) {
 	    solvele_set_matrix(sim->solver, index, index, 1.0);
 	    solvele_set_vector(sim->solver, index, 0.0);
@@ -677,7 +668,7 @@ static void sim_set_matrix(void)
     }
 }
 
-Sim *sim_new(char *fname)
+Sim *sim_new(char *fname, double eps_sor, double omega_sor)
 {
     sim = EALLOC(Sim);
     world = NULL;
@@ -688,6 +679,8 @@ Sim *sim_new(char *fname)
     sim->dir_to_ipoint[DIR_BELOW] = get_ipoint( 0,  0, -1);
     sim->dir_to_ipoint[DIR_ABOVE] = get_ipoint( 0,  0,  1);
     sim->fname = fname;
+    sim->eps_sor = eps_sor;
+    sim->omega_sor = omega_sor;
 
     return sim;
 }
@@ -701,7 +694,7 @@ static double *sim_get_region(int region)
     int index;
     double *p;
 
-    size = world->ni * world->nj * world->nk;
+    size = sim->index_size;
     u = EALLOCN(double, size);
     for (k = 0; k < world->nk; ++k) {
 	ipoint.k = k;
@@ -709,40 +702,36 @@ static double *sim_get_region(int region)
 	    ipoint.j = j;
 	    for (i = 0; i < world->ni; ++i) {
 		ipoint.i = i;
+		if (!sim_active_p(&ipoint))
+		    continue;
 		index = world_to_index(&ipoint);
 		switch (region) {
 		case REGION_ACTIVE:
-		    if (sim_active_p(&ipoint))
-			u[index] = 1.0;
-		    else
-			u[index] = 0.0;
+		    u[index] = 1.0;
 		    break;
 		case REGION_FIX:
 		    p = sim->fix_ary[ipoint.i][ipoint.j][ipoint.k];
-		    if (sim_active_p(&ipoint) && p != NULL)
+		    if (p != NULL)
 			u[index] = *p;
 		    else
 			u[index] = -1.0;
 		    break;
 		case REGION_FIXHEAT:
 		    p = sim->fixheat_ary[ipoint.i][ipoint.j][ipoint.k];
-		    if (sim_active_p(&ipoint) && p != NULL)
+		    if (p != NULL)
 			u[index] = *p;
 		    else
-			u[index] = -1.0;
+			u[index] = 0.0;
 		    break;
 		case REGION_HEAT:
 		    p = sim->heat_ary[ipoint.i][ipoint.j][ipoint.k];
-		    if (sim_active_p(&ipoint) && p != NULL)
+		    if (p != NULL)
 			u[index] = *p;
 		    else
-			u[index] = -1.0;
+			u[index] = 0.0;
 		    break;
 		case REGION_LAMBDA:
-		    if (sim_active_p(&ipoint))
-			u[index] = sim->lambda_ary[ipoint.i][ipoint.j][ipoint.k];
-		    else
-			u[index] = -1.0;
+		    u[index] = sim->lambda_ary[ipoint.i][ipoint.j][ipoint.k];
 		    break;
 		default:
 		    bug("unknown region %d", region);
@@ -753,9 +742,37 @@ static double *sim_get_region(int region)
 	}
     }
     return u;
+}
 
+static void sim_set_index_tbl(void)
+{
+    int i, j, k;
+    iPoint ipoint;
+    int index0;
 
-    return u;
+    sim->index_tbl = EALLOCN(int, world->ni * world->nj * world->nk);
+    for (k = 0; k < world->nk; ++k) {
+	for (j = 0; j < world->nj; ++j) {
+	    for (i = 0; i < world->ni; ++i) {
+		index0 = i + world->ni * (j + world->nj * k);
+		sim->index_tbl[index0] = -1;
+	    }
+	}
+    }
+    sim->index_size = 0;
+    for (k = 0; k < world->nk; ++k) {
+	ipoint.k = k;
+	for (j = 0; j < world->nj; ++j) {
+	    ipoint.j = j;
+	    for (i = 0; i < world->ni; ++i) {
+		ipoint.i = i;
+		if (sim_active_p(&ipoint)) {
+		    index0 = i + world->ni * (j + world->nj * k);
+		    sim->index_tbl[index0] = sim->index_size++;
+		}
+	    }
+	}
+    }
 }
 
 double *sim_calc()
@@ -771,6 +788,8 @@ double *sim_calc()
 	warn("setting region ...");
     sim_set_region();
 
+    sim_set_index_tbl();
+
     if (opt_r == 0) {
 	if (opt_v)
 	    warn("setting matrix ...");
@@ -782,7 +801,8 @@ double *sim_calc()
 	if (opt_v)
 	    warn("solving equations ...");
 
-	u = solvele_solve(sim->solver, world->ni, world->nj, world->nk);
+	u = solvele_solve(sim->solver, sim->eps_sor, sim->omega_sor,
+		world->ni, world->nj, world->nk);
     } else {
 	u = sim_get_region(opt_r);
 	sim_free_region();
