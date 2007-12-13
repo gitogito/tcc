@@ -169,25 +169,23 @@ int main(int argc, char **argv)
     dy = world->dy;
     dz = world->dz;
 
-    max = DBL_MIN;
-    min = DBL_MAX;
-    if (opt_r == 0) {
-	for (k = 0; k < nk; ++k) {
-	    z = z0 + dz * k;
-	    ipoint.k = k;
-	    for (j = 0; j < nj; ++j) {
-		y = y0 + dy * j;
-		ipoint.j = j;
-		for (i = 0; i < ni; ++i) {
-		    x = x0 + dx * i;
-		    ipoint.i = i;
-		    if (sim_active_p(&ipoint)) {
-			val = sol[world_to_index(&ipoint)];
-			if (val > max)
-			    max = val;
-			if (val < min)
-			    min = val;
-		    }
+    max = -DBL_MAX;
+    min =  DBL_MAX;
+    for (k = 0; k < nk; ++k) {
+	z = z0 + dz * k;
+	ipoint.k = k;
+	for (j = 0; j < nj; ++j) {
+	    y = y0 + dy * j;
+	    ipoint.j = j;
+	    for (i = 0; i < ni; ++i) {
+		x = x0 + dx * i;
+		ipoint.i = i;
+		if (sim_active_p(&ipoint)) {
+		    val = sol[world_to_index(&ipoint)];
+		    if (val > max)
+			max = val;
+		    if (val < min)
+			min = val;
 		}
 	    }
 	}
@@ -208,6 +206,12 @@ int main(int argc, char **argv)
 		if (sim_active_p(&ipoint)) {
 		    val = sol[world_to_index(&ipoint)];
 		    act = 1;
+		} else if (min == max) {
+		    if (min > 0)
+			val = -1.0;
+		    else
+			val = min - 1.0;
+		    act = 0;
 		} else {
 		    val = min - 0.2 * (max - min);
 		    act = 0;
