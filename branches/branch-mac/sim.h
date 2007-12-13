@@ -194,6 +194,8 @@ typedef struct Polygon {
 
 Polygon *polygon_new(double x1, double y1, double z1,
 	int axis, Vector2d_ary *dudv_ary);
+Polygon *polygon_new2(double x1, double y1, double z1,
+	int axis, Vector2d_ary *uv_ary);	/* uv_ary is point2d_ary */
 
 typedef struct Box {
     Sweep *sweep;

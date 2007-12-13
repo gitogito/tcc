@@ -1156,6 +1156,41 @@ Polygon *polygon_new(double x1, double y1, double z1,
     return self;
 }
 
+Polygon *polygon_new2(double x1, double y1, double z1,
+	int axis, Vector2d_ary *uv_ary)
+{
+    Vector2d_ary *dudv_ary;
+    double u, v;
+    int i;
+    Vector2d vec2d;
+
+    dudv_ary = vector2d_ary_new();
+    switch (axis) {
+    case AXIS_X:
+	u = y1;
+	v = z1;
+	break;
+    case AXIS_Y:
+	u = x1;
+	v = z1;
+	break;
+    case AXIS_Z:
+	u = x1;
+	v = y1;
+	break;
+    default:
+	bug("unknow axis %d", axis);
+	u = -1.0;	/* for shutting up compiler */
+	v = -1.0;	/* for shutting up compiler */
+    }
+    for (i = 0; i < uv_ary->size; ++i) {
+	vec2d.x = uv_ary->ptr[i].x - u;
+	vec2d.y = uv_ary->ptr[i].y - v;
+	vector2d_ary_push(dudv_ary, vec2d);
+    }
+    return polygon_new(x1, y1, z1, axis, dudv_ary);
+}
+
 static void polygon_free(Polygon *self)
 {
     if (self == NULL)
