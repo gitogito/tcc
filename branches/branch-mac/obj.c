@@ -49,7 +49,7 @@ iPoint_ary *ipoint_ary_new(void)
     return self;
 }
 
-static void ipoint_ary_free(iPoint_ary *self)
+void ipoint_ary_free(iPoint_ary *self)
 {
     if (self == NULL)
 	return;

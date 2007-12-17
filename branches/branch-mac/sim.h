@@ -72,6 +72,7 @@ typedef struct iPoint_ary {
 } iPoint_ary;
 
 iPoint_ary *ipoint_ary_new(void);
+void ipoint_ary_free(iPoint_ary *self);
 void ipoint_ary_push(iPoint_ary *self, iPoint ipoint);
 
 typedef struct Each {
