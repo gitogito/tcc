@@ -198,6 +198,18 @@ Polygon *polygon_new(double x1, double y1, double z1,
 Polygon *polygon_new2(double x1, double y1, double z1,
 	int axis, Vector2d_ary *uv_ary);	/* uv_ary is point2d_ary */
 
+typedef struct Line {
+    int axis;
+    double w;
+    Vector2d_ary *vector2d_ary;
+    Each *each;
+} Line;
+
+Line *line_new(double x1, double y1, double z1,
+	int axis, Vector2d_ary *dudv_ary);
+Line *line_new2(double x1, double y1, double z1,
+	int axis, Vector2d_ary *uv_ary);	/* uv_ary is point2d_ary */
+
 typedef struct Box {
     Sweep *sweep;
 } Box;
@@ -227,6 +239,7 @@ enum {
     OBJ_ELLIPSE,
     OBJ_CIRCLE,
     OBJ_POLYGON,
+    OBJ_LINE,
     OBJ_BOX,
     OBJ_SWEEP,
     OBJ_EDGE,
@@ -239,6 +252,7 @@ union uobj {
     Ellipse *ellipse;
     Circle *circle;
     Polygon *polygon;
+    Line *line;
     Box *box;
     Sweep *sweep;
     Edge *edge;
