@@ -623,32 +623,37 @@ static int triangle_z_each(Triangle_z *self, iPoint **pp)
     ix = iround(((self->x1+self->dx) - world->x0) / world->dx);
     jx = j1;
 
-    a12 = (double) (i1 - i2) / (j1 - j2);
-    b12 = (double) (i2*j1 - i1*j2) / (j1 - j2);
-    ax2 = (double) (ix - i2) / (jx - j2);
-    bx2 = (double) (i2*jx - ix*j2) / (jx - j2);
-
-    if (j1 < j2) {
-	jstart = j1;
-	jend = j2;
-    } else {
-	jstart = j2;
-	jend = j1;
-    }
-
     ipoint_ary = ipoint_ary_new();
-    for (j = jstart; j <= jend; ++j) {
-	i12 = iround(a12 * j + b12);
-	ix2 = iround(ax2 * j + bx2);
-	if (i12 < ix2) {
-	    istart = i12;
-	    iend = ix2;
-	} else {
-	    istart = ix2;
-	    iend = i12;
+
+    if (j1 == j2) {
+	/* do nothing */
+    } else {
+	if (j1 < j2) {
+	    jstart = j1;
+	    jend = j2;
+	} else {	/* j1 > j2 */
+	    jstart = j2;
+	    jend = j1;
 	}
-	for (i = istart; i <= iend; ++i)
-	    ipoint_ary_push(ipoint_ary, get_ipoint(i, j, 0));
+
+	a12 = (double) (i1 - i2) / (j1 - j2);
+	b12 = (double) (i2*j1 - i1*j2) / (j1 - j2);
+	ax2 = (double) (ix - i2) / (jx - j2);
+	bx2 = (double) (i2*jx - ix*j2) / (jx - j2);
+
+	for (j = jstart; j <= jend; ++j) {
+	    i12 = iround(a12 * j + b12);
+	    ix2 = iround(ax2 * j + bx2);
+	    if (i12 < ix2) {
+		istart = i12;
+		iend = ix2;
+	    } else {
+		istart = ix2;
+		iend = i12;
+	    }
+	    for (i = istart; i <= iend; ++i)
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, j, 0));
+	}
     }
 
     /* three lines of edges */
@@ -718,9 +723,9 @@ static iPoint *triangle_each2(Triangle *self, iPoint *p)
 	k2 = p->j;
 	break;
     case AXIS_Y:
-	i2 = p->j;
+	i2 = p->i;
 	j2 = self->wi;
-	k2 = p->i;
+	k2 = p->j;
 	break;
     case AXIS_Z:
 	i2 = p->i;
@@ -846,10 +851,10 @@ static void triangle_offset(Triangle *self)
 	self->du3 -= world->dz;
 	break;
     case AXIS_Y:
-	self->du2 -= world->dz;
-	self->dv2 -= world->dx;
-	self->du3 -= world->dz;
-	self->dv3 -= world->dx;
+	self->du2 -= world->dx;
+	self->dv2 -= world->dz;
+	self->du3 -= world->dx;
+	self->dv3 -= world->dz;
 	break;
     case AXIS_Z:
 	self->du2 -= world->dx;
