@@ -156,6 +156,7 @@ int main(int argc, char **argv)
     if (argc > 0)
 	warn_exit("too many args");
 
+    sim_init();
     sim = sim_new(fname, eps_sor, omega_sor);
     sol = sim_calc();
 

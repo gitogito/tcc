@@ -285,7 +285,6 @@ typedef struct Config {
 extern Config *config;
 
 typedef struct Sim {
-    iPoint dir_to_ipoint[NDIRS];
     Array3Di active_p_ary;
     Array3Dd *fix_ary;
     Array3Dd *fixheat_ary;
@@ -303,6 +302,7 @@ typedef struct Sim {
 extern Sim *sim;
 
 int sim_active_p(iPoint *ipoint);
+void sim_init(void);
 Sim *sim_new(char *fname, double eps_sor, double omega_sor);
 double *sim_calc(void);
 
