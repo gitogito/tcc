@@ -818,6 +818,7 @@ double *sim_calc()
 	warn("configuring ...");
     config = config_new();
     config_parse(sim->fname);
+    warn("number of cells is %d x %d x %d", world->ni, world->nj, world->nk);
 
     if (opt_v)
 	warn("setting region ...");
