@@ -1568,38 +1568,39 @@ void obj_free(Obj *self)
 	return;
     switch (self->objtype) {
     case OBJ_RECT:
-	return rect_free(self->uobj.rect);
+	rect_free(self->uobj.rect);
 	break;
     case OBJ_TRIANGLE:
-	return triangle_free(self->uobj.triangle);
+	triangle_free(self->uobj.triangle);
 	break;
     case OBJ_ELLIPSE:
-	return ellipse_free(self->uobj.ellipse);
+	ellipse_free(self->uobj.ellipse);
 	break;
     case OBJ_CIRCLE:
-	return circle_free(self->uobj.circle);
+	circle_free(self->uobj.circle);
 	break;
     case OBJ_POLYGON:
-	return polygon_free(self->uobj.polygon);
+	polygon_free(self->uobj.polygon);
 	break;
     case OBJ_LINE:
-	return line_free(self->uobj.line);
+	line_free(self->uobj.line);
 	break;
     case OBJ_BOX:
-	return box_free(self->uobj.box);
+	box_free(self->uobj.box);
 	break;
     case OBJ_SWEEP:
-	return sweep_free(self->uobj.sweep);
+	sweep_free(self->uobj.sweep);
 	break;
     case OBJ_EDGE:
-	return edge_free(self->uobj.edge);
+	edge_free(self->uobj.edge);
 	break;
     case OBJ_OBJARY:
-	return objary_free(self->uobj.objary);
+	objary_free(self->uobj.objary);
 	break;
     default:
 	bug("unknown obj %d", self->objtype);
     }
+    return;
 }
 
 int obj_each(Obj *self, iPoint **pp)
