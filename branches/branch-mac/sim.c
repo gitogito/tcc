@@ -13,7 +13,14 @@ static int dir_array[NDIRS] = { DIR_LEFT, DIR_RIGHT, DIR_FRONT, DIR_BACK, DIR_BE
 static int dir_x[] = { DIR_LEFT, DIR_RIGHT };
 static int dir_y[] = { DIR_FRONT, DIR_BACK };
 static int dir_z[] = { DIR_BELOW, DIR_ABOVE };
-static iPoint dir_to_ipoint[NDIRS];
+static iPoint dir_to_ipoint[NDIRS] = {
+    {-1,  0,  0},
+    { 1,  0,  0},
+    { 0, -1,  0},
+    { 0,  1,  0},
+    { 0,  0, -1},
+    { 0,  0,  1},
+};
 
 static double *double_new(double v)
 {
@@ -702,16 +709,6 @@ static void sim_set_matrix(void)
 	    sim_add_matrix_coef(p, p, dx, dy, dz);
 	}
     }
-}
-
-void sim_init(void)
-{
-    dir_to_ipoint[DIR_LEFT]  = get_ipoint(-1,  0,  0);
-    dir_to_ipoint[DIR_RIGHT] = get_ipoint( 1,  0,  0);
-    dir_to_ipoint[DIR_FRONT] = get_ipoint( 0, -1,  0);
-    dir_to_ipoint[DIR_BACK]  = get_ipoint( 0,  1,  0);
-    dir_to_ipoint[DIR_BELOW] = get_ipoint( 0,  0, -1);
-    dir_to_ipoint[DIR_ABOVE] = get_ipoint( 0,  0,  1);
 }
 
 Sim *sim_new(char *fname, double eps_sor, double omega_sor)

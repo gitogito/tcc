@@ -302,7 +302,6 @@ typedef struct Sim {
 extern Sim *sim;
 
 int sim_active_p(iPoint *ipoint);
-void sim_init(void);
 Sim *sim_new(char *fname, double eps_sor, double omega_sor);
 double *sim_calc(void);
 
