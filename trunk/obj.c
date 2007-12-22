@@ -49,7 +49,7 @@ iPoint_ary *ipoint_ary_new(void)
     return self;
 }
 
-static void ipoint_ary_free(iPoint_ary *self)
+void ipoint_ary_free(iPoint_ary *self)
 {
     if (self == NULL)
 	return;
@@ -602,40 +602,8 @@ static void triangle_z_free(Triangle_z *self)
     FREE(self);
 }
 
-static void triangle_z_line(iPoint_ary *ipoint_ary,
-	int x1, int y1, int x2, int y2)
-{
-    int dx, dy, s, step;
-
-    dx = abs(x2 - x1);  dy = abs(y2 - y1);
-    if (dx > dy) {
-        if (x1 > x2) {
-            step = (y1 > y2) ? 1 : -1;
-            s = x1;  x1 = x2;  x2 = s;  y1 = y2;
-        } else step = (y1 < y2) ? 1: -1;
-        ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
-        s = dx >> 1;
-        while (++x1 <= x2) {
-            if ((s -= dy) < 0) {
-                s += dx;  y1 += step;
-            };
-	    ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
-        }
-    } else {
-        if (y1 > y2) {
-            step = (x1 > x2) ? 1 : -1;
-            s = y1;  y1 = y2;  y2 = s;  x1 = x2;
-        } else step = (x1 < x2) ? 1 : -1;
-	ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
-        s = dy >> 1;
-        while (++y1 <= y2) {
-            if ((s -= dx) < 0) {
-                s += dy;  x1 += step;
-            }
-	    ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
-        }
-    }
-}
+static void line_set_ipoint_ary(iPoint_ary *ipoint_ary,
+	int x1, int y1, int x2, int y2);
 
 static int triangle_z_each(Triangle_z *self, iPoint **pp)
 {
@@ -655,38 +623,43 @@ static int triangle_z_each(Triangle_z *self, iPoint **pp)
     ix = iround(((self->x1+self->dx) - world->x0) / world->dx);
     jx = j1;
 
-    a12 = (double) (i1 - i2) / (j1 - j2);
-    b12 = (double) (i2*j1 - i1*j2) / (j1 - j2);
-    ax2 = (double) (ix - i2) / (jx - j2);
-    bx2 = (double) (i2*jx - ix*j2) / (jx - j2);
-
-    if (j1 < j2) {
-	jstart = j1;
-	jend = j2;
-    } else {
-	jstart = j2;
-	jend = j1;
-    }
-
     ipoint_ary = ipoint_ary_new();
-    for (j = jstart; j <= jend; ++j) {
-	i12 = iround(a12 * j + b12);
-	ix2 = iround(ax2 * j + bx2);
-	if (i12 < ix2) {
-	    istart = i12;
-	    iend = ix2;
-	} else {
-	    istart = ix2;
-	    iend = i12;
+
+    if (j1 == j2) {
+	/* do nothing */
+    } else {
+	if (j1 < j2) {
+	    jstart = j1;
+	    jend = j2;
+	} else {	/* j1 > j2 */
+	    jstart = j2;
+	    jend = j1;
 	}
-	for (i = istart; i <= iend; ++i)
-	    ipoint_ary_push(ipoint_ary, get_ipoint(i, j, 0));
+
+	a12 = (double) (i1 - i2) / (j1 - j2);
+	b12 = (double) (i2*j1 - i1*j2) / (j1 - j2);
+	ax2 = (double) (ix - i2) / (jx - j2);
+	bx2 = (double) (i2*jx - ix*j2) / (jx - j2);
+
+	for (j = jstart; j <= jend; ++j) {
+	    i12 = iround(a12 * j + b12);
+	    ix2 = iround(ax2 * j + bx2);
+	    if (i12 < ix2) {
+		istart = i12;
+		iend = ix2;
+	    } else {
+		istart = ix2;
+		iend = i12;
+	    }
+	    for (i = istart; i <= iend; ++i)
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, j, 0));
+	}
     }
 
     /* three lines of edges */
-    triangle_z_line(ipoint_ary, i1, j1, i2, j2);
-    triangle_z_line(ipoint_ary, i2, j2, ix, jx);
-    triangle_z_line(ipoint_ary, ix, jx, i1, j1);
+    line_set_ipoint_ary(ipoint_ary, i1, j1, i2, j2);
+    line_set_ipoint_ary(ipoint_ary, i2, j2, ix, jx);
+    line_set_ipoint_ary(ipoint_ary, ix, jx, i1, j1);
 
     self->each = each_new(ipoint_ary);
 
@@ -750,9 +723,9 @@ static iPoint *triangle_each2(Triangle *self, iPoint *p)
 	k2 = p->j;
 	break;
     case AXIS_Y:
-	i2 = p->j;
+	i2 = p->i;
 	j2 = self->wi;
-	k2 = p->i;
+	k2 = p->j;
 	break;
     case AXIS_Z:
 	i2 = p->i;
@@ -878,10 +851,10 @@ static void triangle_offset(Triangle *self)
 	self->du3 -= world->dz;
 	break;
     case AXIS_Y:
-	self->du2 -= world->dz;
-	self->dv2 -= world->dx;
-	self->du3 -= world->dz;
-	self->dv3 -= world->dx;
+	self->du2 -= world->dx;
+	self->dv2 -= world->dz;
+	self->du3 -= world->dx;
+	self->dv3 -= world->dz;
 	break;
     case AXIS_Z:
 	self->du2 -= world->dx;
@@ -1156,6 +1129,41 @@ Polygon *polygon_new(double x1, double y1, double z1,
     return self;
 }
 
+Polygon *polygon_new2(double x1, double y1, double z1,
+	int axis, Vector2d_ary *uv_ary)
+{
+    Vector2d_ary *dudv_ary;
+    double u, v;
+    int i;
+    Vector2d vec2d;
+
+    dudv_ary = vector2d_ary_new();
+    switch (axis) {
+    case AXIS_X:
+	u = y1;
+	v = z1;
+	break;
+    case AXIS_Y:
+	u = x1;
+	v = z1;
+	break;
+    case AXIS_Z:
+	u = x1;
+	v = y1;
+	break;
+    default:
+	bug("unknow axis %d", axis);
+	u = -1.0;	/* for shutting up compiler */
+	v = -1.0;	/* for shutting up compiler */
+    }
+    for (i = 0; i < uv_ary->size; ++i) {
+	vec2d.x = uv_ary->ptr[i].x - u;
+	vec2d.y = uv_ary->ptr[i].y - v;
+	vector2d_ary_push(dudv_ary, vec2d);
+    }
+    return polygon_new(x1, y1, z1, axis, dudv_ary);
+}
+
 static void polygon_free(Polygon *self)
 {
     if (self == NULL)
@@ -1279,6 +1287,193 @@ static void polygon_offset(Polygon *self)
     }
 }
 
+/* Line */
+
+Line *line_new(double x1, double y1, double z1,
+	int axis, Vector2d_ary *dudv_ary)
+{
+    Line *self;
+    Vector2d v0, v;
+    int index;
+
+    v0.x = v0.y = -1.0;	/* for shutting up compiler */
+
+    self = EALLOC(Line);
+    self->axis = axis;
+    self->vector2d_ary = vector2d_ary_new();
+    switch (self->axis) {
+    case AXIS_X:
+	v0.x = y1;
+	v0.y = z1;
+	self->w = x1;
+	break;
+    case AXIS_Y:
+	v0.x = x1;
+	v0.y = z1;
+	self->w = y1;
+	break;
+    case AXIS_Z:
+	v0.x = x1;
+	v0.y = y1;
+	self->w = z1;
+	break;
+    default:
+	bug("unknown axis %d", axis);
+    }
+    vector2d_ary_push(self->vector2d_ary, v0);
+    for (index = 0; index < dudv_ary->size; ++index) {
+	v.x = dudv_ary->ptr[index].x + v0.x;
+	v.y = dudv_ary->ptr[index].y + v0.y;
+	vector2d_ary_push(self->vector2d_ary, v);
+    }
+    self->each = NULL;
+    return self;
+}
+
+Line *line_new2(double x1, double y1, double z1,
+	int axis, Vector2d_ary *uv_ary)
+{
+    Vector2d_ary *dudv_ary;
+    double u, v;
+    int i;
+    Vector2d vec2d;
+
+    dudv_ary = vector2d_ary_new();
+    switch (axis) {
+    case AXIS_X:
+	u = y1;
+	v = z1;
+	break;
+    case AXIS_Y:
+	u = x1;
+	v = z1;
+	break;
+    case AXIS_Z:
+	u = x1;
+	v = y1;
+	break;
+    default:
+	bug("unknow axis %d", axis);
+	u = -1.0;	/* for shutting up compiler */
+	v = -1.0;	/* for shutting up compiler */
+    }
+    for (i = 0; i < uv_ary->size; ++i) {
+	vec2d.x = uv_ary->ptr[i].x - u;
+	vec2d.y = uv_ary->ptr[i].y - v;
+	vector2d_ary_push(dudv_ary, vec2d);
+    }
+    return line_new(x1, y1, z1, axis, dudv_ary);
+}
+
+static void line_free(Line *self)
+{
+    if (self == NULL)
+	return;
+    vector2d_ary_free(self->vector2d_ary);
+    each_free(self->each);
+    FREE(self);
+}
+
+static void line_set_ipoint_ary(iPoint_ary *ipoint_ary,
+	int x1, int y1, int x2, int y2)
+{
+    int dx, dy, s, step;
+
+    dx = abs(x2 - x1);  dy = abs(y2 - y1);
+    if (dx > dy) {
+        if (x1 > x2) {
+            step = (y1 > y2) ? 1 : -1;
+            s = x1;  x1 = x2;  x2 = s;  y1 = y2;
+        } else step = (y1 < y2) ? 1: -1;
+        ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
+        s = dx >> 1;
+        while (++x1 <= x2) {
+            if ((s -= dy) < 0) {
+                s += dx;  y1 += step;
+            };
+	    ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
+        }
+    } else {
+        if (y1 > y2) {
+            step = (x1 > x2) ? 1 : -1;
+            s = y1;  y1 = y2;  y2 = s;  x1 = x2;
+        } else step = (x1 < x2) ? 1 : -1;
+	ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
+        s = dy >> 1;
+        while (++y1 <= y2) {
+            if ((s -= dx) < 0) {
+                s += dy;  x1 += step;
+            }
+	    ipoint_ary_push(ipoint_ary, get_ipoint(x1, y1, 0));
+        }
+    }
+}
+
+static int line_each(Line *self, iPoint **pp)
+{
+    iPoint_ary *ipoint_ary;
+    double x1, y1, x2, y2;
+    int ix1, iy1, ix2, iy2;
+    int index;
+
+    if (self->each != NULL && self->each->index >= 0)
+	return each_each(self->each, pp);
+
+    ipoint_ary = ipoint_ary_new();
+    for (index = 0; index < self->vector2d_ary->size - 1; ++index) {
+	x1 = self->vector2d_ary->ptr[index].x;
+	y1 = self->vector2d_ary->ptr[index].y;
+	x2 = self->vector2d_ary->ptr[index + 1].x;
+	y2 = self->vector2d_ary->ptr[index + 1].y;
+	switch (self->axis) {
+	case AXIS_X:
+	    ix1 = iround((x1 - world->y0) / world->dy);
+	    iy1 = iround((y1 - world->z0) / world->dz);
+	    ix2 = iround((x2 - world->y0) / world->dy);
+	    iy2 = iround((y2 - world->z0) / world->dz);
+	    break;
+	case AXIS_Y:
+	    ix1 = iround((x1 - world->x0) / world->dx);
+	    iy1 = iround((y1 - world->z0) / world->dz);
+	    ix2 = iround((x2 - world->x0) / world->dx);
+	    iy2 = iround((y2 - world->z0) / world->dz);
+	    break;
+	case AXIS_Z:
+	    ix1 = iround((x1 - world->x0) / world->dx);
+	    iy1 = iround((y1 - world->y0) / world->dy);
+	    ix2 = iround((x2 - world->x0) / world->dx);
+	    iy2 = iround((y2 - world->y0) / world->dy);
+	    break;
+	default:
+	    bug("unknown axis %d", self->axis);
+	    ix1 = iy1 = ix2 = iy2 = -1;	/* for shutting compiler */
+	}
+	line_set_ipoint_ary(ipoint_ary, ix1, iy1, ix2, iy2);
+    }
+
+    for (index = 0; index < ipoint_ary->size; ++index) {
+	switch (self->axis) {
+	case AXIS_X:
+	    ipoint_ary->ptr[index].k = ipoint_ary->ptr[index].j;
+	    ipoint_ary->ptr[index].j = ipoint_ary->ptr[index].i;
+	    ipoint_ary->ptr[index].i = iround((self->w - world->x0) / world->dx);
+	    break;
+	case AXIS_Y:
+	    ipoint_ary->ptr[index].k = ipoint_ary->ptr[index].j;
+	    ipoint_ary->ptr[index].j = iround((self->w - world->y0) / world->dy);
+	    break;
+	case AXIS_Z:
+	    ipoint_ary->ptr[index].k = iround((self->w - world->z0) / world->dz);
+	    break;
+	default:
+	    bug("unknown axis %d", self->axis);
+	}
+    }
+
+    self->each = each_new(ipoint_ary);
+    return each_each(self->each, pp);
+}
+
 /* Box */
 
 Box *box_new(double x, double y, double z, double xlen, double ylen, double zlen)
@@ -1373,35 +1568,39 @@ void obj_free(Obj *self)
 	return;
     switch (self->objtype) {
     case OBJ_RECT:
-	return rect_free(self->uobj.rect);
+	rect_free(self->uobj.rect);
 	break;
     case OBJ_TRIANGLE:
-	return triangle_free(self->uobj.triangle);
+	triangle_free(self->uobj.triangle);
 	break;
     case OBJ_ELLIPSE:
-	return ellipse_free(self->uobj.ellipse);
+	ellipse_free(self->uobj.ellipse);
 	break;
     case OBJ_CIRCLE:
-	return circle_free(self->uobj.circle);
+	circle_free(self->uobj.circle);
 	break;
     case OBJ_POLYGON:
-	return polygon_free(self->uobj.polygon);
+	polygon_free(self->uobj.polygon);
+	break;
+    case OBJ_LINE:
+	line_free(self->uobj.line);
 	break;
     case OBJ_BOX:
-	return box_free(self->uobj.box);
+	box_free(self->uobj.box);
 	break;
     case OBJ_SWEEP:
-	return sweep_free(self->uobj.sweep);
+	sweep_free(self->uobj.sweep);
 	break;
     case OBJ_EDGE:
-	return edge_free(self->uobj.edge);
+	edge_free(self->uobj.edge);
 	break;
     case OBJ_OBJARY:
-	return objary_free(self->uobj.objary);
+	objary_free(self->uobj.objary);
 	break;
     default:
 	bug("unknown obj %d", self->objtype);
     }
+    return;
 }
 
 int obj_each(Obj *self, iPoint **pp)
@@ -1421,6 +1620,9 @@ int obj_each(Obj *self, iPoint **pp)
 	break;
     case OBJ_POLYGON:
 	return polygon_each(self->uobj.polygon, pp);
+	break;
+    case OBJ_LINE:
+	return line_each(self->uobj.line, pp);
 	break;
     case OBJ_BOX:
 	return box_each(self->uobj.box, pp);
@@ -1458,6 +1660,9 @@ void obj_offset(Obj *self)
     case OBJ_POLYGON:
 	polygon_offset(self->uobj.polygon);
 	break;
+    case OBJ_LINE:
+	warn_exit("line_offset is not implemented");
+	break;
     case OBJ_BOX:
 	box_offset(self->uobj.box);
 	break;
@@ -1493,6 +1698,9 @@ static void obj_edge(Obj *self)
     case OBJ_POLYGON:
 	warn_exit("polygon_edge is not implemented");
 	break;
+    case OBJ_LINE:
+	warn_exit("line_edge is not implemented");
+	break;
     case OBJ_BOX:
 	warn_exit("box_edge is not implemented");
 	break;
@@ -1523,6 +1731,9 @@ static int obj_dim(Obj *self)
 	return 2;
 	break;
     case OBJ_POLYGON:
+	return 2;
+	break;
+    case OBJ_LINE:
 	return 2;
 	break;
     case OBJ_BOX:

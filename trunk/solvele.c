@@ -146,6 +146,8 @@ double *solvele_solve(Solvele *self, double eps_sor, double omega_sor,
 	umfpack_di_free_symbolic(&Symbolic);
 	u = EALLOCN(double, self->size);
 	umfpack_di_solve(UMFPACK_At, ap, ai, ax, u, pb, Numeric, NULL, NULL);
+	if (opt_v)
+	    fprintf(stderr, "finished\n");
 	FREE(pb);
 	FREE(ax);
 	FREE(ai);

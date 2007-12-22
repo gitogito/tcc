@@ -66,23 +66,28 @@ static int symbol_to_axis(char *symbol)
 %}
 
 %union {
-    double val;
-    char *str;
-    Point point;
-    Vector2d vector2d;
-    Vector2d_ary *vector2d_ary;
-    Obj *obj;
-    AryObj *aryobj;
+    double		val;
+    char		*str;
+    Point		point;
+    Vector2d		point2d;
+    Vector2d_ary	*point2d_ary;
+    Vector2d		vector2d;
+    Vector2d_ary	*vector2d_ary;
+    Obj			*obj;
+    AryObj		*aryobj;
 }
 
 %token <val> TK_NUMBER
 %token <str> TK_WORD TK_SYMBOL
 
-%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_ELLIPSE TK_EDGE TK_FIX TK_HEAT TK_LAMBDA TK_LINE
-	TK_NOACTIVE TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE TK_WORLD
+%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_DASH TK_ELLIPSE TK_EDGE TK_FIX TK_HEAT
+        TK_LAMBDA TK_LINE TK_NOACTIVE TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE
+	TK_WORLD
 
 %type <point>		point
 %type <point>		vector
+%type <point2d>		point2d
+%type <point2d_ary>	point2d_ary
 %type <vector2d>	vector2d
 %type <vector2d_ary>	vector2d_ary
 %type <val>		expr var_assign
@@ -115,11 +120,19 @@ var_assign:
     }
 
 world:
-    TK_LINE TK_WORLD point ',' vector ',' expr ',' expr ',' expr
+    TK_DASH TK_WORLD point ',' vector ',' expr ',' expr ',' expr
     {
 	if (world != NULL)
 	    warn_exit("world is already defined at line %ld", lineno);
 	world = world_new($3.x, $3.y, $3.z, $5.x, $5.y, $5.z, $7, $9, $11);
+    }
+
+  | TK_DASH TK_WORLD point ',' point ',' expr ',' expr ',' expr
+    {
+	if (world != NULL)
+	    warn_exit("world is already defined at line %ld", lineno);
+	world = world_new($3.x, $3.y, $3.z,
+	    $5.x - $3.x, $5.y - $3.y, $5.z - $3.z, $7, $9, $11);
     }
 
 commands:
@@ -128,43 +141,43 @@ commands:
   | commands command
 
 command:
-    TK_LINE TK_ACTIVE obj
+    TK_DASH TK_ACTIVE obj
     {
 	$3->uval.i = 1;
 	aryobj_push(config->active_obj_ary, $3);
     }
 
-  | TK_LINE TK_NOACTIVE obj
+  | TK_DASH TK_NOACTIVE obj
     {
 	$3->uval.i = 0;
 	aryobj_push(config->active_obj_ary, $3);
     }
 
-  | TK_LINE TK_FIX expr obj
+  | TK_DASH TK_FIX expr obj
     {
 	$4->uval.d = $3;
 	aryobj_push(config->fix_obj_ary, $4);
     }
 
-  | TK_LINE TK_FIX TK_HEAT expr obj
+  | TK_DASH TK_FIX TK_HEAT expr obj
     {
 	$5->uval.d = $4;
 	aryobj_push(config->fixheat_obj_ary, $5);
     }
 
-  | TK_LINE TK_HEAT TK_FIX expr obj
+  | TK_DASH TK_HEAT TK_FIX expr obj
     {
 	$5->uval.d = $4;
 	aryobj_push(config->fixheat_obj_ary, $5);
     }
 
-  | TK_LINE TK_HEAT expr obj
+  | TK_DASH TK_HEAT expr obj
     {
 	$4->uval.d = $3;
 	aryobj_push(config->heat_obj_ary, $4);
     }
 
-  | TK_LINE TK_LAMBDA expr obj
+  | TK_DASH TK_LAMBDA expr obj
     {
 	$4->uval.d = $3;
 	obj_offset($4);
@@ -177,6 +190,26 @@ point:
 	$$.x = $2;
 	$$.y = $4;
 	$$.z = $6;
+    }
+
+point2d:
+    '(' expr ',' expr ')'
+    {
+	$$.x = $2;
+	$$.y = $4;
+    }
+
+point2d_ary:
+    point2d
+    {
+	$$ = vector2d_ary_new();
+	vector2d_ary_push($$, $1);
+    }
+
+  | point2d_ary ',' point2d
+    {
+	$$ = $1;
+	vector2d_ary_push($$, $3);
     }
 
 vector:
@@ -243,6 +276,12 @@ obj:
 	$$->uobj.box = box_new($2.x, $2.y, $2.z, $4.x, $4.y, $4.z);
     }
 
+  | TK_BOX point ',' point
+    {
+	$$ = obj_new(OBJ_BOX);
+	$$->uobj.box = box_new($2.x, $2.y, $2.z, $4.x - $2.x, $4.y - $2.y, $4.z - $2.z);
+    }
+
   | TK_RECT TK_SYMBOL ',' point ',' vector2d
     {
 	int axis;
@@ -250,6 +289,15 @@ obj:
 	$$ = obj_new(OBJ_RECT);
 	axis = symbol_to_axis($2);
 	$$->uobj.rect = rect_new($4.x, $4.y, $4.z, axis, $6.x, $6.y);
+    }
+
+  | TK_RECT TK_SYMBOL ',' point ',' point2d
+    {
+	int axis;
+
+	$$ = obj_new(OBJ_RECT);
+	axis = symbol_to_axis($2);
+	$$->uobj.rect = rect_new($4.x, $4.y, $4.z, axis, $6.x - $4.x, $6.y - $4.y);
     }
 
   | TK_TRIANGLE TK_SYMBOL ',' point ',' vector2d ',' vector2d
@@ -260,6 +308,16 @@ obj:
 	axis = symbol_to_axis($2);
 	$$->uobj.triangle = triangle_new($4.x, $4.y, $4.z,
 	    axis, $6.x, $6.y, $8.x, $8.y);
+    }
+
+  | TK_TRIANGLE TK_SYMBOL ',' point ',' point2d ',' point2d
+    {
+	int axis;
+
+	$$ = obj_new(OBJ_TRIANGLE);
+	axis = symbol_to_axis($2);
+	$$->uobj.triangle = triangle_new($4.x, $4.y, $4.z,
+	    axis, $6.x - $4.x, $6.y - $4.y, $8.x - $4.x, $8.y - $4.y);
     }
 
   | TK_CIRCLE TK_SYMBOL ',' point ',' expr
@@ -287,6 +345,33 @@ obj:
 	$$ = obj_new(OBJ_POLYGON);
 	axis = symbol_to_axis($2);
 	$$->uobj.polygon = polygon_new($4.x, $4.y, $4.z, axis, $6);
+    }
+
+  | TK_POLYGON TK_SYMBOL ',' point ',' point2d_ary
+    {
+	int axis;
+
+	$$ = obj_new(OBJ_POLYGON);
+	axis = symbol_to_axis($2);
+	$$->uobj.polygon = polygon_new2($4.x, $4.y, $4.z, axis, $6);
+    }
+
+  | TK_LINE TK_SYMBOL ',' point ',' vector2d_ary
+    {
+	int axis;
+
+	$$ = obj_new(OBJ_LINE);
+	axis = symbol_to_axis($2);
+	$$->uobj.line = line_new($4.x, $4.y, $4.z, axis, $6);
+    }
+
+  | TK_LINE TK_SYMBOL ',' point ',' point2d_ary
+    {
+	int axis;
+
+	$$ = obj_new(OBJ_LINE);
+	axis = symbol_to_axis($2);
+	$$->uobj.line = line_new2($4.x, $4.y, $4.z, axis, $6);
     }
 
   | TK_SWEEP TK_SYMBOL ',' expr ',' obj

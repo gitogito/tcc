@@ -72,6 +72,7 @@ typedef struct iPoint_ary {
 } iPoint_ary;
 
 iPoint_ary *ipoint_ary_new(void);
+void ipoint_ary_free(iPoint_ary *self);
 void ipoint_ary_push(iPoint_ary *self, iPoint ipoint);
 
 typedef struct Each {
@@ -194,6 +195,20 @@ typedef struct Polygon {
 
 Polygon *polygon_new(double x1, double y1, double z1,
 	int axis, Vector2d_ary *dudv_ary);
+Polygon *polygon_new2(double x1, double y1, double z1,
+	int axis, Vector2d_ary *uv_ary);	/* uv_ary is point2d_ary */
+
+typedef struct Line {
+    int axis;
+    double w;
+    Vector2d_ary *vector2d_ary;
+    Each *each;
+} Line;
+
+Line *line_new(double x1, double y1, double z1,
+	int axis, Vector2d_ary *dudv_ary);
+Line *line_new2(double x1, double y1, double z1,
+	int axis, Vector2d_ary *uv_ary);	/* uv_ary is point2d_ary */
 
 typedef struct Box {
     Sweep *sweep;
@@ -224,6 +239,7 @@ enum {
     OBJ_ELLIPSE,
     OBJ_CIRCLE,
     OBJ_POLYGON,
+    OBJ_LINE,
     OBJ_BOX,
     OBJ_SWEEP,
     OBJ_EDGE,
@@ -236,6 +252,7 @@ union uobj {
     Ellipse *ellipse;
     Circle *circle;
     Polygon *polygon;
+    Line *line;
     Box *box;
     Sweep *sweep;
     Edge *edge;
@@ -268,7 +285,6 @@ typedef struct Config {
 extern Config *config;
 
 typedef struct Sim {
-    iPoint dir_to_ipoint[NDIRS];
     Array3Di active_p_ary;
     Array3Dd *fix_ary;
     Array3Dd *fixheat_ary;

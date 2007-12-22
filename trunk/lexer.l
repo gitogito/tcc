@@ -34,7 +34,7 @@ number	{num1}|{num2}
     /* ignore comment */
 }
 
----+		return TK_LINE;
+---+		return TK_DASH;
 active		return TK_ACTIVE;
 box		return TK_BOX;
 circle		return TK_CIRCLE;
@@ -43,6 +43,7 @@ ellipse		return TK_ELLIPSE;
 fix		return TK_FIX;
 heat		return TK_HEAT;
 lambda		return TK_LAMBDA;
+line		return TK_LINE;
 noactive	return TK_NOACTIVE;
 polygon		return TK_POLYGON;
 rect		return TK_RECT;
