@@ -1,7 +1,7 @@
 #include "config.h"
 
 #ifdef HAVE_UMFPACK_H
-#include <umfpack.h>
+#include <ufsparse/umfpack.h>
 #endif
 #include <stdio.h>
 #include <math.h>
