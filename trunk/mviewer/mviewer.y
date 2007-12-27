@@ -26,8 +26,18 @@ var_assign:
     { @vars[val[0]] = val[2] }
 
 world:
-    TK_LINE TK_WORLD point ',' vector ',' expr ',' expr ',' expr
+    TK_DASH TK_WORLD point ',' vector ',' expr ',' expr ',' expr
     {
+      obj = Box.new(*val.values_at(2, 4))
+      obj.type = :WORLD
+      @obj_ary << obj
+    }
+
+  | TK_DASH TK_WORLD point ',' point ',' expr ',' expr ',' expr
+    {
+      val[4][0] -= val[2][0]
+      val[4][1] -= val[2][1]
+      val[4][2] -= val[2][2]
       obj = Box.new(*val.values_at(2, 4))
       obj.type = :WORLD
       @obj_ary << obj
@@ -39,31 +49,66 @@ commands:
   | commands command
 
 command:
-    TK_LINE TK_ACTIVE
-    { @state = :ACTIVE }
-
-  | TK_LINE TK_NOACTIVE
-    { @state = :NOACTIVE }
-
-  | TK_LINE TK_FIX expr
-    { @state = :FIX }
-
-  | TK_LINE TK_HEAT expr
-    { @state = :HEAT }
-
-  | TK_LINE TK_LAMBDA expr
-    { @state = :LAMBDA }
-
-  | obj
+    TK_DASH TK_ACTIVE obj
     {
-      obj = val[0]
-      obj.type = @state
-      @obj_ary << obj
+      val[2].type = :ACTIVE
+      @obj_ary << val[2]
+    }
+
+  | TK_DASH TK_NOACTIVE obj
+    {
+      val[2].type = :NOACTIVE
+      @obj_ary << val[2]
+    }
+
+  | TK_DASH TK_FIX expr obj
+    {
+      val[3].type = :FIX
+      @obj_ary << val[3]
+    }
+
+  | TK_DASH TK_FIX TK_HEAT expr obj
+    {
+      val[4].type = :FIXHEAT
+      @obj_ary << val[4]
+    }
+
+  | TK_DASH TK_HEAT TK_FIX expr obj
+    {
+      val[4].type = :FIXHEAT
+      @obj_ary << val[4]
+    }
+
+  | TK_DASH TK_HEAT expr obj
+    {
+      val[3].type = :HEAT
+      @obj_ary << val[3]
+    }
+
+  | TK_DASH TK_LAMBDA expr obj
+    {
+      val[3].type = :LAMBDA
+      @obj_ary << val[3]
     }
 
 point:
     '(' expr ',' expr ',' expr ')'
-    { val.values_at(1, 3, 5) }
+    {
+      val.values_at(1, 3, 5)
+    }
+
+point2d:
+    '(' expr ',' expr ')'
+    {
+      val.values_at(1, 3)
+    }
+
+point2d_ary:
+    point2d
+    { [ val[0] ] }
+
+  | point2d_ary ',' point2d
+    { val[0] + [ val[2] ] }
 
 vector:
     '<' expr ',' expr ',' expr '>'
@@ -109,16 +154,38 @@ expr:
 
   | var_assign
 
-
 obj:
     TK_BOX point ',' vector
     { Box.new(*val.values_at(1, 3)) }
 
+  | TK_BOX point ',' point
+    {
+      val[3][0] -= val[1][0]
+      val[3][1] -= val[1][1]
+      val[3][2] -= val[1][2]
+      Box.new(*val.values_at(1, 3))
+    }
+
   | TK_RECT TK_SYMBOL ',' point ',' vector2d
     { Rect.new(*val.values_at(1, 3, 5)) }
 
+  | TK_RECT TK_SYMBOL ',' point ',' point2d
+    {
+      vec2d = point2d_sub_point(val[1], val[5], val[3])
+      Rect.new(val[1], val[3], vec2d)
+    }
+
   | TK_TRIANGLE TK_SYMBOL ',' point ',' vector2d ',' vector2d
-    { Triangle.new(*val.values_at(1, 3, 5, 7)) }
+    {
+      Triangle.new(*val.values_at(1, 3, 5, 7))
+    }
+
+  | TK_TRIANGLE TK_SYMBOL ',' point ',' point2d ',' point2d
+    {
+      vec2d1 = point2d_sub_point(val[1], val[5], val[3])
+      vec2d2 = point2d_sub_point(val[1], val[7], val[3])
+      Triangle.new(val[1], val[3], vec2d1, vec2d2)
+    }
 
   | TK_CIRCLE TK_SYMBOL ',' point ',' expr
     { Circle.new(*val.values_at(1, 3, 5)) }
@@ -129,11 +196,49 @@ obj:
   | TK_POLYGON TK_SYMBOL ',' point ',' vector2d_ary
     { Polygon.new(*val.values_at(1, 3, 5)) }
 
+  | TK_POLYGON TK_SYMBOL ',' point ',' point2d_ary
+    {
+      ary = []
+      val[5].each do |pnt|
+        vec2d = point2d_sub_point(val[1], pnt, val[3])
+        ary << vec2d
+      end
+      Polygon.new(val[1], val[3], ary)
+    }
+
+  | TK_LINE TK_SYMBOL ',' point ',' vector2d_ary
+    { Polygon.new(*val.values_at(1, 3, 5)) }
+
+  | TK_LINE TK_SYMBOL ',' point ',' point2d_ary
+    {
+      ary = []
+      val[5].each do |pnt|
+        vec2d = point2d_sub_point(val[1], pnt, val[3])
+        ary << vec2d
+      end
+      Polygon.new(val[1], val[3], ary)
+    }
+
   | TK_SWEEP TK_SYMBOL ',' expr ',' obj
     { Sweep.new(*val.values_at(1, 3, 5)) }
 
   | TK_EDGE obj
     { val[1] }
+
+  | '[' objs ']'
+    {
+      val[1]
+    }
+
+objs:
+    obj
+    { Objs.new(val[0]) }
+
+  | objs obj
+    {
+      val[0] << val[1]
+      val[0]
+    }
 
 
 ---- header
@@ -277,6 +382,29 @@ class Polygon < Obj
   end
 end
 
+class Objs
+  def initialize(obj)
+    @objs = [obj]
+  end
+
+  def type=(t)
+    @objs.each do |obj|
+      obj.type = t
+    end
+  end
+
+  def <<(obj)
+    @objs << obj
+  end
+
+  def each
+    @objs.each do |obj|
+      yield obj
+    end
+  end
+end
+
+
 ---- inner
 
 NumberPat = '(?: [-+]?\d*\.\d+(?:[eE][-+]?\d+)? | ' +
@@ -284,13 +412,35 @@ NumberPat = '(?: [-+]?\d*\.\d+(?:[eE][-+]?\d+)? | ' +
 
 attr_reader :obj_ary
 
+class ObjAry
+  def initialize
+    @ary = []
+  end
+
+  def <<(obj)
+    if obj.kind_of?(Objs)
+      obj.each do |aobj|
+        @ary << aobj
+      end
+    else
+      @ary << obj
+    end
+  end
+
+  def each
+    @ary.each do |obj|
+      yield obj
+    end
+  end
+end
+
 def parse(str)
   @yydebug = false
 
   @state = nil
   @vars = {}
 
-  @obj_ary = []
+  @obj_ary = ObjAry.new
 
   str = str.strip
   @q = []
@@ -301,7 +451,7 @@ def parse(str)
     when /\A#.*/
       str = $'
     when /\A---+/
-      @q.push [:TK_LINE, $&]
+      @q.push [:TK_DASH, $&]
       str = $'
     when /\Aactive\b/
       @q.push [:TK_ACTIVE, $&]
@@ -326,6 +476,9 @@ def parse(str)
       str = $'
     when /\Alambda\b/
       @q.push [:TK_LAMBDA, $&]
+      str = $'
+    when /\Aline\b/
+      @q.push [:TK_LINE, $&]
       str = $'
     when /\Anoactive\b/
       @q.push [:TK_NOACTIVE, $&]
@@ -376,11 +529,29 @@ def on_error(error_token_id, error_value, value_stack)
   exit 1
 end
 
+def point2d_sub_point(axis, point2d, point)
+  pnt2d = point2d.dup
+  case axis
+  when :X
+    pnt2d[0] -= point[1]
+    pnt2d[1] -= point[2]
+  when :Y
+    pnt2d[0] -= point[0]
+    pnt2d[1] -= point[2]
+  when :Z
+    pnt2d[0] -= point[0]
+    pnt2d[1] -= point[1]
+  else
+    raise "unknown axis '#{axis}'"
+  end
+  pnt2d
+end
+
 
 ---- footer
 
 def next_state(state)
-  st_ary = [ :ALL, :ACTIVE, :NOACTIVE, :FIX, :HEAT, :LAMBDA ]
+  st_ary = [ :ALL, :ACTIVE, :NOACTIVE, :FIX, :FIXHEAT, :HEAT, :LAMBDA ]
   index = st_ary.index(state)
   if index.nil?
     raise "unknown state #{state}"
@@ -403,6 +574,8 @@ parser.obj_ary.each do |obj|
     obj.actor.GetProperty.SetColor(0.1, 0.1, 0.1)
   when :FIX
     obj.actor.GetProperty.SetColor(0, 0, 1)
+  when :FIXHEAT
+    obj.actor.GetProperty.SetColor(1, 0, 0)
   when :HEAT
     obj.actor.GetProperty.SetColor(1, 0, 0)
   when :LAMBDA
