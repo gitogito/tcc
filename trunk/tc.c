@@ -103,6 +103,23 @@ int main(int argc, char **argv)
 		if (eps_sor <= 0.0)
 		    warn_exit("invalid eps %g", eps_sor);
 		break;
+	    } else if (*s == 'h') {
+		fprintf(stderr, "Usage: %s [options] file\n", prgname);
+		fprintf(stderr, "Options:\n");
+		fprintf(stderr, "  -e <epsilon>  "
+			"specify SOR epsilon\n");
+		fprintf(stderr, "  -o <omega>    "
+			"specify SOR omega\n");
+		fprintf(stderr, "  -r <region>   "
+			"specify region: active, fix, fixheat, heatfix, "
+			"heat, lambda\n");
+		fprintf(stderr, "  -u            "
+			"use UMFPACK\n");
+		fprintf(stderr, "  -v            "
+			"verbose mode\n");
+		fprintf(stderr, "  -y            "
+			"yydebug mode\n");
+		exit(0);
 	    } else if (*s == 'o') {
 		opt_o = 1;
 		if (*(s + 1) != '\0')
