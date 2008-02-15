@@ -108,6 +108,8 @@ int main(int argc, char **argv)
 		fprintf(stderr, "Options:\n");
 		fprintf(stderr, "  -e <epsilon>  "
 			"specify SOR epsilon\n");
+		fprintf(stderr, "  -h            "
+			"display this information\n");
 		fprintf(stderr, "  -o <omega>    "
 			"specify SOR omega\n");
 		fprintf(stderr, "  -r <region>   "
