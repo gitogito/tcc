@@ -15,7 +15,7 @@
 #define M_PI	3.14159265358979323846
 #endif
 
-#define EPS	1.0e-6
+#define EPS	1.0e-7
 #define N	20
 
 void solvele_set_matrix(Solvele *self, int i, int j, double val)
