@@ -94,13 +94,17 @@ command:
 point:
     '(' expr ',' expr ',' expr ')'
     {
-      val.values_at(1, 3, 5)
+      point = val.values_at(1, 3, 5)
+      set_min_max(point)
+      point
     }
 
 point2d:
     '(' expr ',' expr ')'
     {
-      val.values_at(1, 3)
+      point2d = val.values_at(1, 3)
+      set_min_max(point2d)
+      point2d
     }
 
 point2d_ary:
@@ -112,11 +116,19 @@ point2d_ary:
 
 vector:
     '<' expr ',' expr ',' expr '>'
-    { val.values_at(1, 3, 5) }
+    {
+      vector = val.values_at(1, 3, 5)
+      set_min_max(vector)
+      vector
+    }
 
 vector2d:
     '<' expr ',' expr '>'
-    { val.values_at(1, 3) }
+    {
+      vector2d = val.values_at(1, 3)
+      set_min_max(vector2d)
+      vector2d
+    }
 
 vector2d_ary:
     vector2d
@@ -243,142 +255,198 @@ objs:
 
 ---- header
 
-require 'vtk'
-require 'vtk/util'
+require 'obj3d/viewer'
 
 class Obj
   attr_accessor :type
-  attr_reader :actor
+
+  def type=(type)
+    @type = type
+  end
 end
 
 class Rect < Obj
-  def initialize(axis, point, vector2d)
-    points = Vtk::Points.new
-    points.SetNumberOfPoints(4)
+  def initialize(axis, point, vector2d, type = nil)
+    @axis = axis
+    @point = point
+    @vector2d = vector2d
+    @type = type
+  end
+
+  def draw(viewer, rgb)
+    point = @point.map{|v| v * viewer.scale}
+    vector2d = @vector2d.map{|v| v * viewer.scale}
+    viewer.rect(point, @axis, vector2d, rgb, true)
+  end
+
+  def move(axis, val)
     case axis
     when :X
-      points.InsertPoint(0, point[0], point[1]              , point[2]              )
-      points.InsertPoint(1, point[0], point[1] + vector2d[0], point[2]              )
-      points.InsertPoint(2, point[0], point[1] + vector2d[0], point[2] + vector2d[1])
-      points.InsertPoint(3, point[0], point[1]              , point[2] + vector2d[1])
+      point = [@point[0] + val, @point[1], @point[2]]
     when :Y
-      points.InsertPoint(0, point[0]              , point[1], point[2]              )
-      points.InsertPoint(1, point[0] + vector2d[0], point[1], point[2]              )
-      points.InsertPoint(2, point[0] + vector2d[0], point[1], point[2] + vector2d[1])
-      points.InsertPoint(3, point[0]              , point[1], point[2] + vector2d[1])
+      point = [@point[0], @point[1] + val, @point[2]]
     when :Z
-      points.InsertPoint(0, point[0]              , point[1]              , point[2])
-      points.InsertPoint(1, point[0] + vector2d[0], point[1]              , point[2])
-      points.InsertPoint(2, point[0] + vector2d[0], point[1] + vector2d[1], point[2])
-      points.InsertPoint(3, point[0]              , point[1] + vector2d[1], point[2])
+      point = [@point[0], @point[1], @point[2] + val]
     else
-      raise "bug: unknown axis #{axis}"
+      raise 'bug?'
     end
-    polygon = Vtk::Quad.new
-    polygon.GetPointIds.SetId(0, 0)
-    polygon.GetPointIds.SetId(1, 1)
-    polygon.GetPointIds.SetId(2, 2)
-    polygon.GetPointIds.SetId(3, 3)
-    grid = Vtk::UnstructuredGrid.new
-    grid.Allocate(1, 1)
-    grid.InsertNextCell(polygon.GetCellType, polygon.GetPointIds)
-    grid.SetPoints(points)
-    mapper = Vtk::DataSetMapper.new
-    mapper.SetInput(grid)
-    @actor = Vtk::Actor.new
-    @actor.SetMapper(mapper)
+    self.class.new(@axis, point, @vector2d, @type)
   end
 end
 
 class Triangle < Obj
   def initialize(axis, point, vector2d_a, vector2d_b)
-    @actor = Polygon.new(axis, point, [vector2d_a, vector2d_b]).actor
+    case axis
+    when :X
+      v1 = [
+        point[1] + vector2d_a[0],
+        point[2] + vector2d_a[1]
+      ]
+      v2 = [
+        point[1] + vector2d_b[0],
+        point[2] + vector2d_b[1]
+      ]
+    when :Y
+      v1 = [
+        point[0] + vector2d_a[0],
+        point[2] + vector2d_a[1]
+      ]
+      v2 = [
+        point[0] + vector2d_b[0],
+        point[2] + vector2d_b[1]
+      ]
+    when :Z
+      v1 = [
+        point[0] + vector2d_a[0],
+        point[1] + vector2d_a[1],
+      ]
+      v2 = [
+        point[0] + vector2d_b[0],
+        point[1] + vector2d_b[1],
+      ]
+    else
+      raise 'bug?'
+    end
+    @polygon = Polygon.new(axis, point, [v1, v2])
+  end
+
+  def draw(viewer, rgb)
+    @polygon.draw(viewer, rgb)
+  end
+
+  def move(axis, val)
+    polygon = @polygon.move(axis, val)
+    polygon.type = @type
+    polygon
   end
 end
 
 class Ellipse < Obj
   def initialize(axis, point, ru, rv)
-    cylinder = Vtk::CylinderSource.new
-    cylinder.SetResolution(32)
-    cylinder.SetHeight(0.0)
-    mapper = Vtk::PolyDataMapper.new
-    mapper.SetInputConnection(cylinder.GetOutputPort)
-    @actor = Vtk::Actor.new
-    @actor.SetMapper(mapper)
-    case axis
-    when :X
-      @actor.SetScale(ru, 1.0, rv)
-      @actor.RotateZ(90)
-      @actor.SetPosition(*point)
-    when :Y
-      @actor.SetScale(ru, 1.0, rv)
-      @actor.SetPosition(*point)
-    when :Z
-      @actor.SetScale(ru, 1.0, rv)
-      @actor.RotateX(90)
-      @actor.SetPosition(*point)
-    end
+    warn 'not yet Ellipse'
   end
 end
 
 class Circle < Obj
-  def initialize(axis, point, r)
-    @actor = Ellipse.new(axis, point, r, r).actor
+  def initialize(axis, point, r, type = nil)
+    @axis = axis
+    @point = point
+    @r = r
+    @type = type
+  end
+
+  def draw(viewer, rgb)
+    point = @point.map{|v| v * viewer.scale}
+    r = @r * viewer.scale
+    viewer.circle(point, @axis, r, rgb, true)
+  end
+
+  def move(axis, val)
+    case axis
+    when :X
+      point = [@point[0] + val, @point[1], @point[2]]
+    when :Y
+      point = [@point[0], @point[1] + val, @point[2]]
+    when :Z
+      point = [@point[0], @point[1], @point[2] + val]
+    else
+      raise 'bug?'
+    end
+    self.class.new(@axis, point, @r, @type)
   end
 end
 
 class Box < Obj
   def initialize(point, vector)
-    cube = Vtk::CubeSource.new
-    cube.SetBounds(
-      point[0], point[0] + vector[0],
-      point[1], point[1] + vector[1],
-      point[2], point[2] + vector[2]
-      )
-    cubeMapper = Vtk::PolyDataMapper.new
-    cubeMapper.SetInputConnection(cube.GetOutputPort)
-    @actor = Vtk::Actor.new
-    @actor.SetMapper(cubeMapper)
+    @point = point
+    @vector = vector
+  end
+
+  def draw(viewer, rgb)
+    point = @point.map{|v| v * viewer.scale}
+    vector = @vector.map{|v| v * viewer.scale}
+    viewer.cube(point, vector, rgb, true)
   end
 end
 
 class Sweep < Obj
   def initialize(axis, val, obj)
-    STDERR.puts "implementation of Sweep is unfinished"
-    @actor = obj.actor
+    @obj = obj
+    @obj2 = obj.move(axis, val)
+  end
+
+  def type=(type)
+    super
+    @obj.type = @obj2.type = type
+  end
+
+  def draw(viewer, rgb)
+    @obj.draw(viewer, rgb)
+    @obj2.draw(viewer, rgb)
   end
 end
 
 class Polygon < Obj
-  def initialize(axis, point, vector2d_ary)
-    points = Vtk::Points.new
-    points.SetNumberOfPoints(1 + vector2d_ary.size)
-    points.InsertPoint(0, *point)
-    vector2d_ary.each_with_index do |v2d, i|
-      case axis
+  def initialize(axis, point, vector2d_ary, type = nil)
+    @axis = axis
+    @point = point
+    @vector2d_ary = vector2d_ary
+    @type = type
+  end
+
+  def draw(viewer, rgb)
+    points = [@point]
+    @vector2d_ary.each do |v2d|
+      case @axis
       when :X
-        points.InsertPoint(1 + i, point[0]         , point[1] + v2d[0], point[2] + v2d[1])
+        points << [@point[0], v2d[0], v2d[1]]
       when :Y
-        points.InsertPoint(1 + i, point[0] + v2d[0], point[1]         , point[2] + v2d[1])
+        points << [v2d[0], @point[1], v2d[1]]
       when :Z
-        points.InsertPoint(1 + i, point[0] + v2d[0], point[1] + v2d[1], point[2]         )
+        points << [v2d[0], v2d[1], @point[2]]
       else
-        raise "bug: unknown axis #{axis}"
+        raise 'bug'
       end
     end
-    polygon = Vtk::Polygon.new
-    polygon.GetPointIds.SetNumberOfIds(points.GetNumberOfPoints)
-    points.GetNumberOfPoints.times do |i|
-      polygon.GetPointIds.SetId(i, i)
+    points = points.map{|point| point.map{|v| v * viewer.scale}}
+    viewer.polygon(points, rgb, true)
+  end
+
+  def move(axis, val)
+    if axis != @axis
+      raise 'not implemented'
     end
-    grid = Vtk::UnstructuredGrid.new
-    grid.Allocate(1, 1)
-    grid.InsertNextCell(polygon.GetCellType, polygon.GetPointIds)
-    grid.SetPoints(points)
-    mapper = Vtk::DataSetMapper.new
-    mapper.SetInput(grid)
-    @actor = Vtk::Actor.new
-    @actor.SetMapper(mapper)
+    case axis
+    when :X
+      point = [@point[0] + val, @point[1], @point[2]]
+    when :Y
+      point = [@point[0], @point[1] + val, @point[2]]
+    when :Z
+      point = [@point[0], @point[1], @point[2] + val]
+    else
+      raise 'bug?'
+    end
+    self.class.new(@axis, point, @vector2d_ary, @type)
   end
 end
 
@@ -410,7 +478,12 @@ end
 NumberPat = '(?: [-+]?\d*\.\d+(?:[eE][-+]?\d+)? | ' +
   '[-+]?\d+\.?(?:[eE][-+]?\d+)? )'
 
-attr_reader :obj_ary
+attr_reader :obj_ary, :viewer, :min, :max
+
+def initialize
+  @viewer = Obj3D::Viewer.new('viewer', 640, 480)
+  @min = @max = nil
+end
 
 class ObjAry
   def initialize
@@ -437,7 +510,7 @@ end
 def parse(str)
   @yydebug = false
 
-  @state = nil
+  @type = nil
   @vars = {}
 
   @obj_ary = ObjAry.new
@@ -547,87 +620,118 @@ def point2d_sub_point(axis, point2d, point)
   pnt2d
 end
 
+def set_min_max(ary)
+  ary.each do |v|
+    @min = v if @min.nil? or v < @min
+    @max = v if @max.nil? or v > @max
+  end
+end
 
 ---- footer
 
-def next_state(state)
-  st_ary = [ :ALL, :ACTIVE, :NOACTIVE, :FIX, :FIXHEAT, :HEAT, :LAMBDA ]
-  index = st_ary.index(state)
-  if index.nil?
-    raise "unknown state #{state}"
+class Obj3D::Viewer
+  attr_accessor :scale
+end
+
+def draw(viewer, obj_ary, obj_type)
+  obj_ary.each do |obj|
+    next unless obj_type == :ALL or obj_type == obj.type
+    case obj.type
+    when :WORLD
+      obj.draw(viewer, [0.3, 0.3, 0.3])
+    when :ACTIVE
+      obj.draw(viewer, [1, 1, 1])
+    when :NOACTIVE
+      obj.draw(viewer, [0.1, 0.1, 0.1])
+    when :FIX
+      obj.draw(viewer, [0, 0, 1])
+    when :FIXHEAT
+      obj.draw(viewer, [1, 0, 0])
+    when :HEAT
+      obj.draw(viewer, [1, 0, 0])
+    when :LAMBDA
+      obj.draw(viewer, [0.5, 0.5, 0.5])
+    else
+      raise "unknown type #{obj.type}"
+    end
   end
-  st_ary[(index + 1) % st_ary.size]
+end
+
+def next_type(type)
+  type_ary = [:ALL, :WORLD, :ACTIVE, :NOACTIVE, :FIX, :FIXHEAT, :HEAT, :LAMBDA]
+  index = type_ary.index(type)
+  if index.nil?
+    raise 'bug?'
+  end
+  index = (index + 1) % type_ary.size
+  type_ary[index]
 end
 
 parser = TcParser.new
 parser.parse(ARGF.read)
 
-parser.obj_ary.each do |obj|
-  obj.actor.GetProperty.SetOpacity(0.3)
-  case obj.type
-  when :WORLD
-    obj.actor.GetProperty.SetColor(0.3, 0.3, 0.3)
-    obj.actor.GetProperty.SetRepresentationToWireframe
-  when :ACTIVE
-    obj.actor.GetProperty.SetColor(1, 1, 1)
-  when :NOACTIVE
-    obj.actor.GetProperty.SetColor(0.1, 0.1, 0.1)
-  when :FIX
-    obj.actor.GetProperty.SetColor(0, 0, 1)
-  when :FIXHEAT
-    obj.actor.GetProperty.SetColor(1, 0, 0)
-  when :HEAT
-    obj.actor.GetProperty.SetColor(1, 0, 0)
-  when :LAMBDA
-    obj.actor.GetProperty.SetColor(0.5, 0.5, 0.5)
-  else
-    raise "unknown type #{obj.type}"
-  end
-end
+parser.viewer.scale = 3.0 / (parser.max - parser.min)
 
-ren = Vtk::Renderer.new
-ren.SetBackground(Vtk::Colors::Slate_grey)
-parser.obj_ary.each do |obj|
-  ren.AddActor(obj.actor)
-end
+obj_type = :ALL
 
-renWin = Vtk::RenderWindow.new
-renWin.AddRenderer(ren)
-renWin.SetSize(500, 500)
-
-iren = Vtk::RenderWindowInteractor.new
-iren.SetRenderWindow(renWin)
-
-state = :ALL
-
-keypress = Proc.new do |obj, event|
-  key = obj.GetKeySym
-  case key
-  when "a"
-    state = next_state(state)
-    STDERR.puts state
-  end
-
-  case state
-  when :ALL
-    parser.obj_ary.each do |obj|
-      obj.actor.VisibilityOn
+keyboard_proc = Proc.new { |key, x, y|
+  case key.chr
+  when 'q', 'Q'
+    exit
+  when 't'
+    obj_type = next_type(obj_type)
+  when 'w'
+    if obj_type != :WORLD
+      obj_type = :WORLD
+    else
+      obj_type = :ALL
     end
-  else
-    parser.obj_ary.each do |obj|
-      if obj.type == :WORLD or obj.type == state
-        obj.actor.VisibilityOn
-      else
-        obj.actor.VisibilityOff
-      end
+  when 'a'
+    if obj_type != :ACTIVE
+      obj_type = :ACTIVE
+    else
+      obj_type = :ALL
+    end
+  when 'A'
+    if obj_type != :NOACTIVE
+      obj_type = :NOACTIVE
+    else
+      obj_type = :ALL
+    end
+  when 'f'
+    if obj_type != :FIX
+      obj_type = :FIX
+    else
+      obj_type = :ALL
+    end
+  when 'F'
+    if obj_type != :FIXHEAT
+      obj_type = :FIXHEAT
+    else
+      obj_type = :ALL
+    end
+  when 'h'
+    if obj_type != :HEAT
+      obj_type = :HEAT
+    else
+      obj_type = :ALL
+    end
+  when 'l'
+    if obj_type != :LAMBDA
+      obj_type = :LAMBDA
+    else
+      obj_type = :ALL
     end
   end
-  iren.Render
-end
-iren.AddObserver("KeyPressEvent", keypress)
+  parser.viewer.delete_list
+  draw(parser.viewer, parser.obj_ary, obj_type)
+  parser.viewer.newlist
+  parser.viewer.redisplay
+  STDERR.puts obj_type
+}
+parser.viewer.keyboard(keyboard_proc)
+parser.viewer.light = false
 
-style = Vtk::InteractorStyleTrackballCamera.new
-iren.SetInteractorStyle(style)
+draw(parser.viewer, parser.obj_ary, obj_type)
 
-iren.Initialize
-iren.Start
+parser.viewer.mainloop
