@@ -638,11 +638,11 @@ def draw(viewer, obj_ary, obj_type)
     next unless obj_type == :ALL or obj_type == obj.type
     case obj.type
     when :WORLD
-      obj.draw(viewer, [0.3, 0.3, 0.3])
+      obj.draw(viewer, [0.5, 0.5, 0.5])
     when :ACTIVE
       obj.draw(viewer, [1, 1, 1])
     when :NOACTIVE
-      obj.draw(viewer, [0.1, 0.1, 0.1])
+      obj.draw(viewer, [0.3, 0.3, 0.3])
     when :FIX
       obj.draw(viewer, [0, 0, 1])
     when :FIXHEAT
@@ -650,7 +650,7 @@ def draw(viewer, obj_ary, obj_type)
     when :HEAT
       obj.draw(viewer, [1, 0, 0])
     when :LAMBDA
-      obj.draw(viewer, [0.5, 0.5, 0.5])
+      obj.draw(viewer, [0.0, 0.5, 0.0])
     else
       raise "unknown type #{obj.type}"
     end
@@ -722,6 +722,8 @@ keyboard_proc = Proc.new { |key, x, y|
     else
       obj_type = :ALL
     end
+  else
+    STDERR.puts "'#{key.chr}' is not assigned"
   end
   parser.viewer.delete_list
   draw(parser.viewer, parser.obj_ary, obj_type)
