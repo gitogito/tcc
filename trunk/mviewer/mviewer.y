@@ -296,38 +296,7 @@ end
 
 class Triangle < Obj
   def initialize(axis, point, vector2d_a, vector2d_b)
-    case axis
-    when :X
-      v1 = [
-        point[1] + vector2d_a[0],
-        point[2] + vector2d_a[1]
-      ]
-      v2 = [
-        point[1] + vector2d_b[0],
-        point[2] + vector2d_b[1]
-      ]
-    when :Y
-      v1 = [
-        point[0] + vector2d_a[0],
-        point[2] + vector2d_a[1]
-      ]
-      v2 = [
-        point[0] + vector2d_b[0],
-        point[2] + vector2d_b[1]
-      ]
-    when :Z
-      v1 = [
-        point[0] + vector2d_a[0],
-        point[1] + vector2d_a[1],
-      ]
-      v2 = [
-        point[0] + vector2d_b[0],
-        point[1] + vector2d_b[1],
-      ]
-    else
-      raise 'bug?'
-    end
-    @polygon = Polygon.new(axis, point, [v1, v2])
+    @polygon = Polygon.new(axis, point, [vector2d_a, vector2d_b])
   end
 
   def draw(viewer, rgb)
@@ -419,11 +388,11 @@ class Polygon < Obj
     @vector2d_ary.each do |v2d|
       case @axis
       when :X
-        points << [@point[0], v2d[0], v2d[1]]
+        points << [@point[0]         , @point[1] + v2d[0], @point[2] + v2d[1]]
       when :Y
-        points << [v2d[0], @point[1], v2d[1]]
+        points << [@point[0] + v2d[0], @point[1]         , @point[2] + v2d[1]]
       when :Z
-        points << [v2d[0], v2d[1], @point[2]]
+        points << [@point[0] + v2d[0], @point[1] + v2d[1], @point[2]         ]
       else
         raise 'bug'
       end
@@ -450,16 +419,19 @@ class Polygon < Obj
   end
 end
 
-class Objs
+class Objs < Obj
   def initialize(obj)
     @objs = [obj]
   end
 
+=begin
   def type=(t)
+    super
     @objs.each do |obj|
       obj.type = t
     end
   end
+=end
 
   def <<(obj)
     @objs << obj
@@ -469,6 +441,20 @@ class Objs
     @objs.each do |obj|
       yield obj
     end
+  end
+
+  def draw(viewer, rgb)
+    @objs.each do |obj|
+      obj.draw(viewer, rgb)
+    end
+  end
+
+  def move(axis, val)
+    new_objs = Objs.new(@objs[0].move(axis, val))
+    (1 ... @objs.size).each do |i|
+      new_objs << @objs[i].move(axis, val)
+    end
+    new_objs
   end
 end
 
@@ -485,35 +471,13 @@ def initialize
   @min = @max = nil
 end
 
-class ObjAry
-  def initialize
-    @ary = []
-  end
-
-  def <<(obj)
-    if obj.kind_of?(Objs)
-      obj.each do |aobj|
-        @ary << aobj
-      end
-    else
-      @ary << obj
-    end
-  end
-
-  def each
-    @ary.each do |obj|
-      yield obj
-    end
-  end
-end
-
 def parse(str)
   @yydebug = false
 
   @type = nil
   @vars = {}
 
-  @obj_ary = ObjAry.new
+  @obj_ary = []
 
   str = str.strip
   @q = []
@@ -626,6 +590,7 @@ def set_min_max(ary)
     @max = v if @max.nil? or v > @max
   end
 end
+
 
 ---- footer
 
