@@ -297,7 +297,22 @@ obj:
 
 	$$ = obj_new(OBJ_RECT);
 	axis = symbol_to_axis($2);
-	$$->uobj.rect = rect_new($4.x, $4.y, $4.z, axis, $6.x - $4.x, $6.y - $4.y);
+	switch (axis) {
+	case AXIS_X:
+	    $$->uobj.rect = rect_new($4.x, $4.y, $4.z, axis,
+		$6.x - $4.y, $6.y - $4.z);
+	    break;
+	case AXIS_Y:
+	    $$->uobj.rect = rect_new($4.x, $4.y, $4.z, axis,
+		$6.x - $4.x, $6.y - $4.z);
+	    break;
+	case AXIS_Z:
+	    $$->uobj.rect = rect_new($4.x, $4.y, $4.z, axis,
+		$6.x - $4.x, $6.y - $4.y);
+	    break;
+	default:
+	    bug("unknown axis");
+	}
     }
 
   | TK_TRIANGLE TK_SYMBOL ',' point ',' vector2d ',' vector2d
@@ -316,8 +331,19 @@ obj:
 
 	$$ = obj_new(OBJ_TRIANGLE);
 	axis = symbol_to_axis($2);
-	$$->uobj.triangle = triangle_new($4.x, $4.y, $4.z,
-	    axis, $6.x - $4.x, $6.y - $4.y, $8.x - $4.x, $8.y - $4.y);
+	switch (axis) {
+	case AXIS_X:
+	    $$->uobj.triangle = triangle_new($4.x, $4.y, $4.z, axis,
+		$6.x - $4.y, $6.y - $4.z, $8.x - $4.y, $8.y - $4.z);
+	case AXIS_Y:
+	    $$->uobj.triangle = triangle_new($4.x, $4.y, $4.z, axis,
+		$6.x - $4.x, $6.y - $4.z, $8.x - $4.x, $8.y - $4.z);
+	case AXIS_Z:
+	    $$->uobj.triangle = triangle_new($4.x, $4.y, $4.z, axis,
+		$6.x - $4.x, $6.y - $4.y, $8.x - $4.x, $8.y - $4.y);
+	default:
+	    bug("unknown axis");
+	}
     }
 
   | TK_CIRCLE TK_SYMBOL ',' point ',' expr

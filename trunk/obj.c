@@ -1717,6 +1717,9 @@ static void obj_edge(Obj *self)
 
 static int obj_dim(Obj *self)
 {
+    int dim, index;
+    AryObj *aryobj;
+
     switch (self->objtype) {
     case OBJ_RECT:
 	return 2;
@@ -1744,6 +1747,17 @@ static int obj_dim(Obj *self)
 	break;
     case OBJ_EDGE:
 	return edge_dim(self->uobj.edge);
+	break;
+    case OBJ_OBJARY:
+	dim = -1;
+	aryobj = self->uobj.objary->aryobj;
+	for (index = 0; index < aryobj->size; ++index) {
+	    if (dim < 0)
+		dim = obj_dim(aryobj->ptr[index]);
+	    else if (dim != obj_dim(aryobj->ptr[index]))
+		return -1;
+	}
+	return dim;
 	break;
     default:
 	bug("unknown obj %d", self->objtype);
