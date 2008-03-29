@@ -263,6 +263,22 @@ class Obj
   def type=(type)
     @type = type
   end
+
+  def point_add_val(axis, point, val)
+    new_point = []
+    case axis
+    when :X
+      new_point = [point[0] + val, point[1]      , point[2]      ]
+    when :Y
+      new_point = [point[0]      , point[1] + val, point[2]      ]
+    when :Z
+      new_point = [point[0]      , point[1]      , point[2] + val]
+    else
+      raise "unknown axis: #{axis}"
+    end
+    new_point
+  end
+  private :point_add_val
 end
 
 class Rect < Obj
@@ -280,16 +296,7 @@ class Rect < Obj
   end
 
   def move(axis, val)
-    case axis
-    when :X
-      point = [@point[0] + val, @point[1], @point[2]]
-    when :Y
-      point = [@point[0], @point[1] + val, @point[2]]
-    when :Z
-      point = [@point[0], @point[1], @point[2] + val]
-    else
-      raise 'bug?'
-    end
+    point = point_add_val(axis, @point, val)
     self.class.new(@axis, point, @vector2d, @type)
   end
 end
@@ -331,16 +338,7 @@ class Circle < Obj
   end
 
   def move(axis, val)
-    case axis
-    when :X
-      point = [@point[0] + val, @point[1], @point[2]]
-    when :Y
-      point = [@point[0], @point[1] + val, @point[2]]
-    when :Z
-      point = [@point[0], @point[1], @point[2] + val]
-    else
-      raise 'bug?'
-    end
+    point = point_add_val(axis, @point, val)
     self.class.new(@axis, point, @r, @type)
   end
 end
@@ -405,16 +403,7 @@ class Polygon < Obj
     if axis != @axis
       raise 'not implemented'
     end
-    case axis
-    when :X
-      point = [@point[0] + val, @point[1], @point[2]]
-    when :Y
-      point = [@point[0], @point[1] + val, @point[2]]
-    when :Z
-      point = [@point[0], @point[1], @point[2] + val]
-    else
-      raise 'bug?'
-    end
+    point = point_add_val(axis, @point, val)
     self.class.new(@axis, point, @vector2d_ary, @type)
   end
 end
@@ -423,15 +412,6 @@ class Objs < Obj
   def initialize(obj)
     @objs = [obj]
   end
-
-=begin
-  def type=(t)
-    super
-    @objs.each do |obj|
-      obj.type = t
-    end
-  end
-=end
 
   def <<(obj)
     @objs << obj
