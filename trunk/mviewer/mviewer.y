@@ -219,7 +219,7 @@ obj:
     }
 
   | TK_LINE TK_SYMBOL ',' point ',' vector2d_ary
-    { Polygon.new(*val.values_at(1, 3, 5)) }
+    { Line.new(*val.values_at(1, 3, 5)) }
 
   | TK_LINE TK_SYMBOL ',' point ',' point2d_ary
     {
@@ -228,7 +228,7 @@ obj:
         vec2d = point2d_sub_point(val[1], pnt, val[3])
         ary << vec2d
       end
-      Polygon.new(val[1], val[3], ary)
+      Line.new(val[1], val[3], ary)
     }
 
   | TK_SWEEP TK_SYMBOL ',' expr ',' obj
@@ -397,6 +397,41 @@ class Polygon < Obj
     end
     points = points.map{|point| point.map{|v| v * viewer.scale}}
     viewer.polygon(points, rgb, true)
+  end
+
+  def move(axis, val)
+    if axis != @axis
+      raise 'not implemented'
+    end
+    point = point_add_val(axis, @point, val)
+    self.class.new(@axis, point, @vector2d_ary, @type)
+  end
+end
+
+class Line < Obj
+  def initialize(axis, point, vector2d_ary, type = nil)
+    @axis = axis
+    @point = point
+    @vector2d_ary = vector2d_ary
+    @type = type
+  end
+
+  def draw(viewer, rgb)
+    points = [@point]
+    @vector2d_ary.each do |v2d|
+      case @axis
+      when :X
+        points << [@point[0]         , @point[1] + v2d[0], @point[2] + v2d[1]]
+      when :Y
+        points << [@point[0] + v2d[0], @point[1]         , @point[2] + v2d[1]]
+      when :Z
+        points << [@point[0] + v2d[0], @point[1] + v2d[1], @point[2]         ]
+      else
+        raise 'bug'
+      end
+    end
+    points = points.map{|point| point.map{|v| v * viewer.scale}}
+    viewer.lines(points, rgb)
   end
 
   def move(axis, val)
