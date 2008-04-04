@@ -150,10 +150,10 @@ int sim_active_p(iPoint *ipoint)
 
 static void sim_set_region_active(void)
 {
-    iPoint *p;
+    iPoint *p, *p2;
     AryObj *active_obj_ary;
-    Obj *obj;
-    int index;
+    Obj *obj, *obj2;
+    int index, index2;
     iPoint_ary *ipoint_ary;
     int idir, dir;
     iPoint pp;
@@ -171,37 +171,38 @@ static void sim_set_region_active(void)
 		continue;
 	    (sim->active_p_ary)[p->i][p->j][p->k] = obj->uval.i;
 	}
-    }
-
-    /* check edge cells of noactive which contact an active cell */
-    ipoint_ary = ipoint_ary_new();
-    for (index = 0; index < active_obj_ary->size; ++index) {
-	obj = active_obj_ary->ptr[index];
-	while (obj_each(obj, &p)) {
-	    if (p == NULL)
-		continue;
-	    if (!world_inside_p(p))
-		continue;
-	    if (!obj->uval.i) {
-		for (idir = 0; idir < NELEMS(dir_array); ++idir) {
-		    dir = dir_array[idir];
-		    pp = ipoint_add(p, &(dir_to_ipoint[dir]));
-		    if (sim_active_p(&pp)) {
-			ipoint_ary_push(ipoint_ary, *p);
-			break;
+	if (!obj->uval.i) {
+	    /* check edge cells of noactive which contact an active cell */
+	    ipoint_ary = ipoint_ary_new();
+	    for (index2 = 0; index2 < active_obj_ary->size; ++index2) {
+		obj2 = active_obj_ary->ptr[index2];
+		while (obj_each(obj2, &p2)) {
+		    if (p2 == NULL)
+			continue;
+		    if (!world_inside_p(p2))
+			continue;
+		    if (!obj2->uval.i) {
+			for (idir = 0; idir < NELEMS(dir_array); ++idir) {
+			    dir = dir_array[idir];
+			    pp = ipoint_add(p2, &(dir_to_ipoint[dir]));
+			    if (sim_active_p(&pp)) {
+				ipoint_ary_push(ipoint_ary, *p2);
+				break;
+			    }
+			}
 		    }
 		}
 	    }
+
+	    /* set active on edge cells */
+	    for (index2 = 0; index2 < ipoint_ary->size; ++index2) {
+		p = &(ipoint_ary->ptr[index2]);
+		sim->active_p_ary[p->i][p->j][p->k] = 1;
+	    }
+
+	    ipoint_ary_free(ipoint_ary);
 	}
     }
-
-    /* set active on edge cells */
-    for (index = 0; index < ipoint_ary->size; ++index) {
-	p = &(ipoint_ary->ptr[index]);
-	sim->active_p_ary[p->i][p->j][p->k] = 1;
-    }
-
-    ipoint_ary_free(ipoint_ary);
 }
 
 static void sim_set_region_fix(void)
