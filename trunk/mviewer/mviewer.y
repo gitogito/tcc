@@ -476,8 +476,8 @@ end
 
 ---- inner
 
-NumberPat = '(?: [-+]?\d*\.\d+(?:[eE][-+]?\d+)? | ' +
-  '[-+]?\d+\.?(?:[eE][-+]?\d+)? )'
+NumberPat = '(?: \d*\.\d+(?:[eE][-+]?\d+)? | ' +
+  '\d+\.?(?:[eE][-+]?\d+)? )'
 
 attr_reader :obj_ary, :viewer, :min, :max
 
