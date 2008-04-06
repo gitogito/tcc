@@ -131,8 +131,10 @@ module TCC
     NDIV = 50
 
     def initialize(axis, pnt, ru, rv, st_angle, en_angle, polygon_p = false)
-      u0 = ru * Math.cos(st_angle)
-      v0 = rv * Math.sin(st_angle)
+      st_theta = 2 * Math::PI / 360.0 * st_angle
+      en_theta = 2 * Math::PI / 360.0 * en_angle
+      u0 = ru * Math.cos(st_theta)
+      v0 = rv * Math.sin(st_theta)
       case axis
       when :X
         pnt0 = [pnt[0]     , pnt[1] + u0, pnt[2] + v0]
@@ -145,7 +147,7 @@ module TCC
       end
       vec2d_ary = []
       (1 ... NDIV).each do |i|
-        theta = st_angle + Float(en_angle - st_angle) / NDIV * i
+        theta = st_theta + Float(en_theta - st_theta) / NDIV * i
         u = ru * Math.cos(theta)
         v = rv * Math.sin(theta)
         vec2d_ary << [u - u0, v - v0]
@@ -175,7 +177,7 @@ module TCC
 
   class Ellipse < Obj
     def initialize(axis, pnt, ru, rv)
-      @ellipse_peri = EllipsePeri.new(axis, pnt, ru, rv, 0.0, 2*Math::PI, true)
+      @ellipse_peri = EllipsePeri.new(axis, pnt, ru, rv, 0.0, 360.0, true)
     end
 
     def to_s
