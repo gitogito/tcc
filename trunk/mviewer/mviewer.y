@@ -551,7 +551,7 @@ def parse(str)
       @q.push [:TK_WORLD, $&]
       str = $'
     when /\A#{NumberPat}/ox
-      @q.push [:TK_NUMBER, $&.to_f]
+      @q.push [:TK_NUMBER, Float($&)]
       str = $'
     when /\A[a-zA-Z]\w*/
       @q.push [:TK_WORD, $&]
