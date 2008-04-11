@@ -234,9 +234,6 @@ obj:
   | TK_SWEEP TK_SYMBOL ',' expr ',' obj
     { Sweep.new(*val.values_at(1, 3, 5)) }
 
-  | TK_EDGE obj
-    { val[1] }
-
   | '[' objs ']'
     {
       val[1]
@@ -513,9 +510,6 @@ def parse(str)
       str = $'
     when /\Acircle\b/
       @q.push [:TK_CIRCLE, $&]
-      str = $'
-    when /\Aedge\b/
-      @q.push [:TK_EDGE, $&]
       str = $'
     when /\Aellipse\b/
       @q.push [:TK_ELLIPSE, $&]

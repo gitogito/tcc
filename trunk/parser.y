@@ -80,7 +80,7 @@ static int symbol_to_axis(char *symbol)
 %token <val> TK_NUMBER
 %token <str> TK_WORD TK_SYMBOL
 
-%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_DASH TK_ELLIPSE TK_EDGE TK_FIX TK_HEAT
+%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_DASH TK_ELLIPSE TK_FIX TK_HEAT
         TK_LAMBDA TK_LINE TK_NOACTIVE TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE
 	TK_WORLD
 
@@ -409,11 +409,6 @@ obj:
 	$$->uobj.sweep = sweep_new(axis, $4, $6);
     }
 
-  | TK_EDGE obj
-    {
-	$$ = obj_new(OBJ_EDGE);
-	$$->uobj.edge = edge_new($2);
-    }
   | '[' objs ']'
     {
 	$$ = obj_new(OBJ_OBJARY);

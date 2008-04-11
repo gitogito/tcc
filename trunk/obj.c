@@ -385,38 +385,6 @@ static void sweep_offset(Sweep *self)
 	warn_exit("length of sweep becomes negative");
 }
 
-/* Edge */
-
-static void obj_edge(Obj *self);
-
-Edge *edge_new(Obj *obj)
-{
-    Edge *self;
-
-    self = EALLOC(Edge);
-    self->obj = obj;
-    obj_edge(self->obj);
-    return self;
-}
-
-static void edge_free(Edge *self)
-{
-    if (self == NULL)
-	return;
-    obj_free(self->obj);
-    FREE(self);
-}
-
-static int edge_each(Edge *self, iPoint **pp)
-{
-    return obj_each(self->obj, pp);
-}
-
-static int edge_dim(Edge *self)
-{
-    return obj_dim(self->obj);
-}
-
 /* Rect */
 
 Rect *rect_new(double x, double y, double z, int axis, double len1, double len2)
@@ -447,7 +415,6 @@ Rect *rect_new(double x, double y, double z, int axis, double len1, double len2)
     self->len1 = len1;
     self->len2 = len2;
     self->each = NULL;
-    self->edge = 0;
     return self;
 }
 
@@ -477,60 +444,27 @@ static int rect_each(Rect *self, iPoint **pp)
     case AXIS_X:
 	len1 = iround(self->len1 / world->dy) + 1;
 	len2 = iround(self->len2 / world->dz) + 1;
-	if (self->edge) {
-	    for (j = yi; j < yi + len1; ++j) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(xi, j, zi           ));
-		ipoint_ary_push(ipoint_ary, get_ipoint(xi, j, zi + len2 - 1));
-	    }
-	    for (k = zi + 1; k < zi + len2 - 1; ++k) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(xi, yi           , k));
-		ipoint_ary_push(ipoint_ary, get_ipoint(xi, yi + len1 - 1, k));
-	    }
-	} else {
-	    for (j = yi; j < yi + len1; ++j) {
-		for (k = zi; k < zi + len2; ++k) {
-		    ipoint_ary_push(ipoint_ary, get_ipoint(xi, j, k));
-		}
+	for (j = yi; j < yi + len1; ++j) {
+	    for (k = zi; k < zi + len2; ++k) {
+		ipoint_ary_push(ipoint_ary, get_ipoint(xi, j, k));
 	    }
 	}
 	break;
     case AXIS_Y:
 	len1 = iround(self->len1 / world->dx) + 1;
 	len2 = iround(self->len2 / world->dz) + 1;
-	if (self->edge) {
-	    for (i = xi; i < xi + len1; ++i) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi, zi           ));
-		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi, zi + len2 - 1));
-	    }
-	    for (k = zi + 1; k < zi + len2 - 1; ++k) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(xi           , yi, k));
-		ipoint_ary_push(ipoint_ary, get_ipoint(xi + len1 - 1, yi, k));
-	    }
-	} else {
-	    for (i = xi; i < xi + len1; ++i) {
-		for (k = zi; k < zi + len2; ++k) {
-		    ipoint_ary_push(ipoint_ary, get_ipoint(i, yi, k));
-		}
+	for (i = xi; i < xi + len1; ++i) {
+	    for (k = zi; k < zi + len2; ++k) {
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi, k));
 	    }
 	}
 	break;
     case AXIS_Z:
 	len1 = iround(self->len1 / world->dx) + 1;
 	len2 = iround(self->len2 / world->dy) + 1;
-	if (self->edge) {
-	    for (i = xi; i < xi + len1; ++i) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi           , zi));
-		ipoint_ary_push(ipoint_ary, get_ipoint(i, yi + len2 - 1, zi));
-	    }
-	    for (j = yi + 1; j < yi + len2 - 1; ++j) {
-		ipoint_ary_push(ipoint_ary, get_ipoint(xi           , j, zi));
-		ipoint_ary_push(ipoint_ary, get_ipoint(xi + len1 - 1, j, zi));
-	    }
-	} else {
-	    for (i = xi; i < xi + len1; ++i) {
-		for (j = yi; j < yi + len2; ++j) {
-		    ipoint_ary_push(ipoint_ary, get_ipoint(i, j, zi));
-		}
+	for (i = xi; i < xi + len1; ++i) {
+	    for (j = yi; j < yi + len2; ++j) {
+		ipoint_ary_push(ipoint_ary, get_ipoint(i, j, zi));
 	    }
 	}
 	break;
@@ -562,11 +496,6 @@ static void rect_offset(Rect *self)
     }
     if (self->len1 < 0.0 || self->len2 < 0.0)
 	warn_exit("length of rect becomes negative");
-}
-
-static void rect_edge(Rect *self)
-{
-    self->edge = 1;
 }
 
 /* Triangle_z */
@@ -884,7 +813,6 @@ Ellipse *ellipse_new(double x, double y, double z, int axis, double ru, double r
     self->ru = ru;
     self->rv = rv;
     self->each = NULL;
-    self->edge = 0;
     return self;
 }
 
@@ -902,53 +830,21 @@ static void ellipse_ipoint_ary_add(Ellipse *self, iPoint_ary *ipoint_ary, int ax
     IP_TYPE u;
     iPoint ipoint;
 
-    if (self->edge) {
+    for (u = u1; u <= u2; ++u) {
 	switch (axis) {
 	case AXIS_X:
-	    ipoint = get_ipoint(wc, u1, v);
+	    ipoint = get_ipoint(wc, u, v);
 	    break;
 	case AXIS_Y:
-	    ipoint = get_ipoint(u1, wc, v);
+	    ipoint = get_ipoint(u, wc, v);
 	    break;
 	case AXIS_Z:
-	    ipoint = get_ipoint(u1, v, wc);
+	    ipoint = get_ipoint(u, v, wc);
 	    break;
 	default:
 	    bug("unknown axis %d", axis);
 	}
 	ipoint_ary_push(ipoint_ary, ipoint);
-
-	switch (axis) {
-	case AXIS_X:
-	    ipoint = get_ipoint(wc, u2, v);
-	    break;
-	case AXIS_Y:
-	    ipoint = get_ipoint(u2, wc, v);
-	    break;
-	case AXIS_Z:
-	    ipoint = get_ipoint(u2, v, wc);
-	    break;
-	default:
-	    bug("unknown axis %d", axis);
-	}
-	ipoint_ary_push(ipoint_ary, ipoint);
-    } else {
-	for (u = u1; u <= u2; ++u) {
-	    switch (axis) {
-	    case AXIS_X:
-		ipoint = get_ipoint(wc, u, v);
-		break;
-	    case AXIS_Y:
-		ipoint = get_ipoint(u, wc, v);
-		break;
-	    case AXIS_Z:
-		ipoint = get_ipoint(u, v, wc);
-		break;
-	    default:
-		bug("unknown axis %d", axis);
-	    }
-	    ipoint_ary_push(ipoint_ary, ipoint);
-	}
     }
 }
 
@@ -1043,11 +939,6 @@ static void ellipse_offset(Ellipse *self)
 	warn_exit("length of ellipse becomes negative");
 }
 
-static void ellipse_edge(Ellipse *self)
-{
-    self->edge = 1;
-}
-
 /* Circle */
 
 Circle *circle_new(double x, double y, double z, int axis, double r)
@@ -1078,11 +969,6 @@ static int circle_each(Circle *self, iPoint **pp)
 static void circle_offset(Circle *self)
 {
     ellipse_offset(self->ellipse);
-}
-
-static void circle_edge(Circle *self)
-{
-    ellipse_edge(self->ellipse);
 }
 
 /* Polygon */
@@ -1591,9 +1477,6 @@ void obj_free(Obj *self)
     case OBJ_SWEEP:
 	sweep_free(self->uobj.sweep);
 	break;
-    case OBJ_EDGE:
-	edge_free(self->uobj.edge);
-	break;
     case OBJ_OBJARY:
 	objary_free(self->uobj.objary);
 	break;
@@ -1629,9 +1512,6 @@ int obj_each(Obj *self, iPoint **pp)
 	break;
     case OBJ_SWEEP:
 	return sweep_each(self->uobj.sweep, pp);
-	break;
-    case OBJ_EDGE:
-	return edge_each(self->uobj.edge, pp);
 	break;
     case OBJ_OBJARY:
 	return objary_each(self->uobj.objary, pp);
@@ -1669,46 +1549,8 @@ void obj_offset(Obj *self)
     case OBJ_SWEEP:
 	sweep_offset(self->uobj.sweep);
 	break;
-    case OBJ_EDGE:
-	warn_exit("edge_offset is not implemented");
-	break;
     case OBJ_OBJARY:
 	objary_offset(self->uobj.objary);
-	break;
-    default:
-	bug("unknown obj %d", self->objtype);
-    }
-}
-
-static void obj_edge(Obj *self)
-{
-    switch (self->objtype) {
-    case OBJ_RECT:
-	rect_edge(self->uobj.rect);
-	break;
-    case OBJ_TRIANGLE:
-	warn_exit("triangle_edge is not implemented");
-	break;
-    case OBJ_ELLIPSE:
-	ellipse_edge(self->uobj.ellipse);
-	break;
-    case OBJ_CIRCLE:
-	circle_edge(self->uobj.circle);
-	break;
-    case OBJ_POLYGON:
-	warn_exit("polygon_edge is not implemented");
-	break;
-    case OBJ_LINE:
-	warn_exit("line_edge is not implemented");
-	break;
-    case OBJ_BOX:
-	warn_exit("box_edge is not implemented");
-	break;
-    case OBJ_SWEEP:
-	warn_exit("sweep_edge is not implemented");
-	break;
-    case OBJ_EDGE:
-	warn_exit("edge_edge is not implemented");
 	break;
     default:
 	bug("unknown obj %d", self->objtype);
@@ -1744,9 +1586,6 @@ static int obj_dim(Obj *self)
 	break;
     case OBJ_SWEEP:
 	return 3;
-	break;
-    case OBJ_EDGE:
-	return edge_dim(self->uobj.edge);
 	break;
     case OBJ_OBJARY:
 	dim = -1;

@@ -123,12 +123,6 @@ typedef struct Sweep {
 
 Sweep *sweep_new(int axis, double len, Obj *obj);
 
-typedef struct Edge {
-    Obj *obj;
-} Edge;
-
-Edge *edge_new(Obj *obj);
-
 typedef struct Rect {
     double x;
     double y;
@@ -137,7 +131,6 @@ typedef struct Rect {
     double len1;
     double len2;
     Each *each;
-    int edge;
 } Rect;
 
 Rect *rect_new(double x, double y, double z, int axis, double len1, double len2);
@@ -174,7 +167,6 @@ typedef struct Ellipse {
     double ru;
     double rv;
     Each *each;
-    int edge;
 } Ellipse;
 
 Ellipse *ellipse_new(double x, double y, double z, int axis, double ru, double rv);
@@ -242,7 +234,6 @@ enum {
     OBJ_LINE,
     OBJ_BOX,
     OBJ_SWEEP,
-    OBJ_EDGE,
     OBJ_OBJARY,
 };
 
@@ -255,7 +246,6 @@ union uobj {
     Line *line;
     Box *box;
     Sweep *sweep;
-    Edge *edge;
     ObjAry *objary;
 };
 

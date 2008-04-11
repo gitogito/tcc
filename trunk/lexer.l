@@ -38,7 +38,6 @@ number	{num1}|{num2}
 active		return TK_ACTIVE;
 box		return TK_BOX;
 circle		return TK_CIRCLE;
-edge		return TK_EDGE;
 ellipse		return TK_ELLIPSE;
 fix		return TK_FIX;
 heat		return TK_HEAT;
