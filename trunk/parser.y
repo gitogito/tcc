@@ -81,7 +81,7 @@ static int symbol_to_axis(char *symbol)
 %token <str> TK_WORD TK_SYMBOL
 
 %token	TK_ACTIVE TK_BOX TK_CIRCLE TK_DASH TK_ELLIPSE TK_FIX TK_HEAT
-        TK_LAMBDA TK_LINE TK_NOACTIVE TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE
+        TK_LAMBDA TK_LINE TK_INACTIVE TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE
 	TK_WORLD
 
 %type <point>		point
@@ -147,7 +147,7 @@ command:
 	aryobj_push(config->active_obj_ary, $3);
     }
 
-  | TK_DASH TK_NOACTIVE obj
+  | TK_DASH TK_INACTIVE obj
     {
 	$3->uval.i = 0;
 	aryobj_push(config->active_obj_ary, $3);

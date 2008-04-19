@@ -55,9 +55,9 @@ command:
       @obj_ary << val[2]
     }
 
-  | TK_DASH TK_NOACTIVE obj
+  | TK_DASH TK_INACTIVE obj
     {
-      val[2].type = :NOACTIVE
+      val[2].type = :INACTIVE
       @obj_ary << val[2]
     }
 
@@ -526,8 +526,8 @@ def parse(str)
     when /\Aline\b/
       @q.push [:TK_LINE, $&]
       str = $'
-    when /\Anoactive\b/
-      @q.push [:TK_NOACTIVE, $&]
+    when /\Ainactive\b/
+      @q.push [:TK_INACTIVE, $&]
       str = $'
     when /\Apolygon\b/
       @q.push [:TK_POLYGON, $&]
@@ -615,7 +615,7 @@ def draw(viewer, obj_ary, obj_type)
       obj.draw(viewer, [0.5, 0.5, 0.5])
     when :ACTIVE
       obj.draw(viewer, [1, 1, 1])
-    when :NOACTIVE
+    when :INACTIVE
       obj.draw(viewer, [0.3, 0.3, 0.3])
     when :FIX
       obj.draw(viewer, [0, 0, 1])
@@ -632,7 +632,7 @@ def draw(viewer, obj_ary, obj_type)
 end
 
 def next_type(type)
-  type_ary = [:ALL, :WORLD, :ACTIVE, :NOACTIVE, :FIX, :FIXHEAT, :HEAT, :LAMBDA]
+  type_ary = [:ALL, :WORLD, :ACTIVE, :INACTIVE, :FIX, :FIXHEAT, :HEAT, :LAMBDA]
   index = type_ary.index(type)
   if index.nil?
     raise 'bug?'
@@ -667,8 +667,8 @@ keyboard_proc = Proc.new { |key, x, y|
       obj_type = :ALL
     end
   when 'A'
-    if obj_type != :NOACTIVE
-      obj_type = :NOACTIVE
+    if obj_type != :INACTIVE
+      obj_type = :INACTIVE
     else
       obj_type = :ALL
     end

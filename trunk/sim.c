@@ -172,7 +172,7 @@ static void sim_set_region_active(void)
 	    (sim->active_p_ary)[p->i][p->j][p->k] = obj->uval.i;
 	}
 	if (!obj->uval.i) {
-	    /* check edge cells of noactive which contact an active cell */
+	    /* check edge cells of inactive which contact an active cell */
 	    ipoint_ary = ipoint_ary_new();
 	    for (index2 = 0; index2 < active_obj_ary->size; ++index2) {
 		obj2 = active_obj_ary->ptr[index2];

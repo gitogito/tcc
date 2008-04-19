@@ -50,9 +50,9 @@ command:
       @model.active(val[2])
     }
 
-  | TK_DASH TK_NOACTIVE obj
+  | TK_DASH TK_INACTIVE obj
     {
-      @model.noactive(val[2])
+      @model.inactive(val[2])
     }
 
   | TK_DASH TK_FIX expr obj
@@ -304,8 +304,8 @@ def parse(str)
     when /\Aline\b/
       @q.push [:TK_LINE, $&]
       str = $'
-    when /\Anoactive\b/
-      @q.push [:TK_NOACTIVE, $&]
+    when /\Ainactive\b/
+      @q.push [:TK_INACTIVE, $&]
       str = $'
     when /\Api\b/
       @q.push [:TK_PI, Math::PI]

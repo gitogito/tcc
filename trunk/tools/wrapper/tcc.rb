@@ -15,8 +15,8 @@ module TCC
       puts('')
     end
 
-    def noactive(obj)
-      puts('--- noactive')
+    def inactive(obj)
+      puts('--- inactive')
       puts obj.to_s
       puts('')
     end
@@ -274,7 +274,7 @@ if __FILE__ == $0
   tcc.fix(0.5, Ellipse.new(:Z, [0.5, 0.5, 0.1], 0.2, 0.3))
   tcc.lambda(0.1, Box.new([0, 0, 0.5], [0.5, 0.5, 0.5]))
   tcc.fix(0.9, Line.new(:Z, [0, 0, 0.3], [[0.5, 0.5], [0.1, 0.8]]))
-  tcc.noactive(Sweep.new(:Z, 0.5,
+  tcc.inactive(Sweep.new(:Z, 0.5,
                          Circle.new(:Z, [0.5, 0.5, 0.5], 0.2)))
   tcc.active(Sweep.new(:Z, 0.2,
                        Polygon.new(:Z, [0, 0, 0.8], [[1, 0], [1, 1]])))
