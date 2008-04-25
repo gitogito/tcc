@@ -160,6 +160,7 @@ expr:
     { -val[1] }
 
   | TK_NUMBER
+    { Float(val[0]) }
 
   | TK_WORD
     { @vars[val[0]] }
@@ -481,6 +482,7 @@ attr_reader :obj_ary, :viewer, :min, :max
 def initialize
   @viewer = Obj3D::Viewer.new('viewer', 640, 480)
   @min = @max = nil
+  @line_no = 1
 end
 
 def parse(str)
@@ -495,6 +497,9 @@ def parse(str)
   @q = []
   until str.empty?
     case str
+    when /\A\n/
+      @q.push [:TK_EOL, $&]
+      str = $'
     when /\A\s+/
       str = $'
     when /\A#.*/
@@ -545,7 +550,7 @@ def parse(str)
       @q.push [:TK_WORLD, $&]
       str = $'
     when /\A#{NumberPat}/ox
-      @q.push [:TK_NUMBER, Float($&)]
+      @q.push [:TK_NUMBER, $&]
       str = $'
     when /\A[a-zA-Z]\w*/
       @q.push [:TK_WORD, $&]
@@ -567,11 +572,19 @@ def parse(str)
 end
 
 def next_token
-  @q.shift
+  token = nil
+  loop do
+    token = @q.shift
+    unless token[0] == :TK_EOL
+      break
+    end
+    @line_no += 1
+  end
+  token
 end
 
 def on_error(error_token_id, error_value, value_stack)
-  STDERR.puts "parse error: '#{error_value}'"
+  STDERR.puts "parse error at #{@line_no} on '#{error_value}'"
   exit 1
 end
 
