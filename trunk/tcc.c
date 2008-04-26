@@ -3,7 +3,7 @@
 #include <stdarg.h>
 #include <float.h>
 #include <string.h>
-#include "tc.h"
+#include "tcc.h"
 #include "sim.h"
 #include "config.h"
 #ifdef HAVE_LIBGC

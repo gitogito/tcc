@@ -2,7 +2,7 @@
 
 #include <string.h>
 #include <math.h>
-#include "tc.h"
+#include "tcc.h"
 #include "sim.h"
 #include "mem.h"
 

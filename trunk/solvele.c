@@ -9,7 +9,7 @@
 #include "solvele.h"
 #include "sparse_matrix.h"
 #include "mem.h"
-#include "tc.h"
+#include "tcc.h"
 
 #ifndef M_PI
 #define M_PI	3.14159265358979323846

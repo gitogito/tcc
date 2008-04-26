@@ -1,4 +1,4 @@
-class TcParser
+class TccParser
 
 options no_result_var
 
@@ -655,7 +655,7 @@ def next_type(type)
   type_ary[index]
 end
 
-parser = TcParser.new
+parser = TccParser.new
 parser.parse(ARGF.read)
 
 parser.viewer.scale = 3.0 / (parser.max - parser.min)

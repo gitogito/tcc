@@ -2,7 +2,7 @@
 #include <math.h>
 #include "sim.h"
 #include "mem.h"
-#include "tc.h"
+#include "tcc.h"
 
 IP_TYPE iround(double x)
 {

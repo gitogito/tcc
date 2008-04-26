@@ -2,7 +2,7 @@
 #include <assert.h>
 #include "sim.h"
 #include "mem.h"
-#include "tc.h"
+#include "tcc.h"
 #include "solvele.h"
 
 Config *config;

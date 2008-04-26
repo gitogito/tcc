@@ -1,6 +1,6 @@
 #include <string.h>
 #include "mem.h"
-#include "tc.h"
+#include "tcc.h"
 
 void *emalloc(size_t size)
 {

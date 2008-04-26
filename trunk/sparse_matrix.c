@@ -1,7 +1,7 @@
 #include <stdio.h>
 #include "sparse_matrix.h"
 #include "mem.h"
-#include "tc.h"
+#include "tcc.h"
 
 #define NTH	100
 
