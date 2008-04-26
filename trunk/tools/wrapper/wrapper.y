@@ -169,15 +169,33 @@ obj:
   | TK_RECT TK_SYMBOL ',' point ',' vector2d
     { Rect.new(*val.values_at(1, 3, 5)) }
 
+  | TK_RECT point ',' vector2d
+    {
+      STDERR.puts "rect requires axis at #{@line_no}"
+      exit 1
+    }
+
   | TK_RECT TK_SYMBOL ',' point ',' point2d
     {
       vec2d = point2d_sub_point(val[1], val[5], val[3])
       Rect.new(val[1], val[3], vec2d)
     }
 
+  | TK_RECT point ',' point2d
+    {
+      STDERR.puts "rect requires axis at #{@line_no}"
+      exit 1
+    }
+
   | TK_TRIANGLE TK_SYMBOL ',' point ',' vector2d ',' vector2d
     {
       Triangle.new(*val.values_at(1, 3, 5, 7))
+    }
+
+  | TK_TRIANGLE point ',' vector2d ',' vector2d
+    {
+      STDERR.puts "triangle requires axis at #{@line_no}"
+      exit 1
     }
 
   | TK_TRIANGLE TK_SYMBOL ',' point ',' point2d ',' point2d
@@ -187,20 +205,56 @@ obj:
       Triangle.new(val[1], val[3], vec2d1, vec2d2)
     }
 
+  | TK_TRIANGLE point ',' point2d ',' point2d
+    {
+      STDERR.puts "triangle requires axis at #{@line_no}"
+      exit 1
+    }
+
   | TK_CIRCLE TK_SYMBOL ',' point ',' expr
     { Circle.new(*val.values_at(1, 3, 5)) }
+
+  | TK_CIRCLE point ',' expr
+    {
+      STDERR.puts "circle requires axis at #{@line_no}"
+      exit 1
+    }
 
   | TK_CIRCLEPERI TK_SYMBOL ',' point ',' expr ',' expr ',' expr
     { CirclePeri.new(*val.values_at(1, 3, 5, 7, 9)) }
 
+  | TK_CIRCLEPERI point ',' expr ',' expr ',' expr
+    {
+      STDERR.puts "circleperi requires axis at #{@line_no}"
+      exit 1
+    }
+
   | TK_ELLIPSE TK_SYMBOL ',' point ',' expr ',' expr
     { Ellipse.new(*val.values_at(1, 3, 5, 7)) }
+
+  | TK_ELLIPSE point ',' expr ',' expr
+    {
+      STDERR.puts "circleperi requires axis at #{@line_no}"
+      exit 1
+    }
 
   | TK_ELLIPSEPERI TK_SYMBOL ',' point ',' expr ',' expr ',' expr ',' expr
     { EllipsePeri.new(*val.values_at(1, 3, 5, 7, 9, 11)) }
 
+  | TK_ELLIPSEPERI point ',' expr ',' expr ',' expr ',' expr
+    {
+      STDERR.puts "ellipseperi requires axis at #{@line_no}"
+      exit 1
+    }
+
   | TK_POLYGON TK_SYMBOL ',' point ',' vector2d_ary
     { Polygon.new(*val.values_at(1, 3, 5)) }
+
+  | TK_POLYGON point ',' vector2d_ary
+    {
+      STDERR.puts "polygon requires axis at #{@line_no}"
+      exit 1
+    }
 
   | TK_POLYGON TK_SYMBOL ',' point ',' point2d_ary
     {
@@ -212,8 +266,20 @@ obj:
       Polygon.new(val[1], val[3], ary)
     }
 
+  | TK_POLYGON point ',' point2d_ary
+    {
+      STDERR.puts "polygon requires axis at #{@line_no}"
+      exit 1
+    }
+
   | TK_LINE TK_SYMBOL ',' point ',' vector2d_ary
     { Line.new(*val.values_at(1, 3, 5)) }
+
+  | TK_LINE point ',' vector2d_ary
+    {
+      STDERR.puts "line requires axis at #{@line_no}"
+      exit 1
+    }
 
   | TK_LINE TK_SYMBOL ',' point ',' point2d_ary
     {
@@ -225,8 +291,20 @@ obj:
       Line.new(val[1], val[3], ary)
     }
 
+  | TK_LINE point ',' point2d_ary
+    {
+      STDERR.puts "line requires axis at #{@line_no}"
+      exit 1
+    }
+
   | TK_SWEEP TK_SYMBOL ',' expr ',' obj
     { Sweep.new(*val.values_at(1, 3, 5)) }
+
+  | TK_SWEEP expr ',' obj
+    {
+      STDERR.puts "sweep requires axis at #{@line_no}"
+      exit 1
+    }
 
   | '[' objs ']'
     {
