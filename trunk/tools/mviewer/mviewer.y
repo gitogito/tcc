@@ -621,6 +621,7 @@ class Obj3D::Viewer
 end
 
 def draw(viewer, obj_ary, obj_type)
+  viewer.delete_list
   obj_ary.each do |obj|
     next unless obj_type == :ALL or obj_type == obj.type
     case obj.type
@@ -712,7 +713,6 @@ keyboard_proc = Proc.new { |key, x, y|
   else
     STDERR.puts "'#{key.chr}' is not assigned"
   end
-  parser.viewer.delete_list
   draw(parser.viewer, parser.obj_ary, obj_type)
   parser.viewer.newlist
   parser.viewer.redisplay
