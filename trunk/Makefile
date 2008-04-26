@@ -8,7 +8,7 @@ CC = gcc
 CFLAGS = -g -Wall -O2
 LIBS = -lm -lumfpack -lamd -lblas
 
-TARGET = a.out
+TARGET = tcc
 SRCS = tc.c sim.c obj.c mem.c solvele.c sparse_matrix.c y.tab.c lex.yy.c
 OBJS = tc.o sim.o obj.o mem.o solvele.o sparse_matrix.o y.tab.o lex.yy.o
 
