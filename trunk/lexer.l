@@ -3,14 +3,13 @@
 #include "y.tab.h"
 #include "mem.h"
 
-#define yywrap()	1
-
 extern int yydebug;
 
 long lineno = 1;
 %}
 
 %option nounput
+%option noyywrap
 
 ws	[ \t]+
 word	[a-zA-Z_][a-zA-Z_0-9]*
