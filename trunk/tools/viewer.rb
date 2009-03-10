@@ -165,9 +165,9 @@ loop do
     end
   when EGGX::KeyPress
     case code
-    when ?q
+    when ?q.ord
       break
-    when ?s
+    when ?s.ord
       if outfile.kind_of?(String)
 	f = open(outfile, 'w')
       else
@@ -184,47 +184,47 @@ loop do
       end
       f.close unless f == STDOUT
       break
-    when ?x
+    when ?x.ord
       surface = :YZ
       i_a3 = 0
       xwin = 0
       ywin = 0
       draw_p = true
-    when ?y
+    when ?y.ord
       surface = :ZX
       i_a3 = 0
       xwin = 0
       ywin = 0
       draw_p = true
-    when ?z
+    when ?z.ord
       surface = :XY
       i_a3 = 0
       xwin = 0
       ywin = 0
       draw_p = true
-    when ?j
+    when ?j.ord
       if i_a3 >= step
 	i_a3 -= step
       else
 	i_a3 = 0
       end
-    when ?k
+    when ?k.ord
       if i_a3 < n_a3 - step
 	i_a3 += step
       else
 	i_a3 = n_a3 - 1
       end
-    when ?1; step = 1
-    when ?2; step = 2
-    when ?3; step = 3
-    when ?4; step = 4
-    when ?5; step = 5
-    when ?>
+    when ?1.ord; step = 1
+    when ?2.ord; step = 2
+    when ?3.ord; step = 3
+    when ?4.ord; step = 4
+    when ?5.ord; step = 5
+    when ?>.ord
       block += step
       draw_p = true
       xwin = 0
       ywin = 0
-    when ?<
+    when ?<.ord
       if block - step >= 1
 	block -= step
 	draw_p = true
@@ -234,7 +234,7 @@ loop do
       end
       xwin = 0
       ywin = 0
-    when ?b
+    when ?b.ord
       if border
 	border = false
       else
