@@ -83,17 +83,17 @@ loop do
     STDERR.print '(', x, ', ', y, ')', "\n"
   when EGGX::KeyPress
     case inp[1]
-    when ?c
+    when ?c.ord
       colors = colors[1 .. -1] + [ colors[0] ]
       win.newrgbcolor(*colors[0])
       redraw(win, ppm, xy_ary)
-    when ?d
+    when ?d.ord
       xy_ary.pop
       redraw(win, ppm, xy_ary)
-    when ?m
+    when ?m.ord
       manhattan = ! manhattan
       STDERR.puts "manhattan is #{manhattan}"
-    when ?q
+    when ?q.ord
       break
     end
   end
