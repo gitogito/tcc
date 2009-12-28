@@ -234,7 +234,7 @@ obj:
 
   | TK_ELLIPSE point ',' expr ',' expr
     {
-      STDERR.puts "circleperi requires axis at #{@line_no}"
+      STDERR.puts "ellipse requires axis at #{@line_no}"
       exit 1
     }
 
