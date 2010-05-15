@@ -22,14 +22,6 @@ let pi = 4.0 *. atan(1.0)
 %start input
 
 %type <Syntax.input> input
-%type <Syntax.world> world
-%type <Syntax.commands> commands
-%type <Syntax.expr> var_assign
-%type <Syntax.point> point
-%type <Syntax.vector> vector
-%type <Syntax.point2d> point2d
-%type <Syntax.vector2d> vector2d
-%type <Syntax.expr> expr
 
 %%
 
