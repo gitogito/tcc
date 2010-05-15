@@ -1,0 +1,11 @@
+parser.cmi: syntax.cmo 
+lexer.cmo: parser.cmi 
+lexer.cmx: parser.cmx 
+parser.cmo: syntax.cmo parser.cmi 
+parser.cmx: syntax.cmx parser.cmi 
+syntax.cmo: 
+syntax.cmx: 
+tccwrapper.cmo: syntax.cmo parser.cmi lexer.cmo 
+tccwrapper.cmx: syntax.cmx parser.cmx lexer.cmx 
+tokens.cmo: 
+tokens.cmx: 
