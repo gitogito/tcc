@@ -57,7 +57,9 @@ and print_obj = function
       Printf.printf "sweep %s, %s, " s (string_of_expr e);
       print_obj obj
   | `Objs objs ->
+      print_endline "["
       print_objs objs
+      print_endline "]"
 
 let print_command = function
     `Active obj ->
