@@ -48,10 +48,10 @@ and print_obj = function
         (string_of_expr e1) (string_of_expr e2)
         (string_of_expr e3) (string_of_expr e4)
   | `Polygon (s, p, p2d_list) ->
-      Printf.printf "polygon %s, %s, %s\n" s (string_of_point p)
+      Printf.printf "polygon %s, %s %s\n" s (string_of_point p)
         (string_of_point2d_list p2d_list)
   | `Line (s, p, p2d_list) ->
-      Printf.printf "line %s, %s, %s\n" s (string_of_point p)
+      Printf.printf "line %s, %s %s\n" s (string_of_point p)
         (string_of_point2d_list p2d_list)
   | `Sweep (s, e, obj) ->
       Printf.printf "sweep %s, %s, " s (string_of_expr e);

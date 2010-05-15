@@ -107,6 +107,7 @@ let string_of_point2d = function
         (string_of_expr p1)
         (string_of_expr p2)
 
+(* return "," in the beginning of string *)
 let rec string_of_point2d_list = function
     `Nil -> ""
   | `Point2d_list (p2d, p2dl) ->
