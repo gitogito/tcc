@@ -335,12 +335,15 @@ obj:
 	case AXIS_X:
 	    $$->uobj.triangle = triangle_new($4.x, $4.y, $4.z, axis,
 		$6.x - $4.y, $6.y - $4.z, $8.x - $4.y, $8.y - $4.z);
+            break;
 	case AXIS_Y:
 	    $$->uobj.triangle = triangle_new($4.x, $4.y, $4.z, axis,
 		$6.x - $4.x, $6.y - $4.z, $8.x - $4.x, $8.y - $4.z);
+            break;
 	case AXIS_Z:
 	    $$->uobj.triangle = triangle_new($4.x, $4.y, $4.z, axis,
 		$6.x - $4.x, $6.y - $4.y, $8.x - $4.x, $8.y - $4.y);
+            break;
 	default:
 	    bug("unknown axis");
 	}
