@@ -32,6 +32,6 @@ clean::
 	-rm -rf *.cmi *.cmo $(TARGET) *.cmo *.o lexer.ml parser.ml parser.mli
 
 depend:: $(DEPEND)
-	ocamldep *.mli *.ml > .depend
+	ocamldep *.mli *.ml > Makefile.depend
 
--include .depend
+-include Makefile.depend
