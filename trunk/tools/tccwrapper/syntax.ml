@@ -14,12 +14,10 @@ type expr =
   | Var of string
   | Var_assign_expr of string * expr
 
-type var_assign = Var_assign of string * expr
-type point      = Point of expr * expr * expr
-type vector     = Vector of expr * expr * expr
-type point2d    = Point2d of expr * expr
-type vector2d   = Vector2d of expr * expr
-type world      = World of point * point * expr * expr * expr
+type point = Point of expr * expr * expr
+type vector = Vector of expr * expr * expr
+type point2d = Point2d of expr * expr
+type vector2d = Vector2d of expr * expr
 
 type obj =
     Box of point * point
@@ -34,6 +32,8 @@ type obj =
   | Sweep of string * expr * obj
   | Objs of obj mylist
 
+type var_assign = Var_assign of string * expr
+type world = World of point * point * expr * expr * expr
 type command =
     Active of obj
   | Inactive of obj
