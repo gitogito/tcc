@@ -36,19 +36,19 @@ var_assigns:
     var_assign
     {
       match $1 with
-        Var_assign_expr (s, e) -> Cons (Var_assign (s, e), Nil)
+        Var_assign_expr Var_assign (s, e) -> Cons (Var_assign (s, e), Nil)
       | _ -> failwith "not reached"
     }
   | var_assigns var_assign
     {
       match $2 with
-        Var_assign_expr (s, e) -> Cons (Var_assign (s, e), $1)
+        Var_assign_expr Var_assign (s, e) -> Cons (Var_assign (s, e), $1)
       | _ -> failwith "not reached"
     }
 ;
 
 var_assign:
-    WORD EQ expr { Var_assign_expr ($1, $3) }
+    WORD EQ expr { Var_assign_expr (Var_assign ($1, $3)) }
 ;
 
 world:

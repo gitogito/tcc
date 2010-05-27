@@ -2,17 +2,18 @@
 
 type 'a mylist = Nil | Cons of 'a * 'a mylist
 
-type expr =
-    Plus of expr * expr
-  | Minus of expr * expr
-  | Multi of expr * expr
-  | Div of expr * expr
-  | Pow of expr * expr
-  | Paren of expr
-  | Neg of expr
-  | Number of float
-  | Var of string
-  | Var_assign_expr of string * expr
+type var_assign = Var_assign of string * expr
+and expr =
+  Plus of expr * expr
+| Minus of expr * expr
+| Multi of expr * expr
+| Div of expr * expr
+| Pow of expr * expr
+| Paren of expr
+| Neg of expr
+| Number of float
+| Var of string
+| Var_assign_expr of var_assign
 
 type point = Point of expr * expr * expr
 type vector = Vector of expr * expr * expr
@@ -32,7 +33,6 @@ type obj =
   | Sweep of string * expr * obj
   | Objs of obj mylist
 
-type var_assign = Var_assign of string * expr
 type world = World of point * point * expr * expr * expr
 type command =
     Active of obj
@@ -89,7 +89,8 @@ let rec string_of_expr = function
   | Neg e -> Printf.sprintf "-%s" (string_of_expr e)
   | Number e -> Printf.sprintf "%g" e
   | Var e -> e
-  | Var_assign_expr (s, e) -> Printf.sprintf "%s = %s\n" s (string_of_expr e)
+  | Var_assign_expr Var_assign (s, e) ->
+      Printf.sprintf "%s = %s\n" s (string_of_expr e)
 
 let string_of_point = function
     Point (x, y, z) ->
