@@ -46,26 +46,19 @@ type input = Input of var_assign mylist * world * command mylist
 
 (* return point from vector relative to the point *)
 let to_point point vector =
-  match point with
-    Point (px, py, pz) ->
-      match vector with
-        Vector (vx, vy, vz) ->
-          Point (
-            Plus (px, vx),
-            Plus (py, vy),
-            Plus (pz, vz))
+  match point, vector with
+    Point (px, py, pz), Vector (vx, vy, vz) ->
+      Point (Plus (px, vx), Plus (py, vy), Plus (pz, vz))
 
 (* return point2d from vector2d relative to the point *)
 let to_point2d axis point vector2d =
-  match point with
-    Point (px, py, pz) ->
-      match vector2d with
-        Vector2d (v1, v2) ->
-          match axis with
-            ":X" -> Point2d (Plus (py, v1), Plus (pz, v2))
-          | ":Y" -> Point2d (Plus (pz, v1), Plus (px, v2))
-          | ":Z" -> Point2d (Plus (px, v1), Plus (py, v2))
-          | _ -> failwith "unknown axis"
+  match point, vector2d with
+    Point (px, py, pz), Vector2d (v1, v2) ->
+      match axis with
+        ":X" -> Point2d (Plus (py, v1), Plus (pz, v2))
+      | ":Y" -> Point2d (Plus (pz, v1), Plus (px, v2))
+      | ":Z" -> Point2d (Plus (px, v1), Plus (py, v2))
+      | _ -> failwith "unknown axis"
 
 (* return point2d list from vector2d_list relative to the point *)
 let rec to_point2d_list axis point vector2d_list =
