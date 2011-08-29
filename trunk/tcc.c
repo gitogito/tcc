@@ -75,7 +75,7 @@ int main(int argc, char **argv)
     double omega_sor = -1;
 
 #ifdef HAVE_LIBGC
-    GC_init();
+    GC_INIT();
 #endif
 
     prgname = argv[0];
