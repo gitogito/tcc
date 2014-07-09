@@ -80,7 +80,7 @@ static int symbol_to_axis(char *symbol)
 %token <val> TK_NUMBER
 %token <str> TK_WORD TK_SYMBOL
 
-%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_DASH TK_ELLIPSE TK_FIX TK_HEAT
+%token	TK_ACTIVE TK_BOX TK_CIRCLE TK_CIRCLEPERI TK_DASH TK_ELLIPSE TK_ELLIPSEPERI TK_FIX TK_HEAT
         TK_LAMBDA TK_LINE TK_INACTIVE TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE
 	TK_WORLD
 
@@ -358,6 +358,15 @@ obj:
 	$$->uobj.circle = circle_new($4.x, $4.y, $4.z, axis, $6);
     }
 
+  | TK_CIRCLEPERI TK_SYMBOL ',' point ',' expr ',' expr ',' expr
+    {
+	int axis;
+
+	$$ = obj_new(OBJ_CIRCLEPERI);
+	axis = symbol_to_axis($2);
+	$$->uobj.circleperi = circleperi_new($4.x, $4.y, $4.z, axis, $6, $8, $10);
+    }
+
   | TK_ELLIPSE TK_SYMBOL ',' point ',' expr ',' expr
     {
 	int axis;
@@ -365,6 +374,15 @@ obj:
 	$$ = obj_new(OBJ_ELLIPSE);
 	axis = symbol_to_axis($2);
 	$$->uobj.ellipse = ellipse_new($4.x, $4.y, $4.z, axis, $6, $8);
+    }
+
+  | TK_ELLIPSEPERI TK_SYMBOL ',' point ',' expr ',' expr ',' expr ',' expr
+    {
+	int axis;
+
+	$$ = obj_new(OBJ_ELLIPSEPERI);
+	axis = symbol_to_axis($2);
+	$$->uobj.ellipseperi = ellipseperi_new($4.x, $4.y, $4.z, axis, $6, $8, $10, $12);
     }
 
   | TK_POLYGON TK_SYMBOL ',' point ',' vector2d_ary

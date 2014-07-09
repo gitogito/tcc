@@ -171,11 +171,31 @@ typedef struct Ellipse {
 
 Ellipse *ellipse_new(double x, double y, double z, int axis, double ru, double rv);
 
+typedef struct Ellipseperi {
+    double x;
+    double y;
+    double z;
+    int axis;
+    double ru;
+    double rv;
+    double angle_st;
+    double angle_en;
+    Each *each;
+} Ellipseperi;
+
+Ellipseperi *ellipseperi_new(double x, double y, double z, int axis, double ru, double rv, double angle_st, double angle_en);
+
 typedef struct Circle {
     Ellipse *ellipse;
 } Circle;
 
 Circle *circle_new(double x, double y, double z, int axis, double r);
+
+typedef struct Circleperi {
+    Ellipseperi *ellipseperi;
+} Circleperi;
+
+Circleperi *circleperi_new(double x, double y, double z, int axis, double r, double angle_st, double angle_en);
 
 typedef struct Polygon {
     int axis;
@@ -229,7 +249,9 @@ enum {
     OBJ_RECT,
     OBJ_TRIANGLE,
     OBJ_ELLIPSE,
+    OBJ_ELLIPSEPERI,
     OBJ_CIRCLE,
+    OBJ_CIRCLEPERI,
     OBJ_POLYGON,
     OBJ_LINE,
     OBJ_BOX,
@@ -241,7 +263,9 @@ union uobj {
     Rect *rect;
     Triangle *triangle;
     Ellipse *ellipse;
+    Ellipseperi *ellipseperi;
     Circle *circle;
+    Circleperi *circleperi;
     Polygon *polygon;
     Line *line;
     Box *box;

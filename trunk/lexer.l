@@ -36,7 +36,9 @@ number	{num1}|{num2}
 ---+		return TK_DASH;
 active		return TK_ACTIVE;
 box		return TK_BOX;
+circleperi	return TK_CIRCLEPERI;
 circle		return TK_CIRCLE;
+ellipseperi	return TK_ELLIPSEPERI;
 ellipse		return TK_ELLIPSE;
 fix		return TK_FIX;
 heat		return TK_HEAT;

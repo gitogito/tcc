@@ -939,6 +939,168 @@ static void ellipse_offset(Ellipse *self)
 	warn_exit("length of ellipse becomes negative");
 }
 
+/* Ellipseperi */
+
+Ellipseperi *ellipseperi_new(double x, double y, double z, int axis, double ru, double rv, double angle_st, double angle_en)
+{
+    Ellipseperi *self;
+
+    if (ru < 0.0 || rv < 0.0)
+	warn_exit("length is negative for Ellipseperi");
+
+    self = EALLOC(Ellipseperi);
+    self->x = x;
+    self->y = y;
+    self->z = z;
+    self->axis = axis;
+    self->ru = ru;
+    self->rv = rv;
+    self->angle_st = angle_st;
+    self->angle_en = angle_en;
+    self->each = NULL;
+    return self;
+}
+
+static void ellipseperi_free(Ellipseperi *self)
+{
+    if (self == NULL)
+	return;
+    each_free(self->each);
+    FREE(self);
+}
+
+static void ellipseperi_ipoint_ary_add(Ellipseperi *self, iPoint_ary *ipoint_ary, int axis,
+	IP_TYPE wc, IP_TYPE u, IP_TYPE v)
+{
+    iPoint ipoint;
+
+    switch (axis) {
+    case AXIS_X:
+        ipoint = get_ipoint(wc, u, v);
+        break;
+    case AXIS_Y:
+        ipoint = get_ipoint(u, wc, v);
+        break;
+    case AXIS_Z:
+        ipoint = get_ipoint(u, v, wc);
+        break;
+    default:
+        bug("unknown axis %d", axis);
+    }
+    ipoint_ary_push(ipoint_ary, ipoint);
+}
+
+static void ellipseperi_ipoint_ary_add_sub(Ellipseperi *self, iPoint_ary *ipoint_ary, int axis,
+	IP_TYPE wc, IP_TYPE uc, IP_TYPE vc, IP_TYPE du, IP_TYPE dv)
+{
+    double angle;
+
+    angle = atan2(dv, du) / M_PI * 180.0;
+    if (angle < 0.0)
+        angle += 360.0;
+    if (angle >= self->angle_st && angle <= self->angle_en)
+        ellipseperi_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc + du, vc + dv);
+}
+
+static int ellipseperi_each(Ellipseperi *self, iPoint **pp)
+{
+    IP_TYPE uc, vc, wc, ru, rv;
+    IP_TYPE ui, vi, ri, u1, v1;
+    iPoint_ary *ipoint_ary;
+
+    if (self->each != NULL && self->each->index >= 0)
+	return each_each(self->each, pp);
+
+    switch (self->axis) {
+    case AXIS_X:
+	uc = iround((self->y - world->y0) / world->dy);
+	vc = iround((self->z - world->z0) / world->dz);
+	wc = iround((self->x - world->x0) / world->dx);
+	ru = iround(self->ru / world->dy);
+	rv = iround(self->rv / world->dz);
+	break;
+    case AXIS_Y:
+	uc = iround((self->x - world->x0) / world->dx);
+	vc = iround((self->z - world->z0) / world->dz);
+	wc = iround((self->y - world->y0) / world->dy);
+	ru = iround(self->ru / world->dx);
+	rv = iround(self->rv / world->dz);
+	break;
+    case AXIS_Z:
+	uc = iround((self->x - world->x0) / world->dx);
+	vc = iround((self->y - world->y0) / world->dy);
+	wc = iround((self->z - world->z0) / world->dz);
+	ru = iround(self->ru / world->dx);
+	rv = iround(self->rv / world->dy);
+	break;
+    default:
+	bug("unknown axis %d", self->axis);
+	uc = vc = wc = ru = rv = -1;	/* for shutting up compiler */
+    }
+
+    if (ru == 0 && rv == 0)
+	return 0;
+
+    ipoint_ary = ipoint_ary_new();
+    if (ru > rv) {
+        ui = ri = ru;  vi = 0;
+        while (ui >= vi) {
+            u1 = (IP_TYPE)((long)ui * rv / ru);
+            v1 = (IP_TYPE)((long)vi * rv / ru);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc, -ui, -v1);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc,  ui, -v1);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc, -ui,  v1);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc,  ui,  v1);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc, -vi, -u1);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc,  vi, -u1);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc, -vi,  u1);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc,  vi,  u1);
+            if ((ri -= (vi++ << 1) + 1) <= 0)
+                ri += (ui-- - 1) << 1;
+        }
+    } else {
+        ui = ri = rv;  vi = 0;
+        while (ui >= vi) {
+            u1 = (IP_TYPE)((long)ui * ru / rv);
+            v1 = (IP_TYPE)((long)vi * ru / rv);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc, -u1, -vi);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc,  u1, -vi);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc, -u1,  vi);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc,  u1,  vi);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc, -v1, -ui);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc,  v1, -ui);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc, -v1,  ui);
+            ellipseperi_ipoint_ary_add_sub(self, ipoint_ary, self->axis, wc, uc, vc,  v1,  ui);
+            if ((ri -= (vi++ << 1) - 1) < 0)
+                ri += (ui-- - 1) << 1;
+        }
+    }
+    self->each = each_new(ipoint_ary);
+    return each_each(self->each, pp);
+}
+
+static void ellipseperi_offset(Ellipseperi *self)
+{
+    switch (self->axis) {
+    case AXIS_X:
+	self->ru -= world->dy;
+	self->rv -= world->dz;
+	break;
+    case AXIS_Y:
+	self->ru -= world->dz;
+	self->rv -= world->dx;
+	break;
+    case AXIS_Z:
+	self->ru -= world->dx;
+	self->rv -= world->dy;
+	break;
+    default:
+	bug("unknow axis %d", self->axis);
+    }
+    if (self->ru < 0.0 || self->rv < 0.0)
+	warn_exit("length of ellipseperi becomes negative");
+}
+
 /* Circle */
 
 Circle *circle_new(double x, double y, double z, int axis, double r)
@@ -969,6 +1131,38 @@ static int circle_each(Circle *self, iPoint **pp)
 static void circle_offset(Circle *self)
 {
     ellipse_offset(self->ellipse);
+}
+
+/* Circleperi */
+
+Circleperi *circleperi_new(double x, double y, double z, int axis, double r, double angle_st, double angle_en)
+{
+    Circleperi *self;
+
+    if (r < 0.0)
+	warn_exit("length is negative for Circleperi");
+
+    self = EALLOC(Circleperi);
+    self->ellipseperi = ellipseperi_new(x, y, z, axis, r, r, angle_st, angle_en);
+    return self;
+}
+
+static void circleperi_free(Circleperi *self)
+{
+    if (self == NULL)
+	return;
+    ellipseperi_free(self->ellipseperi);
+    FREE(self);
+}
+
+static int circleperi_each(Circleperi *self, iPoint **pp)
+{
+    return ellipseperi_each(self->ellipseperi, pp);
+}
+
+static void circleperi_offset(Circleperi *self)
+{
+    ellipseperi_offset(self->ellipseperi);
 }
 
 /* Polygon */
@@ -1462,8 +1656,14 @@ void obj_free(Obj *self)
     case OBJ_ELLIPSE:
 	ellipse_free(self->uobj.ellipse);
 	break;
+    case OBJ_ELLIPSEPERI:
+	ellipseperi_free(self->uobj.ellipseperi);
+	break;
     case OBJ_CIRCLE:
 	circle_free(self->uobj.circle);
+	break;
+    case OBJ_CIRCLEPERI:
+	circleperi_free(self->uobj.circleperi);
 	break;
     case OBJ_POLYGON:
 	polygon_free(self->uobj.polygon);
@@ -1498,8 +1698,14 @@ int obj_each(Obj *self, iPoint **pp)
     case OBJ_ELLIPSE:
 	return ellipse_each(self->uobj.ellipse, pp);
 	break;
+    case OBJ_ELLIPSEPERI:
+	return ellipseperi_each(self->uobj.ellipseperi, pp);
+	break;
     case OBJ_CIRCLE:
 	return circle_each(self->uobj.circle, pp);
+	break;
+    case OBJ_CIRCLEPERI:
+	return circleperi_each(self->uobj.circleperi, pp);
 	break;
     case OBJ_POLYGON:
 	return polygon_each(self->uobj.polygon, pp);
@@ -1534,8 +1740,14 @@ void obj_offset(Obj *self)
     case OBJ_ELLIPSE:
 	ellipse_offset(self->uobj.ellipse);
 	break;
+    case OBJ_ELLIPSEPERI:
+	ellipseperi_offset(self->uobj.ellipseperi);
+	break;
     case OBJ_CIRCLE:
 	circle_offset(self->uobj.circle);
+	break;
+    case OBJ_CIRCLEPERI:
+	circleperi_offset(self->uobj.circleperi);
 	break;
     case OBJ_POLYGON:
 	polygon_offset(self->uobj.polygon);
@@ -1572,7 +1784,13 @@ static int obj_dim(Obj *self)
     case OBJ_ELLIPSE:
 	return 2;
 	break;
+    case OBJ_ELLIPSEPERI:
+	return 2;
+	break;
     case OBJ_CIRCLE:
+	return 2;
+	break;
+    case OBJ_CIRCLEPERI:
 	return 2;
 	break;
     case OBJ_POLYGON:
