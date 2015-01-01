@@ -1,6 +1,6 @@
 RESULT = a.out
-SOURCES = a.ml
-PACKS = extlib
+SOURCES = mygraphics.ml a.ml
+PACKS = graphics,extlib
 INCDIRS =
 LIBS =
 THREADS =
