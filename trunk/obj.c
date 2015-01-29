@@ -990,14 +990,23 @@ static void ellipseperi_ipoint_ary_add(Ellipseperi *self, iPoint_ary *ipoint_ary
     ipoint_ary_push(ipoint_ary, ipoint);
 }
 
+static double renormalize_angle(double angle, double angle0)
+{
+    if (angle < angle0)
+        return renormalize_angle(angle + 360.0, angle0);
+    else if (angle < angle0 + 360.0)
+        return angle;
+    else
+        return renormalize_angle(angle - 360.0, angle0);
+}
+
 static void ellipseperi_ipoint_ary_add_sub(Ellipseperi *self, iPoint_ary *ipoint_ary, int axis,
 	IP_TYPE wc, IP_TYPE uc, IP_TYPE vc, IP_TYPE du, IP_TYPE dv)
 {
     double angle;
 
     angle = atan2(dv, du) / M_PI * 180.0;
-    if (angle < 0.0)
-        angle += 360.0;
+    angle = renormalize_angle(angle, self->angle_st);
     if (angle >= self->angle_st && angle <= self->angle_en)
         ellipseperi_ipoint_ary_add(self, ipoint_ary, self->axis, wc, uc + du, vc + dv);
 }
