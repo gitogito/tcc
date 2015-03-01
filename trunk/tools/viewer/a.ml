@@ -50,17 +50,17 @@ let get_data ic =
   (world, ary)
 
 let get_min_max world ary =
-  let min = ref ary.(0).(0).(0).v in
-  let max = ref ary.(0).(0).(0).v in
+  let mi = ref ary.(0).(0).(0).v in
+  let ma = ref ary.(0).(0).(0).v in
   for iz = 0 to world.nz - 1 do
     for iy = 0 to world.ny - 1 do
       for ix = 0 to world.nx - 1 do
-        if ary.(ix).(iy).(iz).v < !min then min := ary.(ix).(iy).(iz).v;
-        if ary.(ix).(iy).(iz).v > !max then max := ary.(ix).(iy).(iz).v
+        if ary.(ix).(iy).(iz).v < !mi then mi := ary.(ix).(iy).(iz).v;
+        if ary.(ix).(iy).(iz).v > !ma then ma := ary.(ix).(iy).(iz).v
       done
     done
   done;
-  (!min, !max)
+  (!mi, !ma)
 
 let get_xyz i n a b =
   a +. (float i) /. float (n - 1) *. (b -. a)
