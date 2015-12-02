@@ -94,6 +94,8 @@ int main(int argc, char **argv)
 	    break;
 	for (s = argv[0] +1; *s != '\0'; s++) {
 	    if (*s == 'e') {
+                if (argc <= 1)
+		    warn_exit("option 'e' must have an argument");
 		opt_e = 1;
 		if (*(s + 1) != '\0')
 		    warn_exit("option 'e' must have an argument");
@@ -123,6 +125,8 @@ int main(int argc, char **argv)
 			"yydebug mode\n");
 		exit(0);
 	    } else if (*s == 'o') {
+                if (argc <= 1)
+		    warn_exit("option 'o' must have an argument");
 		opt_o = 1;
 		if (*(s + 1) != '\0')
 		    warn_exit("option 'o' must have an argument");
@@ -133,6 +137,8 @@ int main(int argc, char **argv)
 		    warn_exit("invalid omega %g", omega_sor);
 		break;
 	    } else if (*s == 'r') {
+                if (argc <= 1)
+		    warn_exit("option 'r' must have an argument");
 		if (*(s + 1) != '\0')
 		    warn_exit("option 'r' must have an argument");
 		--argc;
