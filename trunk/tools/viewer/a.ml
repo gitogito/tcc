@@ -124,7 +124,7 @@ let draw gr world v_min v_max ary axis n =
   let xyz = get_xyz n n_xyz a b in
   Graphics.set_color (Graphics.rgb 0 0 0);
   Mygraphics.moveto gr 0.005 1.005;
-  Graphics.draw_string (sprintf "%s %g" axis_s xyz);
+  Graphics.draw_string (sprintf "%s %d %g" axis_s n xyz);
 
   Graphics.synchronize ()
 
