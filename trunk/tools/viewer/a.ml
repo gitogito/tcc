@@ -69,7 +69,7 @@ let get_2d_array world ary axis n =
   let n1, a1, b1, n2, a2, b2 =
     match axis with
     | X -> (world.ny, world.ya, world.yb, world.nz, world.za, world.zb)
-    | Y -> (world.nz, world.za, world.zb, world.nx, world.xa, world.xb)
+    | Y -> (world.nx, world.xa, world.xb, world.nz, world.za, world.zb)
     | Z -> (world.nx, world.xa, world.xb, world.ny, world.ya, world.yb)
   in
   let ary_2d =
@@ -81,7 +81,7 @@ let get_2d_array world ary axis n =
       let v =
         match axis with
         | X -> ary.(n).(i1).(i2).v
-        | Y -> ary.(i2).(n).(i1).v
+        | Y -> ary.(i1).(n).(i2).v
         | Z -> ary.(i1).(i2).(n).v
       in
       ary_2d.(i1).(i2) <- v
