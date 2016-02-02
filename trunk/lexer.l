@@ -48,6 +48,7 @@ inactive	return TK_INACTIVE;
 polygon		return TK_POLYGON;
 rect		return TK_RECT;
 triangle	return TK_TRIANGLE;
+sphere		return TK_SPHERE;
 sweep		return TK_SWEEP;
 world		return TK_WORLD;
 

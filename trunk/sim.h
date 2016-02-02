@@ -228,6 +228,18 @@ typedef struct Box {
 
 Box *box_new(double x, double y, double z, double xlen, double ylen, double zlen);
 
+typedef struct Sphere {
+    double x;
+    double y;
+    double z;
+    double rx;
+    double ry;
+    double rz;
+    Each *each;
+} Sphere;
+
+Sphere *sphere_new(double x, double y, double z, double rx, double ry, double rz);
+
 typedef struct AryObj {
     Obj **ptr;
     int alloc_size;
@@ -255,6 +267,7 @@ enum {
     OBJ_POLYGON,
     OBJ_LINE,
     OBJ_BOX,
+    OBJ_SPHERE,
     OBJ_SWEEP,
     OBJ_OBJARY,
 };
@@ -269,6 +282,7 @@ union uobj {
     Polygon *polygon;
     Line *line;
     Box *box;
+    Sphere *sphere;
     Sweep *sweep;
     ObjAry *objary;
 };

@@ -81,7 +81,7 @@ static int symbol_to_axis(char *symbol)
 %token <str> TK_WORD TK_SYMBOL
 
 %token	TK_ACTIVE TK_BOX TK_CIRCLE TK_CIRCLEPERI TK_DASH TK_ELLIPSE TK_ELLIPSEPERI TK_FIX TK_HEAT
-        TK_LAMBDA TK_LINE TK_INACTIVE TK_POLYGON TK_RECT TK_SWEEP TK_TRIANGLE
+        TK_LAMBDA TK_LINE TK_INACTIVE TK_POLYGON TK_RECT TK_SPHERE TK_SWEEP TK_TRIANGLE
 	TK_WORLD
 
 %type <point>		point
@@ -419,6 +419,12 @@ obj:
 	$$ = obj_new(OBJ_LINE);
 	axis = symbol_to_axis($2);
 	$$->uobj.line = line_new2($4.x, $4.y, $4.z, axis, $6);
+    }
+
+  | TK_SPHERE point ',' expr ',' expr ',' expr
+    {
+	$$ = obj_new(OBJ_SPHERE);
+	$$->uobj.sphere = sphere_new($2.x, $2.y, $2.z, $4, $6, $8);
     }
 
   | TK_SWEEP TK_SYMBOL ',' expr ',' obj

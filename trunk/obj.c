@@ -1598,6 +1598,74 @@ static void box_offset(Box *self)
     sweep_offset(self->sweep);
 }
 
+/* Sphere */
+
+Sphere *sphere_new(double x, double y, double z, double rx, double ry, double rz)
+{
+    Sphere *self;
+
+    if (rx < 0.0 || ry < 0.0 || rz < 0.0)
+        warn_exit("length is negative for Sphere");
+
+    self = EALLOC(Sphere);
+    self->x = x;
+    self->y = y;
+    self->z = z;
+    self->rx = rx;
+    self->ry = ry;
+    self->rz = rz;
+
+    self->each = NULL;
+    return self;
+}
+
+static void sphere_free(Sphere *self)
+{
+    if (self == NULL)
+	return;
+    each_free(self->each);
+    FREE(self);
+}
+
+static int sphere_each(Sphere *self, iPoint **pp)
+{
+    iPoint_ary *ipoint_ary;
+    IP_TYPE i, j, k;
+    double x, y, z;
+
+    if (self->each != NULL && self->each->index >= 0)
+	return each_each(self->each, pp);
+
+    ipoint_ary = ipoint_ary_new();
+    for (i = 0; i < world->ni; ++i) {
+        x = world->x0 + world->dx * i;
+        for (j = 0; j < world->nj; ++j) {
+            y = world->y0 + world->dy * j;
+            for (k = 0; k < world->nk; ++k) {
+                z = world->z0 + world->dz * k;
+                if (pow((x - self->x)/self->rx, 2.0) +
+                        pow((y - self->y)/self->ry, 2.0) +
+                        pow((z - self->z)/self->rz, 2.0) <= 1.0)
+                {
+                    ipoint_ary_push(ipoint_ary, get_ipoint(i, j, k));
+                }
+            }
+        }
+    }
+
+    self->each = each_new(ipoint_ary);
+    return each_each(self->each, pp);
+}
+
+static void sphere_offset(Sphere *self)
+{
+    self->rx -= world->dx;
+    self->ry -= world->dy;
+    self->rz -= world->dz;
+    if (self->rx < 0.0 || self->ry < 0.0 || self->rz < 0.0)
+	warn_exit("length of sphere becomes negative");
+}
+
 /* ObjAry */
 
 ObjAry *objary_new(AryObj *aryobj)
@@ -1683,6 +1751,9 @@ void obj_free(Obj *self)
     case OBJ_BOX:
 	box_free(self->uobj.box);
 	break;
+    case OBJ_SPHERE:
+	sphere_free(self->uobj.sphere);
+	break;
     case OBJ_SWEEP:
 	sweep_free(self->uobj.sweep);
 	break;
@@ -1724,6 +1795,9 @@ int obj_each(Obj *self, iPoint **pp)
 	break;
     case OBJ_BOX:
 	return box_each(self->uobj.box, pp);
+	break;
+    case OBJ_SPHERE:
+	return sphere_each(self->uobj.sphere, pp);
 	break;
     case OBJ_SWEEP:
 	return sweep_each(self->uobj.sweep, pp);
@@ -1767,6 +1841,9 @@ void obj_offset(Obj *self)
     case OBJ_BOX:
 	box_offset(self->uobj.box);
 	break;
+    case OBJ_SPHERE:
+	sphere_offset(self->uobj.sphere);
+	break;
     case OBJ_SWEEP:
 	sweep_offset(self->uobj.sweep);
 	break;
@@ -1809,6 +1886,9 @@ static int obj_dim(Obj *self)
 	return 2;
 	break;
     case OBJ_BOX:
+	return 3;
+	break;
+    case OBJ_SPHERE:
 	return 3;
 	break;
     case OBJ_SWEEP:
