@@ -1304,23 +1304,27 @@ static int polygon_each(Polygon *self, iPoint **pp)
 		    x1 = self->w;
 		    y1 = va.x;
 		    z1 = va.y;
+                    tr = triangle_new(x1, y1, z1, self->axis,
+                            vb.x - y1, vb.y - z1, vc.x - y1, vc.y - z1);
 		    break;
 		case AXIS_Y:
 		    x1 = va.x;
 		    y1 = self->w;
 		    z1 = va.y;
+                    tr = triangle_new(x1, y1, z1, self->axis,
+                            vb.x - x1, vb.y - z1, vc.x - x1, vc.y - z1);
 		    break;
 		case AXIS_Z:
 		    x1 = va.x;
 		    y1 = va.y;
 		    z1 = self->w;
+                    tr = triangle_new(x1, y1, z1, self->axis,
+                            vb.x - x1, vb.y - y1, vc.x - x1, vc.y - y1);
 		    break;
 		default:
 		    bug("unknow axis %d", self->axis);
 		    x1 = y1 = z1 = -1.0;	/* for shutting up compiler */
 		}
-		tr = triangle_new(x1, y1, z1, self->axis,
-			vb.x - x1, vb.y - y1, vc.x - x1, vc.y - y1);
 		while (triangle_each(tr, &p)) {
 		    if (p == NULL)
 			continue;
