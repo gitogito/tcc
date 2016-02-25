@@ -180,7 +180,6 @@ command:
   | TK_DASH TK_LAMBDA expr obj
     {
 	$4->uval.d = $3;
-	obj_offset($4);
 	aryobj_push(config->lambda_obj_ary, $4);
     }
 

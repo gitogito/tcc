@@ -363,28 +363,6 @@ static int sweep_each(Sweep *self, iPoint **pp)
     return each_each(self->each, pp);
 }
 
-static void sweep_offset(Sweep *self)
-{
-    switch (self->axis) {
-    case AXIS_X:
-	self->len -= world->dx;
-	obj_offset(self->obj);
-	break;
-    case AXIS_Y:
-	self->len -= world->dy;
-	obj_offset(self->obj);
-	break;
-    case AXIS_Z:
-	self->len -= world->dz;
-	obj_offset(self->obj);
-	break;
-    default:
-	bug("unknow axis %d", self->axis);
-    }
-    if (self->len < 0.0)
-	warn_exit("length of sweep becomes negative");
-}
-
 /* Rect */
 
 Rect *rect_new(double x, double y, double z, int axis, double len1, double len2)
@@ -474,28 +452,6 @@ static int rect_each(Rect *self, iPoint **pp)
 
     self->each = each_new(ipoint_ary);
     return each_each(self->each, pp);
-}
-
-static void rect_offset(Rect *self)
-{
-    switch (self->axis) {
-    case AXIS_X:
-	self->len1 -= world->dy;
-	self->len2 -= world->dz;
-	break;
-    case AXIS_Y:
-	self->len1 -= world->dz;
-	self->len2 -= world->dx;
-	break;
-    case AXIS_Z:
-	self->len1 -= world->dx;
-	self->len2 -= world->dy;
-	break;
-    default:
-	bug("unknow axis %d", self->axis);
-    }
-    if (self->len1 < 0.0 || self->len2 < 0.0)
-	warn_exit("length of rect becomes negative");
 }
 
 /* Triangle_z */
@@ -770,32 +726,6 @@ static int triangle_each(Triangle *self, iPoint **pp)
     return each_each(self->each, pp);
 }
 
-static void triangle_offset(Triangle *self)
-{
-    switch (self->axis) {
-    case AXIS_X:
-	self->du2 -= world->dy;
-	self->du2 -= world->dz;
-	self->du3 -= world->dy;
-	self->du3 -= world->dz;
-	break;
-    case AXIS_Y:
-	self->du2 -= world->dx;
-	self->dv2 -= world->dz;
-	self->du3 -= world->dx;
-	self->dv3 -= world->dz;
-	break;
-    case AXIS_Z:
-	self->du2 -= world->dx;
-	self->dv2 -= world->dy;
-	self->du3 -= world->dx;
-	self->dv3 -= world->dy;
-	break;
-    default:
-	bug("unknow axis %d", self->axis);
-    }
-}
-
 /* Ellipse */
 
 Ellipse *ellipse_new(double x, double y, double z, int axis, double ru, double rv)
@@ -915,28 +845,6 @@ static int ellipse_each(Ellipse *self, iPoint **pp)
     }
     self->each = each_new(ipoint_ary);
     return each_each(self->each, pp);
-}
-
-static void ellipse_offset(Ellipse *self)
-{
-    switch (self->axis) {
-    case AXIS_X:
-	self->ru -= world->dy;
-	self->rv -= world->dz;
-	break;
-    case AXIS_Y:
-	self->ru -= world->dz;
-	self->rv -= world->dx;
-	break;
-    case AXIS_Z:
-	self->ru -= world->dx;
-	self->rv -= world->dy;
-	break;
-    default:
-	bug("unknow axis %d", self->axis);
-    }
-    if (self->ru < 0.0 || self->rv < 0.0)
-	warn_exit("length of ellipse becomes negative");
 }
 
 /* Ellipseperi */
@@ -1088,28 +996,6 @@ static int ellipseperi_each(Ellipseperi *self, iPoint **pp)
     return each_each(self->each, pp);
 }
 
-static void ellipseperi_offset(Ellipseperi *self)
-{
-    switch (self->axis) {
-    case AXIS_X:
-	self->ru -= world->dy;
-	self->rv -= world->dz;
-	break;
-    case AXIS_Y:
-	self->ru -= world->dz;
-	self->rv -= world->dx;
-	break;
-    case AXIS_Z:
-	self->ru -= world->dx;
-	self->rv -= world->dy;
-	break;
-    default:
-	bug("unknow axis %d", self->axis);
-    }
-    if (self->ru < 0.0 || self->rv < 0.0)
-	warn_exit("length of ellipseperi becomes negative");
-}
-
 /* Circle */
 
 Circle *circle_new(double x, double y, double z, int axis, double r)
@@ -1137,11 +1023,6 @@ static int circle_each(Circle *self, iPoint **pp)
     return ellipse_each(self->ellipse, pp);
 }
 
-static void circle_offset(Circle *self)
-{
-    ellipse_offset(self->ellipse);
-}
-
 /* Circleperi */
 
 Circleperi *circleperi_new(double x, double y, double z, int axis, double r, double angle_st, double angle_en)
@@ -1167,11 +1048,6 @@ static void circleperi_free(Circleperi *self)
 static int circleperi_each(Circleperi *self, iPoint **pp)
 {
     return ellipseperi_each(self->ellipseperi, pp);
-}
-
-static void circleperi_offset(Circleperi *self)
-{
-    ellipseperi_offset(self->ellipseperi);
 }
 
 /* Polygon */
@@ -1350,34 +1226,6 @@ static int polygon_each(Polygon *self, iPoint **pp)
     }
     self->each = each_new(ipoint_ary);
     return each_each(self->each, pp);
-}
-
-static void polygon_offset(Polygon *self)
-{
-    int index;
-
-    switch (self->axis) {
-    case AXIS_X:
-	for (index = 0; index < self->vector2d_ary->size; ++index) {
-	    self->vector2d_ary->ptr[index].x -= world->dy;
-	    self->vector2d_ary->ptr[index].y -= world->dz;
-	}
-	break;
-    case AXIS_Y:
-	for (index = 0; index < self->vector2d_ary->size; ++index) {
-	    self->vector2d_ary->ptr[index].x -= world->dx;
-	    self->vector2d_ary->ptr[index].y -= world->dz;
-	}
-	break;
-    case AXIS_Z:
-	for (index = 0; index < self->vector2d_ary->size; ++index) {
-	    self->vector2d_ary->ptr[index].x -= world->dx;
-	    self->vector2d_ary->ptr[index].y -= world->dy;
-	}
-	break;
-    default:
-	bug("unknow axis %d", self->axis);
-    }
 }
 
 /* Line */
@@ -1597,11 +1445,6 @@ static int box_each(Box *self, iPoint **pp)
     return sweep_each(self->sweep, pp);
 }
 
-static void box_offset(Box *self)
-{
-    sweep_offset(self->sweep);
-}
-
 /* Sphere */
 
 Sphere *sphere_new(double x, double y, double z, double rx, double ry, double rz)
@@ -1661,15 +1504,6 @@ static int sphere_each(Sphere *self, iPoint **pp)
     return each_each(self->each, pp);
 }
 
-static void sphere_offset(Sphere *self)
-{
-    self->rx -= world->dx;
-    self->ry -= world->dy;
-    self->rz -= world->dz;
-    if (self->rx < 0.0 || self->ry < 0.0 || self->rz < 0.0)
-	warn_exit("length of sphere becomes negative");
-}
-
 /* ObjAry */
 
 ObjAry *objary_new(AryObj *aryobj)
@@ -1702,14 +1536,6 @@ static int objary_each(ObjAry *self, iPoint **pp)
     }
     self->each_obj_index = 0;
     return 0;
-}
-
-static void objary_offset(ObjAry *self)
-{
-    int index;
-
-    for (index = 0; index < self->aryobj->size; ++index)
-	obj_offset(self->aryobj->ptr[index]);
 }
 
 /* Obj */
@@ -1813,50 +1639,6 @@ int obj_each(Obj *self, iPoint **pp)
 	bug("unknown obj %d", self->objtype);
     }
     return 0;	/* NOTREACHED */
-}
-
-void obj_offset(Obj *self)
-{
-    switch (self->objtype) {
-    case OBJ_RECT:
-	rect_offset(self->uobj.rect);
-	break;
-    case OBJ_TRIANGLE:
-	triangle_offset(self->uobj.triangle);
-	break;
-    case OBJ_ELLIPSE:
-	ellipse_offset(self->uobj.ellipse);
-	break;
-    case OBJ_ELLIPSEPERI:
-	ellipseperi_offset(self->uobj.ellipseperi);
-	break;
-    case OBJ_CIRCLE:
-	circle_offset(self->uobj.circle);
-	break;
-    case OBJ_CIRCLEPERI:
-	circleperi_offset(self->uobj.circleperi);
-	break;
-    case OBJ_POLYGON:
-	polygon_offset(self->uobj.polygon);
-	break;
-    case OBJ_LINE:
-	warn_exit("line_offset is not implemented");
-	break;
-    case OBJ_BOX:
-	box_offset(self->uobj.box);
-	break;
-    case OBJ_SPHERE:
-	sphere_offset(self->uobj.sphere);
-	break;
-    case OBJ_SWEEP:
-	sweep_offset(self->uobj.sweep);
-	break;
-    case OBJ_OBJARY:
-	objary_offset(self->uobj.objary);
-	break;
-    default:
-	bug("unknown obj %d", self->objtype);
-    }
 }
 
 static int obj_dim(Obj *self)

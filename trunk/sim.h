@@ -300,7 +300,6 @@ struct Obj {
 
 Obj *obj_new(int objtype);
 int obj_each(Obj *self, iPoint **pp);
-void obj_offset(Obj *self);
 
 typedef struct Config {
     AryObj *active_obj_ary;
